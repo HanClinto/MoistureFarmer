@@ -170,10 +170,21 @@ print (" Prompting model with system prompt and sample conversations:", json.dum
 print ("######## End of setup ########")
 running = True
 
+iteration_count = 0
+error_count = 0
+
 while running:
+    iteration_count += 1
+    print()
+    print(f"######## Iteration {iteration_count} ########")
     farm_status = populate_distance_from(equipment, gonky)
     messages.append({"role": "user", "content": fill_vars(daily_prompt, {"farm_status": json.dumps(farm_status)})})
 
+    print(" Current equipment status:", json.dumps(equipment, indent=2))
+
+    print("Agent is thinking about its next action...")
+
+    # Prepare the query to the model
     query = {
         "model": "gpt-4-turbo",
         "tools": tools,
@@ -182,8 +193,8 @@ while running:
         "temperature": 0.2
     }
     #print(f"Querying model with last message of: {json.dumps(messages[-1], indent=2)}")
-    response = requests.post(endpoint, json=query)
-    response_json = response.json()
+    response_json = requests.post(endpoint, json=query).json()
+
     # Update our messages with the response from the model. Post any messages to the user, and then execute any tools that we need to call.
     for choice in response_json["choices"]:
         #print("Response from model:", json.dumps(choice, indent=2))
@@ -191,7 +202,8 @@ while running:
             # Append the assistant's message to the messages list
             messages.append(response_json["choices"][0]["message"])
             if "content" in choice["message"]:
-                print(" Assistant: ", choice["message"]["content"])
+                print(" Agent response: ", choice["message"]["content"])
+            print(f"  Agent has requested {len(choice['message']['tool_calls'])} tool calls.")
             if "tool_calls" in choice["message"]:
                 for tool_call in choice["message"]["tool_calls"]:
                     tool_name = tool_call["function"]["name"]
@@ -235,7 +247,7 @@ while running:
                         tool_response = "Switched self off."
                         running = False
 
-                    print(f'Tool response: {tool_response}')
+                    print(f' Tool response: {tool_response}')
                     # Append the tool response to the messages list
                     tool_response_message = {
                         "tool_call_id": tool_call["id"],
@@ -246,14 +258,15 @@ while running:
                     messages.append(tool_response_message)
             else:
                 print("######## ERROR: No tool calls in response. ########")
+                error_count += 1
                 running = False
                 break
         else:
             print("######## ERROR: No message in response. ########")
+            error_count += 1
             running = False
             break
 
-    print(" Current equipment status:", json.dumps(equipment, indent=2))
 
 print("######## End of day simulation ########")
 print(" Final messages:", json.dumps(messages, indent=2))
@@ -261,7 +274,7 @@ print("#######################################")
 print("Final equipment status:", json.dumps(equipment, indent=2))
 print()
 print("#######################################")
-# Assert that Gonky's battery is at 100% and all equipment is charged to 100%
+# Assert that all equipment and droids are charged to 100%
 for eq in equipment:
     assert eq["battery_level"] == 100, f"{eq['object_id']}'s battery is not at 100%."
 print("All equipment is fully charged and Gonky's battery is at 100%.")
