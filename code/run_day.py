@@ -14,10 +14,10 @@ gonky = {
 
 equipment = [
         gonky,
-        {"object_id":"vaporator_1","type":"vaporator","model":"GX-8","location":{"x":10,"y":5},"battery_level":50},
-        {"object_id":"vaporator_2","type":"vaporator","model":"GX-8","location":{"x":15,"y":10},"battery_level":20},
-        {"object_id":"vaporator_3","type":"vaporator","model":"GX-8","location":{"x":20,"y":15},"battery_level":80},
-        {"object_id":"power_station_1","type":"power station","subtype":"medium fusion reactor power generator", "model":"MFCR-200","location":{"x":0,"y":0},"battery_level":100}
+        {"object_id":"vaporator_1","type":"vaporator","model":"GX-8","location":{"x":10,"y":15},"battery_level":50},
+        #{"object_id":"vaporator_2","type":"vaporator","model":"GX-8","location":{"x":15,"y":10},"battery_level":20},
+        #{"object_id":"vaporator_3","type":"vaporator","model":"GX-8","location":{"x":20,"y":15},"battery_level":80},
+        {"object_id":"power_station_1","type":"power station","subtype":"medium fusion reactor power generator", "model":"MFCR-200","location":{"x":5,"y":5},"battery_level":100}
     ]
 
 def obj_by_id(obj_id, objs):
@@ -173,7 +173,8 @@ while running:
         "model": "gpt-4-turbo",
         "tools": tools,
         "tool_choice": "auto",
-        "messages": messages
+        "messages": messages,
+        "temperature": 0.2
     }
     print(f"Querying model with last message of: {json.dumps(messages[-1], indent=2)}")
     response = requests.post(endpoint, json=query)
@@ -196,8 +197,10 @@ while running:
                     if tool_name == "charge_equipment":
                         equipment_obj = obj_by_id(params["object_id"], equipment)
                         if equipment_obj and gonky["battery_level"] >= 10 and distance_between(equipment_obj, gonky) <= 1:
-                            gonky["battery_level"] -= 10
-                            equipment_obj["battery_level"] += 10
+                            charge_need = 100 - equipment_obj["battery_level"]
+                            charge_amount = min(gonky["battery_level"] - 10, charge_need)
+                            gonky["battery_level"] -= charge_amount
+                            equipment_obj["battery_level"] += charge_amount
                             tool_response = f"Charged {equipment_obj['object_id']} to {equipment_obj['battery_level']}%"
                         else:
                             tool_response = "Cannot charge equipment. Either too far away or not enough battery."
@@ -218,7 +221,8 @@ while running:
                     elif tool_name == "move_to_object":
                         target_obj = obj_by_id(params["object_id"], equipment)
                         if target_obj:
-                            gonky["location"] = target_obj["location"]
+                            gonky["location"]["x"] = target_obj["location"]["x"]
+                            gonky["location"]["y"] = target_obj["location"]["y"]
                             tool_response = f"Moved to object {target_obj['object_id']} at location ({gonky['location']['x']}, {gonky['location']['y']})"
                         else:
                             tool_response = f"Cannot move to object. Unable to find object {params['object_id']}."
@@ -234,7 +238,7 @@ while running:
                         "name": tool_name,
                         "content": tool_response,
                     }
-                    messages.append({"role": "assistant", "content": tool_response})
+                    messages.append(tool_response_message)
             else:
                 print("######## ERROR: No tool calls in response. ########")
                 running = False
