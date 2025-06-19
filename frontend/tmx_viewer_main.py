@@ -99,18 +99,20 @@ class TMXViewer:
             self.tmx_data.width,
             self.tmx_data.height
         )
+        total_drawn_tiles = 0
         # Render each layer
         for layer_index, layer in enumerate(self.tmx_data.layers):
             if hasattr(layer, 'data'):  # It's a tile layer
-                self.render_tile_layer(layer_index, start_x, start_y, end_x, end_y)
+                total_drawn_tiles += self.render_tile_layer(layer_index, start_x, start_y, end_x, end_y)
 
         # Draw UI info
-        self.draw_ui()
+        self.draw_ui(total_drawn_tiles)
 
         pygame.display.flip()
 
     def render_tile_layer(self, layer_index: int, start_x: int, start_y: int, end_x: int, end_y: int):
         """Render a specific tile layer"""
+        drawn_tiles = 0
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                 if 0 <= x < self.tmx_data.width and 0 <= y < self.tmx_data.height:
@@ -126,9 +128,16 @@ class TMXViewer:
                             scaled_height = int(self.tmx_data.tileheight * self.camera.zoom)
                             tile = pygame.transform.scale(tile, (scaled_width, scaled_height))
 
-                        self.screen.blit(tile, (screen_x, screen_y))
+                        # Ensure transparency for Foreground layer tiles
+                        if self.tmx_data.layers[layer_index].name == "Foreground":
+                            tile.set_colorkey((0, 0, 0))
 
-    def draw_ui(self):
+                        self.screen.blit(tile, (screen_x, screen_y))
+                        drawn_tiles += 1
+
+        return drawn_tiles
+
+    def draw_ui(self, total_drawn_tiles):
         """Draw UI information"""
         font = pygame.font.Font(None, 24)
 
@@ -142,6 +151,11 @@ class TMXViewer:
             map_text = f"Map: {self.tmx_data.width}x{self.tmx_data.height} tiles"
             map_surface = font.render(map_text, True, (255, 255, 255))
             self.screen.blit(map_surface, (10, 35))
+
+        # Number of drawn tiles
+        drawn_tiles_text = f"Drawn Tiles: {total_drawn_tiles}"
+        drawn_tiles_surface = font.render(drawn_tiles_text, True, (255, 255, 255))
+        self.screen.blit(drawn_tiles_surface, (10, 60))
 
         # Controls
         controls = [
@@ -181,7 +195,7 @@ class TMXViewer:
 def main():
     """Entry point"""
     # Path to TMX file - adjust as needed
-    tmx_path = os.path.join("..", "resources", "tiles", "MAP_02.tmx")
+    tmx_path = os.path.join("..", "resources", "world.tmx")
 
     if not os.path.exists(tmx_path):
         print(f"TMX file not found at: {tmx_path}")
