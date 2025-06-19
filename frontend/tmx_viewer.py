@@ -5,14 +5,18 @@ import sys
 from typing import Tuple, Optional
 
 class Camera:
-    """Camera system for smooth panning around the map"""
-    
+    """Camera system for smooth panning and zooming around the map"""
     def __init__(self, screen_width: int, screen_height: int):
         self.x = 0.0
         self.y = 0.0
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.speed = 300  # pixels per second
+
+        # Zoom levels as powers of 2 for pixel-perfect scaling
+        self.zoom_levels = [ 0.5, 1.0, 2.0, 4.0]
+        self.current_zoom_index = 3  # Start at 1.0x (index 3)
+        self.zoom = self.zoom_levels[self.current_zoom_index]
 
     def update(self, dt: float, keys_pressed, mouse_pos: Optional[Tuple[int, int]] = None):
         """Update camera position based on input"""
@@ -32,18 +36,46 @@ class Camera:
         # Apply movement
         self.x += movement_x
         self.y += movement_y
-    
+
     def get_visible_tiles(self, tile_width: int, tile_height: int, map_width: int, map_height: int):
         """Calculate which tiles are visible on screen"""
         # Add padding to ensure smooth scrolling
         padding = 2
         
-        start_x = max(0, int(self.x // tile_width) - padding)
-        start_y = max(0, int(self.y // tile_height) - padding)
-        end_x = min(map_width, int((self.x + self.screen_width) // tile_width) + padding + 1)
-        end_y = min(map_height, int((self.y + self.screen_height) // tile_height) + padding + 1)
+        # Account for zoom when calculating visible area
+        scaled_tile_width = tile_width * self.zoom
+        scaled_tile_height = tile_height * self.zoom
+        
+        start_x = max(0, int(self.x // scaled_tile_width) - padding)
+        start_y = max(0, int(self.y // scaled_tile_height) - padding)
+        end_x = min(map_width, int((self.x + self.screen_width) // scaled_tile_width) + padding + 1)
+        end_y = min(map_height, int((self.y + self.screen_height) // scaled_tile_height) + padding + 1)
         
         return start_x, start_y, end_x, end_y
+        
+    def zoom_at_point(self, zoom_direction: int, mouse_x: int, mouse_y: int):
+        """Zoom at a specific point (usually mouse position) using discrete zoom levels"""
+        old_zoom = self.zoom
+        old_zoom_index = self.current_zoom_index
+        
+        # Calculate new zoom index
+        new_zoom_index = self.current_zoom_index + zoom_direction
+        new_zoom_index = max(0, min(len(self.zoom_levels) - 1, new_zoom_index))
+        
+        if new_zoom_index != old_zoom_index:
+            self.current_zoom_index = new_zoom_index
+            new_zoom = self.zoom_levels[self.current_zoom_index]
+            
+            # Calculate the world coordinate that the mouse is pointing to before zoom
+            world_x_before = (self.x + mouse_x) / old_zoom
+            world_y_before = (self.y + mouse_y) / old_zoom
+            
+            # Update zoom
+            self.zoom = new_zoom
+            
+            # Calculate what the camera position should be to keep the same world point under the mouse
+            self.x = world_x_before * self.zoom - mouse_x
+            self.y = world_y_before * self.zoom - mouse_y
 
 class TMXViewer:
     """Main application class for viewing TMX maps"""
@@ -55,7 +87,7 @@ class TMXViewer:
         self.screen_width = 1024
         self.screen_height = 768
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("TMX Viewer - Pan with WASD or Arrow Keys")
+        pygame.display.set_caption("TMX Viewer - Pan with WASD/Mouse, Zoom with Mousewheel")
         
         # Load TMX map
         self.tmx_data = self.load_tmx(tmx_path)
@@ -95,7 +127,7 @@ class TMXViewer:
         except Exception as e:
             print(f"Error loading TMX file: {e}")
             return None
-    
+
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
@@ -119,6 +151,11 @@ class TMXViewer:
                     self.camera.x -= dx
                     self.camera.y -= dy
                     self.last_mouse_pos = current_pos
+            elif event.type == pygame.MOUSEWHEEL:
+                # Handle mousewheel zoom with discrete levels
+                mouse_pos = pygame.mouse.get_pos()
+                zoom_direction = 1 if event.y > 0 else -1  # Zoom in or out
+                self.camera.zoom_at_point(zoom_direction, mouse_pos[0], mouse_pos[1])
     
     def render(self):
         """Render the map"""
@@ -143,7 +180,7 @@ class TMXViewer:
         self.draw_ui()
         
         pygame.display.flip()
-        
+
     def render_tile_layer(self, layer_index: int, start_x: int, start_y: int, end_x: int, end_y: int):
         """Render a specific tile layer"""
         for y in range(start_y, end_y):
@@ -151,17 +188,23 @@ class TMXViewer:
                 if 0 <= x < self.tmx_data.width and 0 <= y < self.tmx_data.height:
                     tile = self.tmx_data.get_tile_image(x, y, layer_index)
                     if tile:
-                        # Calculate screen position
-                        screen_x = x * self.tmx_data.tilewidth - self.camera.x
-                        screen_y = y * self.tmx_data.tileheight - self.camera.y
+                        # Calculate screen position with zoom
+                        screen_x = x * self.tmx_data.tilewidth * self.camera.zoom - self.camera.x
+                        screen_y = y * self.tmx_data.tileheight * self.camera.zoom - self.camera.y
+                        
+                        # Scale tile if zoom is not 1.0
+                        if self.camera.zoom != 1.0:
+                            scaled_width = int(self.tmx_data.tilewidth * self.camera.zoom)
+                            scaled_height = int(self.tmx_data.tileheight * self.camera.zoom)
+                            tile = pygame.transform.scale(tile, (scaled_width, scaled_height))
+                        
                         self.screen.blit(tile, (screen_x, screen_y))
-    
     def draw_ui(self):
         """Draw UI information"""
         font = pygame.font.Font(None, 24)
         
-        # Camera position
-        cam_text = f"Camera: ({int(self.camera.x)}, {int(self.camera.y)})"
+        # Camera position and zoom
+        cam_text = f"Camera: ({int(self.camera.x)}, {int(self.camera.y)}) Zoom: {self.camera.zoom:.2f}"
         cam_surface = font.render(cam_text, True, (255, 255, 255))
         self.screen.blit(cam_surface, (10, 10))
         
@@ -176,18 +219,20 @@ class TMXViewer:
             "Controls:",
             "WASD / Arrow Keys: Pan",
             "Mouse: Click and drag to pan",
+            "Mouse Wheel: Zoom in/out",
             "ESC: Exit"
         ]
         
         for i, control in enumerate(controls):
             color = (255, 255, 0) if i == 0 else (200, 200, 200)
             control_surface = font.render(control, True, color)
-            self.screen.blit(control_surface, (10, self.screen_height - 100 + i * 20))
+            self.screen.blit(control_surface, (10, self.screen_height - 120 + i * 20))
     
     def run(self):
         """Main game loop"""
         print("Starting TMX Viewer...")
         print("Use WASD or arrow keys to pan around the map")
+        print("Use mouse wheel to zoom in/out")
         print("Press ESC to exit")
         
         while self.running:
