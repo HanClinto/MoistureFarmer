@@ -172,6 +172,7 @@ class TMXViewer:
             # Update camera with keyboard input
             keys_pressed = pygame.key.get_pressed()
             self.camera.update(dt, keys_pressed)
+            self.camera.clamp_to_tilemap(self.tmx_data.width, self.tmx_data.height, self.tmx_data.tilewidth, self.tmx_data.tileheight)
 
             self.render()
 

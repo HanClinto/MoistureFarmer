@@ -73,3 +73,11 @@ class Camera:
             # Calculate what the camera position should be to keep the same world point under the mouse
             self.x = world_x_before * self.zoom - mouse_x
             self.y = world_y_before * self.zoom - mouse_y
+
+    def clamp_to_tilemap(self, map_width: int, map_height: int, tile_width: int, tile_height: int):
+        """Ensure the camera stays within the bounds of the tilemap"""
+        map_pixel_width = map_width * tile_width * self.zoom
+        map_pixel_height = map_height * tile_height * self.zoom
+
+        self.x = max(0, min(self.x, map_pixel_width - self.screen_width))
+        self.y = max(0, min(self.y, map_pixel_height - self.screen_height))
