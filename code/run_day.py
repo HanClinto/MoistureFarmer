@@ -163,6 +163,11 @@ for conversation in sample_conversations:
     messages.append({"role": "user", "content": conversation["user"]})
     messages.append({"role": "assistant", "content": fill_vars(conversation["assistant"], gonky)})
 
+print ("######## Start of day simulation ########")
+print (" Initial equipment status:", json.dumps(equipment, indent=2))
+print (" Prompting model with system prompt and sample conversations:", json.dumps(messages, indent=2))
+
+print ("######## End of setup ########")
 running = True
 
 while running:
@@ -176,7 +181,7 @@ while running:
         "messages": messages,
         "temperature": 0.2
     }
-    print(f"Querying model with last message of: {json.dumps(messages[-1], indent=2)}")
+    #print(f"Querying model with last message of: {json.dumps(messages[-1], indent=2)}")
     response = requests.post(endpoint, json=query)
     response_json = response.json()
     # Update our messages with the response from the model. Post any messages to the user, and then execute any tools that we need to call.
