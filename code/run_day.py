@@ -1,5 +1,30 @@
 # Simulates a day in the life of an EG-6 power droid.
 import json
+import os
+import sys
+
+# Initialize ANSI color support for Windows
+def init_colors():
+    """Initialize ANSI color support for cross-platform compatibility."""
+    if os.name == 'nt':  # Windows
+        try:
+            # Enable ANSI escape sequences in Windows Console
+            import subprocess
+            subprocess.run('', shell=True, check=True)
+            # For older Windows versions, try colorama
+            try:
+                import colorama
+                colorama.init()
+            except ImportError:
+                # If colorama is not available, try enabling ANSI support directly
+                import ctypes
+                kernel32 = ctypes.windll.kernel32
+                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+        except:
+            pass
+    
+# Initialize colors at startup
+init_colors()
 
 gonky = {
         "object_id":"eg6_gonky",
@@ -129,19 +154,73 @@ sample_conversations = [
 daily_prompt = "Current farm status: {farm_status}\nWhat is your next action?"
 
 
+# Color codes that work cross-platform
+class Colors:
+    """Cross-platform color codes."""
+    def __init__(self):
+        # Check if we should use colors
+        self.use_colors = self._should_use_colors()
+        
+        if self.use_colors:
+            self.BOLD = '\033[1m'
+            self.RESET = '\033[0m'
+            self.ITALIC = '\033[3m'
+            self.PURPLE = '\033[1;35m'
+            self.YELLOW = '\033[1;33m'
+            self.GREEN = '\033[1;32m'
+        else:
+            # No colors - just use empty strings
+            self.BOLD = ''
+            self.RESET = ''
+            self.ITALIC = ''
+            self.PURPLE = ''
+            self.YELLOW = ''
+            self.GREEN = ''
+    
+    def _should_use_colors(self):
+        """Determine if we should use colors based on environment."""
+        # Don't use colors if output is redirected
+        if not sys.stdout.isatty():
+            return False
+            
+        # Check environment variables
+        if os.environ.get('NO_COLOR'):
+            return False
+            
+        if os.environ.get('FORCE_COLOR'):
+            return True
+            
+        # Check for common terminals that support colors
+        term = os.environ.get('TERM', '').lower()
+        if any(term_type in term for term_type in ['color', 'ansi', 'xterm', 'screen', 'tmux']):
+            return True
+            
+        # On Windows, check if we're in a modern terminal
+        if os.name == 'nt':
+            # Check for Windows Terminal, VS Code terminal, or other modern terminals
+            wt_session = os.environ.get('WT_SESSION')
+            term_program = os.environ.get('TERM_PROGRAM', '').lower()
+            if wt_session or 'vscode' in term_program:
+                return True
+                
+        return True  # Default to using colors
+
+# Initialize colors
+colors = Colors()
+
 def print_single_message(msg):
     """Print a single message in the formatted style."""
     role = msg.get("role", "unknown")
     content = msg.get("content", "")
     
     if role == "system":
-        print(f"\n\033[1;35mSystem>\033[0m {content.strip()}")
+        print(f"\n{colors.PURPLE}System>{colors.RESET} {content.strip()}")
     elif role == "user":
-        print(f"\n\033[1;33mUser>\033[0m {content.strip()}")
+        print(f"\n{colors.YELLOW}User>{colors.RESET} {content.strip()}")
     elif role == "assistant":
         # Only print content if it's not empty or None
         if content and content.strip():
-            print(f"\n\033[1;32mDroid>\033[0m {content.strip()}")
+            print(f"\n{colors.GREEN}Droid>{colors.RESET} {content.strip()}")
         
         # Check for tool calls
         if "tool_calls" in msg:
@@ -150,12 +229,12 @@ def print_single_message(msg):
                 try:
                     params = json.loads(tool_call["function"]["arguments"])
                     param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
-                    print(f"    \033[3mDroid {tool_name} ({param_str})\033[0m")
+                    print(f"    {colors.ITALIC}Droid {tool_name} ({param_str}){colors.RESET}")
                 except:
-                    print(f"    \033[3mDroid {tool_name} (invalid params)\033[0m")
+                    print(f"    {colors.ITALIC}Droid {tool_name} (invalid params){colors.RESET}")
     elif role == "tool":
         tool_name = msg.get("name", "unknown_tool")
-        print(f"    \033[3m{content}\033[0m")
+        print(f"    {colors.ITALIC}{content}{colors.RESET}")
 
 def print_formatted_chat(messages):
     """Print the chat messages in a nicely formatted way."""
