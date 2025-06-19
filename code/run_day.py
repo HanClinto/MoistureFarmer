@@ -129,35 +129,38 @@ sample_conversations = [
 daily_prompt = "Current farm status: {farm_status}\nWhat is your next action?"
 
 
+def print_single_message(msg):
+    """Print a single message in the formatted style."""
+    role = msg.get("role", "unknown")
+    content = msg.get("content", "")
+    
+    if role == "system":
+        print(f"\n\033[1;35mSystem>\033[0m {content.strip()}")
+    elif role == "user":
+        print(f"\n\033[1;33mUser>\033[0m {content.strip()}")
+    elif role == "assistant":
+        # Only print content if it's not empty or None
+        if content and content.strip():
+            print(f"\n\033[1;32mDroid>\033[0m {content.strip()}")
+        
+        # Check for tool calls
+        if "tool_calls" in msg:
+            for tool_call in msg["tool_calls"]:
+                tool_name = tool_call["function"]["name"]
+                try:
+                    params = json.loads(tool_call["function"]["arguments"])
+                    param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
+                    print(f"    \033[3mDroid {tool_name} ({param_str})\033[0m")
+                except:
+                    print(f"    \033[3mDroid {tool_name} (invalid params)\033[0m")
+    elif role == "tool":
+        tool_name = msg.get("name", "unknown_tool")
+        print(f"    \033[3m{content}\033[0m")
+
 def print_formatted_chat(messages):
     """Print the chat messages in a nicely formatted way."""
-    
     for msg in messages:
-        role = msg.get("role", "unknown")
-        content = msg.get("content", "")
-        
-        if role == "system":
-            print(f"\n\033[1;35mSystem>\033[0m {content.strip()}")
-        elif role == "user":
-            print(f"\n\033[1;33mUser>\033[0m {content.strip()}")
-        elif role == "assistant":
-            # Only print content if it's not empty or None
-            if content and content.strip():
-                print(f"\n\033[1;32mDroid>\033[0m {content.strip()}")
-            
-            # Check for tool calls
-            if "tool_calls" in msg:
-                for tool_call in msg["tool_calls"]:
-                    tool_name = tool_call["function"]["name"]
-                    try:
-                        params = json.loads(tool_call["function"]["arguments"])
-                        param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
-                        print(f"\n    \033[3mDroid {tool_name} ({param_str})\033[0m")
-                    except:
-                        print(f"\n    \033[3mDroid {tool_name} (invalid params)\033[0m")
-        elif role == "tool":
-            tool_name = msg.get("name", "unknown_tool")
-            print(f"    \033[3m{content}\033[0m")
+        print_single_message(msg)
     
 
 def fill_vars(prompt, obj):
@@ -271,10 +274,10 @@ while running:
     messages.append({"role": "user", "content": fill_vars(daily_prompt, {"farm_status": json.dumps(farm_status)})})
 
     # Print equipment status as a table
-    print(" Current equipment status:")
     print_equipment_table(equipment)
 
-    print("Agent is thinking about its next action...")
+    # print("Agent is thinking about its next action...")
+    print("")
 
     # Prepare the query to the model
     query = {
@@ -292,15 +295,16 @@ while running:
         #print("Response from model:", json.dumps(choice, indent=2))
         if "message" in choice:
             # Append the assistant's message to the messages list
-            messages.append(response_json["choices"][0]["message"])
-            if "content" in choice["message"]:
-                print(" Agent response: ", choice["message"]["content"])
-                print(f"  Agent has requested {len(choice['message']['tool_calls'])} tool calls.")
+            assistant_message = response_json["choices"][0]["message"]
+            messages.append(assistant_message)
+            
+            # Print the assistant's message using formatted output
+            print_single_message(assistant_message)
+            
             if "tool_calls" in choice["message"]:
                 for tool_call in choice["message"]["tool_calls"]:
                     tool_name = tool_call["function"]["name"]
                     params = json.loads(tool_call["function"]["arguments"])
-                    print(f"   Executing tool: {tool_name} with params: {params}")
                     
                     # Execute the tool using the global tool map
                     if tool_name in tool_implementations:
@@ -310,7 +314,6 @@ while running:
                     else:
                         tool_response = f"Unknown tool: {tool_name}"
 
-                    print(f'    Tool response: {tool_response}')
                     # Append the tool response to the messages list
                     tool_response_message = {
                         "tool_call_id": tool_call["id"],
@@ -319,6 +322,9 @@ while running:
                         "content": tool_response,
                     }
                     messages.append(tool_response_message)
+                    
+                    # Print the tool response using formatted output
+                    print_single_message(tool_response_message)
             else:
                 print("######## ERROR: No tool calls in response. ########")
                 error_count += 1
@@ -333,7 +339,11 @@ while running:
 print()
 print()
 print("######## End of day simulation ########")
+print("\n" + "="*50)
+print("CHAT HISTORY")
+print("="*50)
 print_formatted_chat(messages)
+print("\n" + "="*50)
 print("#######################################")
 print("Final equipment status:")
 print_equipment_table(equipment)
