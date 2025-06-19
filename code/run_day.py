@@ -156,6 +156,57 @@ import requests
 
 endpoint = "http://localhost:8080/v1/chat/completions"
 
+# Tool implementations
+def charge_equipment_tool(params, gonky, equipment):
+    """Execute the charge_equipment tool."""
+    equipment_obj = obj_by_id(params["object_id"], equipment)
+    if equipment_obj and gonky["battery_level"] >= 10 and distance_between(equipment_obj, gonky) <= 1:
+        charge_need = 100 - equipment_obj["battery_level"]
+        charge_amount = min(gonky["battery_level"] - 10, charge_need)
+        gonky["battery_level"] -= charge_amount
+        equipment_obj["battery_level"] += charge_amount
+        return f"Charged {equipment_obj['object_id']} to {equipment_obj['battery_level']}%", False
+    else:
+        return "Cannot charge equipment. Either too far away or not enough battery.", False
+
+def recharge_self_tool(params, gonky, equipment):
+    """Execute the recharge_self tool."""
+    power_station = obj_by_id("power_station_1", equipment)
+    if power_station and distance_between(power_station, gonky) <= 1:
+        gonky["battery_level"] = 100
+        return "Recharged self to 100%", False
+    else:
+        return "Cannot recharge self. Either too far away, or unable to find power station.", False
+
+def move_to_location_tool(params, gonky, equipment):
+    """Execute the move_to_location tool."""
+    gonky["location"]["x"] = params["x"]
+    gonky["location"]["y"] = params["y"]
+    return f"Moved to location ({gonky['location']['x']}, {gonky['location']['y']})", False
+
+def move_to_object_tool(params, gonky, equipment):
+    """Execute the move_to_object tool."""
+    target_obj = obj_by_id(params["object_id"], equipment)
+    if target_obj:
+        gonky["location"]["x"] = target_obj["location"]["x"]
+        gonky["location"]["y"] = target_obj["location"]["y"]
+        return f"Moved to object {target_obj['object_id']} at location ({gonky['location']['x']}, {gonky['location']['y']})", False
+    else:
+        return f"Cannot move to object. Unable to find object {params['object_id']}.", False
+
+def switch_self_off_tool(params, gonky, equipment):
+    """Execute the switch_self_off tool."""
+    return "Switched self off.", True
+
+# Global tool map
+tool_implementations = {
+    "charge_equipment": charge_equipment_tool,
+    "recharge_self": recharge_self_tool,
+    "move_to_location": move_to_location_tool,
+    "move_to_object": move_to_object_tool,
+    "switch_self_off": switch_self_off_tool
+}
+
 
 # Populate the "messages" list with the system prompt, sample conversations, and daily prompt
 messages = [{"role": "system", "content": fill_vars(system_prompt, gonky)}]
@@ -218,43 +269,14 @@ while running:
                     tool_name = tool_call["function"]["name"]
                     params = json.loads(tool_call["function"]["arguments"])
                     print(f"   Executing tool: {tool_name} with params: {params}")
-                    tool_response = ""
-                    # Execute the tool
-                    if tool_name == "charge_equipment":
-                        equipment_obj = obj_by_id(params["object_id"], equipment)
-                        if equipment_obj and gonky["battery_level"] >= 10 and distance_between(equipment_obj, gonky) <= 1:
-                            charge_need = 100 - equipment_obj["battery_level"]
-                            charge_amount = min(gonky["battery_level"] - 10, charge_need)
-                            gonky["battery_level"] -= charge_amount
-                            equipment_obj["battery_level"] += charge_amount
-                            tool_response = f"Charged {equipment_obj['object_id']} to {equipment_obj['battery_level']}%"
-                        else:
-                            tool_response = "Cannot charge equipment. Either too far away or not enough battery."
                     
-                    elif tool_name == "recharge_self":
-                        power_station = obj_by_id("power_station_1", equipment)
-                        if power_station and distance_between(power_station, gonky) <= 1:
-                            gonky["battery_level"] = 100
-                            tool_response = "Recharged self to 100%"
-                        else:
-                            tool_response = "Cannot recharge self. Either too far away, or unable to find power station."
-                    
-                    elif tool_name == "move_to_location":
-                        gonky["location"]["x"] = params["x"]
-                        gonky["location"]["y"] = params["y"]
-                        tool_response = f"Moved to location ({gonky['location']['x']}, {gonky['location']['y']})"
-                    
-                    elif tool_name == "move_to_object":
-                        target_obj = obj_by_id(params["object_id"], equipment)
-                        if target_obj:
-                            gonky["location"]["x"] = target_obj["location"]["x"]
-                            gonky["location"]["y"] = target_obj["location"]["y"]
-                            tool_response = f"Moved to object {target_obj['object_id']} at location ({gonky['location']['x']}, {gonky['location']['y']})"
-                        else:
-                            tool_response = f"Cannot move to object. Unable to find object {params['object_id']}."
-                    elif tool_name == "switch_self_off":
-                        tool_response = "Switched self off."
-                        running = False
+                    # Execute the tool using the global tool map
+                    if tool_name in tool_implementations:
+                        tool_response, should_stop = tool_implementations[tool_name](params, gonky, equipment)
+                        if should_stop:
+                            running = False
+                    else:
+                        tool_response = f"Unknown tool: {tool_name}"
 
                     print(f'    Tool response: {tool_response}')
                     # Append the tool response to the messages list
