@@ -128,6 +128,43 @@ sample_conversations = [
 
 daily_prompt = "Current farm status: {farm_status}\nWhat is your next action?"
 
+
+def print_formatted_chat(messages):
+    """Print the chat messages in a nicely formatted way."""
+    print("\n" + "="*50)
+    print("CHAT HISTORY")
+    print("="*50)
+    
+    for msg in messages:
+        role = msg.get("role", "unknown")
+        content = msg.get("content", "")
+        
+        if role == "system":
+            print(f"\n\033[1mSystem>\033[0m {content}")
+        elif role == "user":
+            print(f"\n\033[1mUser>\033[0m {content}")
+        elif role == "assistant":
+            # Only print content if it's not empty or None
+            if content and content.strip():
+                print(f"\n\033[1mDroid>\033[0m {content}")
+            
+            # Check for tool calls
+            if "tool_calls" in msg:
+                for tool_call in msg["tool_calls"]:
+                    tool_name = tool_call["function"]["name"]
+                    try:
+                        params = json.loads(tool_call["function"]["arguments"])
+                        param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
+                        print(f"\033[3mDroid {tool_name} ({param_str})\033[0m")
+                    except:
+                        print(f"\033[3mDroid {tool_name} (invalid params)\033[0m")
+        elif role == "tool":
+            tool_name = msg.get("name", "unknown_tool")
+            print(f"\033[3m{tool_name} result: {content}\033[0m")
+    
+    print("\n" + "="*50)
+
+
 def fill_vars(prompt, obj):
     """Fill in the variables in the prompt with the values from the object."""
     return prompt.format(**obj)
@@ -215,7 +252,8 @@ for conversation in sample_conversations:
     messages.append({"role": "assistant", "content": fill_vars(conversation["assistant"], gonky)})
 
 print ("######## Start of day simulation ########")
-print (" Prompting model with system prompt and sample conversations:", json.dumps(messages, indent=2))
+print (" Prompting model with system prompt and sample conversations:")
+print_formatted_chat(messages)
 
 print ("######## End of setup ########")
 running = True
@@ -230,7 +268,6 @@ def print_equipment_table(equipment):
     for eq in equipment:
         loc = f"({eq['location']['x']},{eq['location']['y']})" if 'location' in eq else "N/A"
         print(f"{eq['object_id']:<18} {eq.get('model', 'N/A'):<10} {loc:<15} {eq['battery_level']:<14}")
-
 while running:
     iteration_count += 1
     print()
@@ -301,7 +338,7 @@ while running:
 print()
 print()
 print("######## End of day simulation ########")
-print(" Final messages:", json.dumps(messages, indent=2))
+print_formatted_chat(messages)
 print("#######################################")
 print("Final equipment status:")
 print_equipment_table(equipment)
