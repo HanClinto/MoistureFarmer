@@ -164,7 +164,6 @@ for conversation in sample_conversations:
     messages.append({"role": "assistant", "content": fill_vars(conversation["assistant"], gonky)})
 
 print ("######## Start of day simulation ########")
-print (" Initial equipment status:", json.dumps(equipment, indent=2))
 print (" Prompting model with system prompt and sample conversations:", json.dumps(messages, indent=2))
 
 print ("######## End of setup ########")
@@ -208,7 +207,7 @@ while running:
                 for tool_call in choice["message"]["tool_calls"]:
                     tool_name = tool_call["function"]["name"]
                     params = json.loads(tool_call["function"]["arguments"])
-                    print(f"Executing tool: {tool_name} with params: {params}")
+                    print(f"   Executing tool: {tool_name} with params: {params}")
                     tool_response = ""
                     # Execute the tool
                     if tool_name == "charge_equipment":
@@ -247,7 +246,7 @@ while running:
                         tool_response = "Switched self off."
                         running = False
 
-                    print(f' Tool response: {tool_response}')
+                    print(f'    Tool response: {tool_response}')
                     # Append the tool response to the messages list
                     tool_response_message = {
                         "tool_call_id": tool_call["id"],
