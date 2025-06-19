@@ -172,6 +172,14 @@ running = True
 iteration_count = 0
 error_count = 0
 
+def print_equipment_table(equipment):
+    """Print equipment status as a formatted table."""
+    print(f"{'object_id':<18} {'model':<10} {'location':<15} {'battery_level':<14}")
+    print("-" * 60)
+    for eq in equipment:
+        loc = f"({eq['location']['x']},{eq['location']['y']})" if 'location' in eq else "N/A"
+        print(f"{eq['object_id']:<18} {eq.get('model', 'N/A'):<10} {loc:<15} {eq['battery_level']:<14}")
+
 while running:
     iteration_count += 1
     print()
@@ -179,7 +187,9 @@ while running:
     farm_status = populate_distance_from(equipment, gonky)
     messages.append({"role": "user", "content": fill_vars(daily_prompt, {"farm_status": json.dumps(farm_status)})})
 
-    print(" Current equipment status:", json.dumps(equipment, indent=2))
+    # Print equipment status as a table
+    print(" Current equipment status:")
+    print_equipment_table(equipment)
 
     print("Agent is thinking about its next action...")
 
@@ -271,7 +281,8 @@ print()
 print("######## End of day simulation ########")
 print(" Final messages:", json.dumps(messages, indent=2))
 print("#######################################")
-print("Final equipment status:", json.dumps(equipment, indent=2))
+print("Final equipment status:")
+print_equipment_table(equipment)
 print()
 print("#######################################")
 # Assert that all equipment and droids are charged to 100%
