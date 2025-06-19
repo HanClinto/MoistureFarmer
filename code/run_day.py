@@ -131,22 +131,19 @@ daily_prompt = "Current farm status: {farm_status}\nWhat is your next action?"
 
 def print_formatted_chat(messages):
     """Print the chat messages in a nicely formatted way."""
-    print("\n" + "="*50)
-    print("CHAT HISTORY")
-    print("="*50)
     
     for msg in messages:
         role = msg.get("role", "unknown")
         content = msg.get("content", "")
         
         if role == "system":
-            print(f"\n\033[1mSystem>\033[0m {content}")
+            print(f"\n\033[1;35mSystem>\033[0m {content.strip()}")
         elif role == "user":
-            print(f"\n\033[1mUser>\033[0m {content}")
+            print(f"\n\033[1;33mUser>\033[0m {content.strip()}")
         elif role == "assistant":
             # Only print content if it's not empty or None
             if content and content.strip():
-                print(f"\n\033[1mDroid>\033[0m {content}")
+                print(f"\n\033[1;32mDroid>\033[0m {content.strip()}")
             
             # Check for tool calls
             if "tool_calls" in msg:
@@ -155,15 +152,13 @@ def print_formatted_chat(messages):
                     try:
                         params = json.loads(tool_call["function"]["arguments"])
                         param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
-                        print(f"\033[3mDroid {tool_name} ({param_str})\033[0m")
+                        print(f"\n    \033[3mDroid {tool_name} ({param_str})\033[0m")
                     except:
-                        print(f"\033[3mDroid {tool_name} (invalid params)\033[0m")
+                        print(f"\n    \033[3mDroid {tool_name} (invalid params)\033[0m")
         elif role == "tool":
             tool_name = msg.get("name", "unknown_tool")
-            print(f"\033[3m{tool_name} result: {content}\033[0m")
+            print(f"    \033[3m{content}\033[0m")
     
-    print("\n" + "="*50)
-
 
 def fill_vars(prompt, obj):
     """Fill in the variables in the prompt with the values from the object."""
@@ -300,7 +295,7 @@ while running:
             messages.append(response_json["choices"][0]["message"])
             if "content" in choice["message"]:
                 print(" Agent response: ", choice["message"]["content"])
-            print(f"  Agent has requested {len(choice['message']['tool_calls'])} tool calls.")
+                print(f"  Agent has requested {len(choice['message']['tool_calls'])} tool calls.")
             if "tool_calls" in choice["message"]:
                 for tool_call in choice["message"]["tool_calls"]:
                     tool_name = tool_call["function"]["name"]
