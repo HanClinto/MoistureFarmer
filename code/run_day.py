@@ -9,7 +9,7 @@ gonky = {
         "model":"EG-6",
         "description":"EG-6 power droid",
         "location":{"x":0,"y":0},
-        "battery_level":50
+        "battery_level":30
     }
 
 equipment = [
@@ -259,4 +259,10 @@ print("######## End of day simulation ########")
 print(" Final messages:", json.dumps(messages, indent=2))
 print("#######################################")
 print("Final equipment status:", json.dumps(equipment, indent=2))
-
+print()
+print("#######################################")
+# Assert that Gonky's battery is at 100% and all equipment is charged to 100%
+for eq in equipment:
+    assert eq["battery_level"] == 100, f"{eq['object_id']}'s battery is not at 100%."
+print("All equipment is fully charged and Gonky's battery is at 100%.")
+print("Gonky has successfully completed its daily tasks!")
