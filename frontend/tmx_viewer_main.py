@@ -46,10 +46,19 @@ class TMXViewer:
             print(f"Map size: {tmx_data.width * tmx_data.tilewidth}x{tmx_data.height * tmx_data.tileheight} pixels")
             print(f"Layers: {len(tmx_data.layers)}")
 
-            # List layer names
+            # List layer names, types, and object counts for TiledObjectGroup layers
             for i, layer in enumerate(tmx_data.layers):
+                layer_type = type(layer).__name__
                 if hasattr(layer, 'name'):
-                    print(f"  Layer {i}: {layer.name}")
+                    layer_name = layer.name
+                else:
+                    layer_name = "Unnamed"
+
+                if isinstance(layer, pytmx.TiledObjectGroup):
+                    object_count = len(layer)
+                    print(f"  Layer {i}: {layer_name} (Type: {layer_type}, Objects: {object_count})")
+                else:
+                    print(f"  Layer {i}: {layer_name} (Type: {layer_type})")
 
             return tmx_data
         except Exception as e:
@@ -85,6 +94,41 @@ class TMXViewer:
                 zoom_direction = 1 if event.y > 0 else -1  # Zoom in or out
                 self.camera.zoom_at_point(zoom_direction, mouse_pos[0], mouse_pos[1])
 
+    def render_objects(self):
+        """Render objects from the TMX map"""
+        if not self.tmx_data:
+            return 0
+
+        font = pygame.font.Font(None, 20)
+        drawn_objects = 0
+        for layer in self.tmx_data.layers:
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                for obj in layer:
+                    # Render all objects, not just those with type "point"
+                    screen_x, screen_y = self.camera.world_to_screen(obj.x, obj.y)
+
+                    # Draw a small red rectangle for the object
+                    rect_size = 5
+                    pygame.draw.rect(
+                        self.screen,
+                        (255, 0, 0),  # Red color
+                        pygame.Rect(
+                            screen_x - rect_size // 2,
+                            screen_y - rect_size // 2,
+                            rect_size,
+                            rect_size
+                        )
+                    )
+
+                    # Draw the object's ID/name above the rectangle
+                    obj_name = obj.name or obj.id
+                    text_surface = font.render(str(obj_name), True, (255, 255, 255))
+                    self.screen.blit(text_surface, (screen_x - text_surface.get_width() // 2, screen_y - 20))
+
+                    drawn_objects += 1
+
+        return drawn_objects
+
     def render(self):
         """Render the map"""
         self.screen.fill((0, 0, 0))  # Black background
@@ -105,8 +149,11 @@ class TMXViewer:
             if hasattr(layer, 'data'):  # It's a tile layer
                 total_drawn_tiles += self.render_tile_layer(layer_index, start_x, start_y, end_x, end_y)
 
+        # Render point objects (ensure they are drawn above the tilemap)
+        total_drawn_objects = self.render_objects()
+
         # Draw UI info
-        self.draw_ui(total_drawn_tiles)
+        self.draw_ui(total_drawn_tiles, total_drawn_objects)
 
         pygame.display.flip()
 
@@ -118,9 +165,8 @@ class TMXViewer:
                 if 0 <= x < self.tmx_data.width and 0 <= y < self.tmx_data.height:
                     tile = self.tmx_data.get_tile_image(x, y, layer_index)
                     if tile:
-                        # Calculate screen position with zoom
-                        screen_x = x * self.tmx_data.tilewidth * self.camera.zoom - self.camera.x
-                        screen_y = y * self.tmx_data.tileheight * self.camera.zoom - self.camera.y
+                        # Use camera's world_to_screen for position calculation
+                        screen_x, screen_y = self.camera.world_to_screen(x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight)
 
                         # Scale tile if zoom is not 1.0
                         if self.camera.zoom != 1.0:
@@ -137,7 +183,7 @@ class TMXViewer:
 
         return drawn_tiles
 
-    def draw_ui(self, total_drawn_tiles):
+    def draw_ui(self, total_drawn_tiles, total_drawn_objects):
         """Draw UI information"""
         font = pygame.font.Font(None, 24)
 
@@ -156,6 +202,11 @@ class TMXViewer:
         drawn_tiles_text = f"Drawn Tiles: {total_drawn_tiles}"
         drawn_tiles_surface = font.render(drawn_tiles_text, True, (255, 255, 255))
         self.screen.blit(drawn_tiles_surface, (10, 60))
+
+        # Number of drawn point objects
+        drawn_objects_text = f"Drawn Objects: {total_drawn_objects}"
+        drawn_objects_surface = font.render(drawn_objects_text, True, (255, 255, 255))
+        self.screen.blit(drawn_objects_surface, (10, 85))
 
         # Controls
         controls = [

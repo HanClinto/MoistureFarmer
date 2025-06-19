@@ -81,3 +81,15 @@ class Camera:
 
         self.x = max(0, min(self.x, map_pixel_width - self.screen_width))
         self.y = max(0, min(self.y, map_pixel_height - self.screen_height))
+
+    def world_to_screen(self, world_x: float, world_y: float) -> Tuple[int, int]:
+        """Convert world coordinates to screen coordinates"""
+        screen_x = int(world_x * self.zoom - self.x)
+        screen_y = int(world_y * self.zoom - self.y)
+        return screen_x, screen_y
+
+    def screen_to_world(self, screen_x: int, screen_y: int) -> Tuple[float, float]:
+        """Convert screen coordinates to world coordinates"""
+        world_x = (screen_x + self.x) / self.zoom
+        world_y = (screen_y + self.y) / self.zoom
+        return world_x, world_y
