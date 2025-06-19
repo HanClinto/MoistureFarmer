@@ -266,7 +266,8 @@ while running:
             running = False
             break
 
-
+print()
+print()
 print("######## End of day simulation ########")
 print(" Final messages:", json.dumps(messages, indent=2))
 print("#######################################")

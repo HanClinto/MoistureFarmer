@@ -422,6 +422,8 @@ Agent is thinking about its next action...
   Agent has requested 1 tool calls.
    Executing tool: switch_self_off with params: {}
     Tool response: Switched self off.
+
+
 ######## End of day simulation ########
  Final messages: [
   {
