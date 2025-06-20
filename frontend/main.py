@@ -4,6 +4,7 @@ import sys
 import pytmx
 from camera import Camera
 from typing import Optional
+from CollisionManager import CollisionManager
 
 class TMXViewer:
     """Main application class for viewing TMX maps"""
@@ -33,6 +34,19 @@ class TMXViewer:
         self.mouse_panning = False
         self.last_mouse_pos = (0, 0)
 
+        # Initialize collision manager
+        self.collision_manager = CollisionManager(self.tmx_data)
+
+        # Log the number of blocking tiles once at TMX load
+        self.collision_manager.log_blocking_tiles_count()
+
+        # Log the histogram of blocking tiles once at TMX load
+        self.collision_manager.log_blocking_tiles_histogram()
+
+        # Allocate a single font for the class
+        self.font_32pt = pygame.font.Font(None, 32)
+        self.font_20pt = pygame.font.Font(None, 20)
+
     def load_tmx(self, tmx_path: str) -> Optional[pytmx.TiledMap]:
         """Load and validate TMX file"""
         if not os.path.exists(tmx_path):
@@ -40,7 +54,7 @@ class TMXViewer:
             return None
 
         try:
-            tmx_data = pytmx.load_pygame(tmx_path)
+            tmx_data = pytmx.load_pygame(tmx_path, None, load_all=True, allow_duplicate_names=True)
             print(f"Loaded TMX: {tmx_data.width}x{tmx_data.height} tiles")
             print(f"Tile size: {tmx_data.tilewidth}x{tmx_data.tileheight}")
             print(f"Map size: {tmx_data.width * tmx_data.tilewidth}x{tmx_data.height * tmx_data.tileheight} pixels")
@@ -73,6 +87,9 @@ class TMXViewer:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                elif event.key == pygame.K_c:
+                    # Toggle collision rendering
+                    self.collision_manager.toggle_rendering()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
                     self.mouse_panning = True
@@ -99,7 +116,6 @@ class TMXViewer:
         if not self.tmx_data:
             return 0
 
-        font = pygame.font.Font(None, 20)
         drawn_objects = 0
         for layer in self.tmx_data.layers:
             if isinstance(layer, pytmx.TiledObjectGroup):
@@ -122,7 +138,7 @@ class TMXViewer:
 
                     # Draw the object's ID/name above the rectangle
                     obj_name = obj.name or obj.id
-                    text_surface = font.render(str(obj_name), True, (255, 255, 255))
+                    text_surface = self.font_20pt.render(str(obj_name), True, (255, 255, 255))
                     self.screen.blit(text_surface, (screen_x - text_surface.get_width() // 2, screen_y - 20))
 
                     drawn_objects += 1
@@ -151,6 +167,9 @@ class TMXViewer:
 
         # Render point objects (ensure they are drawn above the tilemap)
         total_drawn_objects = self.render_objects()
+
+        # Render blocking tiles if toggled
+        self.collision_manager.render(self.screen, self.camera)
 
         # Draw UI info
         self.draw_ui(total_drawn_tiles, total_drawn_objects)
@@ -185,7 +204,7 @@ class TMXViewer:
 
     def draw_ui(self, total_drawn_tiles, total_drawn_objects):
         """Draw UI information"""
-        font = pygame.font.Font(None, 24)
+        font = self.font_32pt
 
         # Camera position and zoom
         cam_text = f"Camera: ({int(self.camera.x)}, {int(self.camera.y)}) Zoom: {self.camera.zoom:.2f}"
@@ -208,13 +227,19 @@ class TMXViewer:
         drawn_objects_surface = font.render(drawn_objects_text, True, (255, 255, 255))
         self.screen.blit(drawn_objects_surface, (10, 85))
 
+        # Display collision render status
+        font = self.font_32pt
+        text = font.render(f"Collision Render: {'ON' if self.collision_manager.render_blocking_tiles else 'OFF'}", True, (255, 255, 255))
+        self.screen.blit(text, (10, 110))
+
         # Controls
         controls = [
             "Controls:",
             "WASD / Arrow Keys: Pan",
             "Mouse: Click and drag to pan",
             "Mouse Wheel: Zoom in/out",
-            "ESC: Exit"
+            "ESC: Exit",
+            "C: Toggle Collision Rendering"
         ]
 
         for i, control in enumerate(controls):
@@ -228,6 +253,7 @@ class TMXViewer:
         print("Use WASD or arrow keys to pan around the map")
         print("Use mouse wheel to zoom in/out")
         print("Press ESC to exit")
+        print("Press C to toggle collision rendering")
 
         while self.running:
             dt = self.clock.tick(60) / 1000.0  # Delta time in seconds
