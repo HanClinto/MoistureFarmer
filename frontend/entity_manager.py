@@ -34,16 +34,30 @@ class EntityManager:
         self.entities.append(astromech)
         print(f"Spawned astromech at tile ({tile_x}, {tile_y})")
         return astromech
-    
-    def spawn_random_astromechs(self, count: int, max_attempts: int = 100):
-        """Spawn multiple astromech droids at random valid locations"""
+    def spawn_random_astromechs(self, count: int, max_attempts: int = 100, spawn_center_x: int = None, spawn_center_y: int = None, spawn_radius: int = None):
+        """Spawn multiple astromech droids at random valid locations
+        
+        Args:
+            count: Number of astromechs to spawn
+            max_attempts: Maximum attempts to find valid spawn locations
+            spawn_center_x: Center X tile for constrained spawning (optional)
+            spawn_center_y: Center Y tile for constrained spawning (optional)
+            spawn_radius: Maximum distance from center in tiles (optional)
+        """
         spawned = 0
         attempts = 0
         
         while spawned < count and attempts < max_attempts:
-            # Random tile position
-            tile_x = random.randint(0, self.map_width - 1)
-            tile_y = random.randint(0, self.map_height - 1)
+            # Generate random tile position
+            if spawn_center_x is not None and spawn_center_y is not None and spawn_radius is not None:
+                # Constrained spawning within radius
+                tile_x, tile_y = self._generate_random_position_in_radius(
+                    spawn_center_x, spawn_center_y, spawn_radius
+                )
+            else:
+                # Random spawning anywhere on map
+                tile_x = random.randint(0, self.map_width - 1)
+                tile_y = random.randint(0, self.map_height - 1)
             
             # Check if tile is valid for spawning
             if self.is_spawn_location_valid(tile_x, tile_y):
@@ -56,6 +70,25 @@ class EntityManager:
             print(f"Warning: Could only spawn {spawned}/{count} astromechs after {attempts} attempts")
         else:
             print(f"Successfully spawned {spawned} astromechs")
+        
+    def _generate_random_position_in_radius(self, center_x: int, center_y: int, radius: int) -> tuple:
+        """Generate a random position within a circular radius of the center"""
+        import math
+        
+        # Generate random angle and distance for uniform distribution in circle
+        angle = random.uniform(0, 2 * math.pi)  # Random angle in radians
+        # Use square root for uniform distribution within circle
+        distance = radius * math.sqrt(random.uniform(0, 1))
+        
+        # Convert to tile coordinates
+        offset_x = int(distance * math.cos(angle))
+        offset_y = int(distance * math.sin(angle))
+        
+        # Calculate final position, ensuring we stay within map bounds
+        tile_x = max(0, min(self.map_width - 1, center_x + offset_x))
+        tile_y = max(0, min(self.map_height - 1, center_y + offset_y))
+        
+        return tile_x, tile_y
     
     def is_spawn_location_valid(self, tile_x: int, tile_y: int) -> bool:
         """Check if a tile is valid for spawning entities"""

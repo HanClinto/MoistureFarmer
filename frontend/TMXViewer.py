@@ -37,9 +37,7 @@ class TMXViewer:
         # Mouse panning
         self.mouse_panning = False
         self.last_mouse_pos = (0, 0)        # Initialize collision manager
-        self.collision_manager = CollisionManager(self.tmx_data)
-
-        # Initialize entity manager
+        self.collision_manager = CollisionManager(self.tmx_data)        # Initialize entity manager
         self.entity_manager = EntityManager(
             self.tmx_data.width,
             self.tmx_data.height,
@@ -47,8 +45,14 @@ class TMXViewer:
         )
         self.entity_manager.set_collision_manager(self.collision_manager)
         
-        # Spawn some astromech droids
-        self.entity_manager.spawn_random_astromechs(5)
+        # Spawn some astromech droids near CameraSpawn
+        spawn_center = self.find_camera_spawn_tile()
+        if spawn_center:
+            spawn_x, spawn_y = spawn_center
+            self.entity_manager.spawn_random_astromechs(5, spawn_center_x=spawn_x, spawn_center_y=spawn_y, spawn_radius=20)
+        else:
+            # Fallback to random spawning if no CameraSpawn found
+            self.entity_manager.spawn_random_astromechs(5)
 
         # Very noisy collision debug output; disable by default.
         if False:
@@ -112,6 +116,24 @@ class TMXViewer:
         
         print("Warning: CameraSpawn object not found in TMX file")
 
+    def find_camera_spawn_tile(self):
+        """Find the CameraSpawn object and return its tile coordinates"""
+        if not self.tmx_data:
+            return None
+            
+        for layer in self.tmx_data.layers:
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                for obj in layer:
+                    if obj.name == "CameraSpawn":
+                        # Convert world coordinates to tile coordinates
+                        tile_x = int(obj.x // self.tmx_data.tilewidth)
+                        tile_y = int(obj.y // self.tmx_data.tileheight)
+                        print(f"Found CameraSpawn at tile ({tile_x}, {tile_y})")
+                        return tile_x, tile_y
+        
+        print("Warning: CameraSpawn object not found in TMX file")
+        return None
+
     def handle_events(self):
         """Handle pygame events"""
         for event in pygame.event.get():
@@ -126,7 +148,12 @@ class TMXViewer:
                 elif event.key == pygame.K_r:
                     # Respawn astromechs
                     self.entity_manager.clear_entities()
-                    self.entity_manager.spawn_random_astromechs(5)
+                    spawn_center = self.find_camera_spawn_tile()
+                    if spawn_center:
+                        spawn_x, spawn_y = spawn_center
+                        self.entity_manager.spawn_random_astromechs(5, spawn_center_x=spawn_x, spawn_center_y=spawn_y, spawn_radius=20)
+                    else:
+                        self.entity_manager.spawn_random_astromechs(5)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
                     self.mouse_panning = True
