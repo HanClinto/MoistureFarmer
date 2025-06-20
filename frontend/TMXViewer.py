@@ -25,6 +25,9 @@ class TMXViewer:
 
         # Camera setup
         self.camera = Camera(self.screen_width, self.screen_height)
+        
+        # Center camera on CameraSpawn object
+        self.center_camera_on_spawn()
 
         # Clock for frame rate
         self.clock = pygame.time.Clock()
@@ -37,11 +40,13 @@ class TMXViewer:
         # Initialize collision manager
         self.collision_manager = CollisionManager(self.tmx_data)
 
-        # Log the number of blocking tiles once at TMX load
-        self.collision_manager.log_blocking_tiles_count()
+        # Very noisy collision debug output; disable by default.
+        if False:
+            # Log the number of blocking tiles once at TMX load
+            self.collision_manager.log_blocking_tiles_count()
 
-        # Log the histogram of blocking tiles once at TMX load
-        self.collision_manager.log_blocking_tiles_histogram()
+            # Log the histogram of blocking tiles once at TMX load
+            self.collision_manager.log_blocking_tiles_histogram()
 
         # Allocate a single font for the class
         self.font_32pt = pygame.font.Font(None, 32)
@@ -78,6 +83,24 @@ class TMXViewer:
         except Exception as e:
             print(f"Error loading TMX file: {e}")
             return None
+
+    def center_camera_on_spawn(self):
+        """Find the CameraSpawn object and center the camera on it"""
+        if not self.tmx_data:
+            return
+            
+        for layer in self.tmx_data.layers:
+            if isinstance(layer, pytmx.TiledObjectGroup):
+                for obj in layer:
+                    if obj.name == "CameraSpawn":
+                        # Center the camera on the spawn point
+                        # Account for zoom and screen center offset
+                        self.camera.x = obj.x * self.camera.zoom - self.screen_width // 2
+                        self.camera.y = obj.y * self.camera.zoom - self.screen_height // 2
+                        print(f"Camera centered on CameraSpawn at world ({obj.x}, {obj.y}) with zoom {self.camera.zoom}")
+                        return
+        
+        print("Warning: CameraSpawn object not found in TMX file")
 
     def handle_events(self):
         """Handle pygame events"""
@@ -235,11 +258,8 @@ class TMXViewer:
         # Controls
         controls = [
             "Controls:",
-            "WASD / Arrow Keys: Pan",
-            "Mouse: Click and drag to pan",
-            "Mouse Wheel: Zoom in/out",
-            "ESC: Exit",
-            "C: Toggle Collision Rendering"
+            "Mouse: Drag to pan, wheel to zoom",
+            "ESC: Exit     C: Toggle Collision Rendering"
         ]
 
         for i, control in enumerate(controls):
