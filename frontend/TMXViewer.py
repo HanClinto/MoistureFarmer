@@ -5,6 +5,7 @@ import pytmx
 from camera import Camera
 from typing import Optional
 from CollisionManager import CollisionManager
+from entity_manager import EntityManager
 
 class TMXViewer:
     """Main application class for viewing TMX maps"""
@@ -35,10 +36,19 @@ class TMXViewer:
 
         # Mouse panning
         self.mouse_panning = False
-        self.last_mouse_pos = (0, 0)
-
-        # Initialize collision manager
+        self.last_mouse_pos = (0, 0)        # Initialize collision manager
         self.collision_manager = CollisionManager(self.tmx_data)
+
+        # Initialize entity manager
+        self.entity_manager = EntityManager(
+            self.tmx_data.width,
+            self.tmx_data.height,
+            self.tmx_data.tilewidth
+        )
+        self.entity_manager.set_collision_manager(self.collision_manager)
+        
+        # Spawn some astromech droids
+        self.entity_manager.spawn_random_astromechs(5)
 
         # Very noisy collision debug output; disable by default.
         if False:
@@ -113,6 +123,10 @@ class TMXViewer:
                 elif event.key == pygame.K_c:
                     # Toggle collision rendering
                     self.collision_manager.toggle_rendering()
+                elif event.key == pygame.K_r:
+                    # Respawn astromechs
+                    self.entity_manager.clear_entities()
+                    self.entity_manager.spawn_random_astromechs(5)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
                     self.mouse_panning = True
@@ -186,10 +200,11 @@ class TMXViewer:
         # Render each layer
         for layer_index, layer in enumerate(self.tmx_data.layers):
             if hasattr(layer, 'data'):  # It's a tile layer
-                total_drawn_tiles += self.render_tile_layer(layer_index, start_x, start_y, end_x, end_y)
-
-        # Render point objects (ensure they are drawn above the tilemap)
+                total_drawn_tiles += self.render_tile_layer(layer_index, start_x, start_y, end_x, end_y)        # Render point objects (ensure they are drawn above the tilemap)
         total_drawn_objects = self.render_objects()
+
+        # Render entities (above tilemap but below collision overlay)
+        self.entity_manager.render(self.screen, self.camera, self.camera.zoom)
 
         # Render blocking tiles if toggled
         self.collision_manager.render(self.screen, self.camera)
@@ -243,23 +258,22 @@ class TMXViewer:
         # Number of drawn tiles
         drawn_tiles_text = f"Drawn Tiles: {total_drawn_tiles}"
         drawn_tiles_surface = font.render(drawn_tiles_text, True, (255, 255, 255))
-        self.screen.blit(drawn_tiles_surface, (10, 60))
-
-        # Number of drawn point objects
+        self.screen.blit(drawn_tiles_surface, (10, 60))        # Number of drawn point objects
         drawn_objects_text = f"Drawn Objects: {total_drawn_objects}"
         drawn_objects_surface = font.render(drawn_objects_text, True, (255, 255, 255))
         self.screen.blit(drawn_objects_surface, (10, 85))
 
-        # Display collision render status
+        # Number of entities
+        entity_count_text = f"Entities: {self.entity_manager.get_entity_count()}"
+        entity_count_surface = font.render(entity_count_text, True, (255, 255, 255))
+        self.screen.blit(entity_count_surface, (10, 110))        # Display collision render status
         font = self.font_32pt
         text = font.render(f"Collision Render: {'ON' if self.collision_manager.render_blocking_tiles else 'OFF'}", True, (255, 255, 255))
-        self.screen.blit(text, (10, 110))
-
-        # Controls
+        self.screen.blit(text, (10, 135))        # Controls
         controls = [
             "Controls:",
             "Mouse: Drag to pan, wheel to zoom",
-            "ESC: Exit     C: Toggle Collision Rendering"
+            "ESC: Exit     C: Toggle Collision     R: Respawn Entities"
         ]
 
         for i, control in enumerate(controls):
@@ -274,11 +288,15 @@ class TMXViewer:
         print("Use mouse wheel to zoom in/out")
         print("Press ESC to exit")
         print("Press C to toggle collision rendering")
+        print("Press R to respawn entities")
 
         while self.running:
-            dt = self.clock.tick(60) / 1000.0  # Delta time in seconds
+            dt = self.clock.tick(60) / 1000.0  # Delta time in seconds            self.handle_events()
 
             self.handle_events()
+            
+            # Update entities
+            self.entity_manager.update(dt)
 
             # Update camera with keyboard input
             keys_pressed = pygame.key.get_pressed()
