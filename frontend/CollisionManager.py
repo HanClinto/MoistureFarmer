@@ -3,30 +3,11 @@ import pygame
 class CollisionManager:
     def __init__(self, tilemap):
         self.tilemap = tilemap
-        self.block_tile_ids = [
-            # Green generator
-            188, 189, 216, 217,
-
-            # Simple building
-            323, 324, 325, 351, 352, 353, 379, 380, 381,
-
-            # Machinery
-            329, 330, 332, 923,
-
-            # Tank
-            866, 867,
-
-            # Sandcrawler
-            918, 919, 920, 921, 946, 947, 948, 949
-        ]
         self.render_blocking_tiles = False
 
     def is_tile_blocking(self, x, y):
         foreground_layer_index = 0  # Assuming foreground is the first layer
         background_layer_index = 1  # Assuming background is the second layer
-
-        foreground_tile = self.tilemap.get_tile_gid(x, y, foreground_layer_index)
-        background_tile = self.tilemap.get_tile_gid(x, y, background_layer_index)
 
         # Check the collide property for both foreground and background tiles by GID.
         foreground_props = self.tilemap.get_tile_properties(x, y, foreground_layer_index)
