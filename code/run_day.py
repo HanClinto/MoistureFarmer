@@ -2,29 +2,10 @@
 import json
 import os
 import sys
+from Color import Colors
 
-# Initialize ANSI color support for Windows
-def init_colors():
-    """Initialize ANSI color support for cross-platform compatibility."""
-    if os.name == 'nt':  # Windows
-        try:
-            # Enable ANSI escape sequences in Windows Console
-            import subprocess
-            subprocess.run('', shell=True, check=True)
-            # For older Windows versions, try colorama
-            try:
-                import colorama
-                colorama.init()
-            except ImportError:
-                # If colorama is not available, try enabling ANSI support directly
-                import ctypes
-                kernel32 = ctypes.windll.kernel32
-                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-        except:
-            pass
-    
 # Initialize colors at startup
-init_colors()
+colors = Colors()
 
 def load_system_config(config_path="system_config.json"):
     """Load system prompt and sample conversations from JSON file."""
@@ -156,60 +137,6 @@ system_prompt = config["system_prompt"]
 sample_conversations = config["sample_conversations"] 
 daily_prompt = config["daily_prompt"]
 
-
-# Color codes that work cross-platform
-class Colors:
-    """Cross-platform color codes."""
-    def __init__(self):
-        # Check if we should use colors
-        self.use_colors = self._should_use_colors()
-        
-        if self.use_colors:
-            self.BOLD = '\033[1m'
-            self.RESET = '\033[0m'
-            self.ITALIC = '\033[3m'
-            self.PURPLE = '\033[1;35m'
-            self.YELLOW = '\033[1;33m'
-            self.GREEN = '\033[1;32m'
-        else:
-            # No colors - just use empty strings
-            self.BOLD = ''
-            self.RESET = ''
-            self.ITALIC = ''
-            self.PURPLE = ''
-            self.YELLOW = ''
-            self.GREEN = ''
-    
-    def _should_use_colors(self):
-        """Determine if we should use colors based on environment."""
-        # Don't use colors if output is redirected
-        if not sys.stdout.isatty():
-            return False
-            
-        # Check environment variables
-        if os.environ.get('NO_COLOR'):
-            return False
-            
-        if os.environ.get('FORCE_COLOR'):
-            return True
-            
-        # Check for common terminals that support colors
-        term = os.environ.get('TERM', '').lower()
-        if any(term_type in term for term_type in ['color', 'ansi', 'xterm', 'screen', 'tmux']):
-            return True
-            
-        # On Windows, check if we're in a modern terminal
-        if os.name == 'nt':
-            # Check for Windows Terminal, VS Code terminal, or other modern terminals
-            wt_session = os.environ.get('WT_SESSION')
-            term_program = os.environ.get('TERM_PROGRAM', '').lower()
-            if wt_session or 'vscode' in term_program:
-                return True
-                
-        return True  # Default to using colors
-
-# Initialize colors
-colors = Colors()
 
 def print_single_message(msg):
     """Print a single message in the formatted style."""
