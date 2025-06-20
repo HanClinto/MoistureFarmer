@@ -4,7 +4,7 @@ import sys
 from Color import Colors
 from llm_tools import tools
 from simulation import Simulation
-from llm_api import LlmApi
+from llm_thread import LlmThread
 from llm_console import LlmConsole
 
 # Initialize colors at startup
@@ -22,10 +22,6 @@ def load_system_config(config_path="system_config.json"):
         print(f"Error parsing {config_path}: {e}")
         sys.exit(1)
 
-def fill_vars(prompt, obj):
-    """Fill in the variables in the prompt with the values from the object."""
-    return prompt.format(**obj)
-
 def main():
     # Load system configuration from JSON file
     config = load_system_config()
@@ -34,7 +30,7 @@ def main():
     daily_prompt = config["daily_prompt"]
 
     sim = Simulation()
-    llm_api = LlmApi()
+    llm_thread = LlmThread(system_prompt, sample_conversations, sim.gonky)
     llm_console = LlmConsole(colors)
 
     # Global tool map
@@ -46,15 +42,9 @@ def main():
         "switch_self_off": sim.switch_self_off
     }
 
-    # Populate the "messages" list with the system prompt, sample conversations, and daily prompt
-    messages = [{"role": "system", "content": fill_vars(system_prompt, sim.gonky)}]
-    for conversation in sample_conversations:
-        messages.append({"role": "user", "content": conversation["user"]})
-        messages.append({"role": "assistant", "content": fill_vars(conversation["assistant"], sim.gonky)})
-
     print ("######## Start of day simulation ########")
     print (" Prompting model with system prompt and sample conversations:")
-    llm_console.print_formatted_chat(messages)
+    llm_console.print_formatted_chat(llm_thread.messages)
 
     print ("######## End of setup ########")
     running = True
@@ -67,15 +57,14 @@ def main():
         print()
         print(f"######## Iteration {iteration_count} ########")
         farm_status = sim.populate_distance_from_self()
-        messages.append({"role": "user", "content": fill_vars(daily_prompt, {"farm_status": json.dumps(farm_status)})})
-
+        
         # Print equipment status as a table
         llm_console.print_equipment_table(sim.equipment)
 
         print("")
 
         try:
-            response_json = llm_api.get_completion(messages, tools)
+            response_json = llm_thread.get_completion(daily_prompt, farm_status, tools)
         except Exception as e:
             print(f"Error calling LLM API: {e}")
             error_count += 1
@@ -85,11 +74,8 @@ def main():
         # Update our messages with the response from the model. Post any messages to the user, and then execute any tools that we need to call.
         for choice in response_json["choices"]:
             if "message" in choice:
-                # Append the assistant's message to the messages list
-                assistant_message = response_json["choices"][0]["message"]
-                messages.append(assistant_message)
-                
-                # Print the assistant's message using formatted output
+                # The assistant's message is already in the thread, so we just print it
+                assistant_message = choice["message"]
                 llm_console.print_single_message(assistant_message)
                 
                 if "tool_calls" in choice["message"]:
@@ -112,7 +98,7 @@ def main():
                             "name": tool_name,
                             "content": tool_response,
                         }
-                        messages.append(tool_response_message)
+                        llm_thread.add_tool_response(tool_response_message)
                         
                         # Print the tool response using formatted output
                         llm_console.print_single_message(tool_response_message)
@@ -133,7 +119,7 @@ def main():
     print("\n" + "="*50)
     print("CHAT HISTORY")
     print("="*50)
-    llm_console.print_formatted_chat(messages)
+    llm_console.print_formatted_chat(llm_thread.messages)
     print("\n" + "="*50)
     print("#######################################")
     print("Final equipment status:")
