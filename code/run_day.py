@@ -5,6 +5,7 @@ from Color import Colors
 from llm_tools import tools
 from simulation import Simulation
 from llm_api import LlmApi
+from llm_console import LlmConsole
 
 # Initialize colors at startup
 colors = Colors()
@@ -21,50 +22,9 @@ def load_system_config(config_path="system_config.json"):
         print(f"Error parsing {config_path}: {e}")
         sys.exit(1)
 
-def print_single_message(msg):
-    """Print a single message in the formatted style."""
-    role = msg.get("role", "unknown")
-    content = msg.get("content", "")
-    
-    if role == "system":
-        print(f"\n{colors.PURPLE}System>{colors.RESET} {content.strip()}")
-    elif role == "user":
-        print(f"\n{colors.YELLOW}User>{colors.RESET} {content.strip()}")
-    elif role == "assistant":
-        # Only print content if it's not empty or None
-        if content and content.strip():
-            print(f"\n{colors.GREEN}Droid>{colors.RESET} {content.strip()}")
-        
-        # Check for tool calls
-        if "tool_calls" in msg:
-            for tool_call in msg["tool_calls"]:
-                tool_name = tool_call["function"]["name"]
-                try:
-                    params = json.loads(tool_call["function"]["arguments"])
-                    param_str = ", ".join([f"{k}: {v}" for k, v in params.items()])
-                    print(f"    {colors.ITALIC}Droid {tool_name} ({param_str}){colors.RESET}")
-                except:
-                    print(f"    {colors.ITALIC}Droid {tool_name} (invalid params){colors.RESET}")
-    elif role == "tool":
-        tool_name = msg.get("name", "unknown_tool")
-        print(f"    {colors.ITALIC}{content}{colors.RESET}")
-
-def print_formatted_chat(messages):
-    """Print the chat messages in a nicely formatted way."""
-    for msg in messages:
-        print_single_message(msg)
-    
 def fill_vars(prompt, obj):
     """Fill in the variables in the prompt with the values from the object."""
     return prompt.format(**obj)
-
-def print_equipment_table(equipment):
-    """Print equipment status as a formatted table."""
-    print(f"{'object_id':<18} {'model':<10} {'location':<15} {'battery_level':<14}")
-    print("-" * 60)
-    for eq in equipment:
-        loc = f"({eq['location']['x']},{eq['location']['y']})" if 'location' in eq else "N/A"
-        print(f"{eq['object_id']:<18} {eq.get('model', 'N/A'):<10} {loc:<15} {eq['battery_level']:<14}")
 
 def main():
     # Load system configuration from JSON file
@@ -75,6 +35,7 @@ def main():
 
     sim = Simulation()
     llm_api = LlmApi()
+    llm_console = LlmConsole(colors)
 
     # Global tool map
     tool_implementations = {
@@ -93,7 +54,7 @@ def main():
 
     print ("######## Start of day simulation ########")
     print (" Prompting model with system prompt and sample conversations:")
-    print_formatted_chat(messages)
+    llm_console.print_formatted_chat(messages)
 
     print ("######## End of setup ########")
     running = True
@@ -109,7 +70,7 @@ def main():
         messages.append({"role": "user", "content": fill_vars(daily_prompt, {"farm_status": json.dumps(farm_status)})})
 
         # Print equipment status as a table
-        print_equipment_table(sim.equipment)
+        llm_console.print_equipment_table(sim.equipment)
 
         print("")
 
@@ -129,7 +90,7 @@ def main():
                 messages.append(assistant_message)
                 
                 # Print the assistant's message using formatted output
-                print_single_message(assistant_message)
+                llm_console.print_single_message(assistant_message)
                 
                 if "tool_calls" in choice["message"]:
                     for tool_call in choice["message"]["tool_calls"]:
@@ -154,7 +115,7 @@ def main():
                         messages.append(tool_response_message)
                         
                         # Print the tool response using formatted output
-                        print_single_message(tool_response_message)
+                        llm_console.print_single_message(tool_response_message)
                 else:
                     print("######## ERROR: No tool calls in response. ########")
                     error_count += 1
@@ -172,11 +133,11 @@ def main():
     print("\n" + "="*50)
     print("CHAT HISTORY")
     print("="*50)
-    print_formatted_chat(messages)
+    llm_console.print_formatted_chat(messages)
     print("\n" + "="*50)
     print("#######################################")
     print("Final equipment status:")
-    print_equipment_table(sim.equipment)
+    llm_console.print_equipment_table(sim.equipment)
     print()
     print("#######################################")
     # Assert that all equipment and droids are charged to 100%
