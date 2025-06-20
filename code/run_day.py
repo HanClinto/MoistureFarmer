@@ -26,6 +26,18 @@ def init_colors():
 # Initialize colors at startup
 init_colors()
 
+def load_system_config(config_path="system_config.json"):
+    """Load system prompt and sample conversations from JSON file."""
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error: {config_path} not found")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error parsing {config_path}: {e}")
+        sys.exit(1)
+
 gonky = {
         "object_id":"eg6_gonky",
         "type":"droid",
@@ -135,23 +147,14 @@ tools = [
                 "required":[],
                 "additionalProperties": False
             }
-        }
-    }
+        }    }
 ]
 
-system_prompt = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
-sample_conversations = [
-    { "user": "What is your name?", "assistant": "My name is {name}, and I am an {model} {subtype}." },
-    { "user": "What is your purpose?", "assistant": "My purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power." },
-    { "user": "How do you recharge your batteries?", "assistant": "I can recharge my own batteries at power stations to ensure I have enough power to charge the equipment." },
-    { "user": "What tools do you have?", "assistant": "I have tools to charge equipment, recharge myself at power stations, and move to specific locations or objects on the farm." },
-    { "user": "Which equipment should you charge first?", "assistant": "If I am below 30% battery, then I should travel to a power station and recharge myself first. If I am within 1 meter of equipment that is less than 90%, I should charge it. Otherwise, I should travel to the equipment with the lowest battery level and charge that next" },
-    { "user": "How low should your battery be before you recharge yourself?", "assistant": "I should recharge myself when my battery level is below 30%." },
-    { "user": "How low should the equipment's battery be before you charge it?", "assistant": "I should charge the equipment when its battery level is below 90%." },
-    { "user": "What should you do at the end of the day?", "assistant": "At the end of the day, when all work is done and I am back at the power station, I should switch myself off." },
-]
-
-daily_prompt = "Current farm status: {farm_status}\nWhat is your next action?"
+# Load system configuration from JSON file
+config = load_system_config()
+system_prompt = config["system_prompt"]
+sample_conversations = config["sample_conversations"] 
+daily_prompt = config["daily_prompt"]
 
 
 # Color codes that work cross-platform
@@ -321,6 +324,11 @@ tool_implementations = {
     "switch_self_off": switch_self_off_tool
 }
 
+# Load system configuration from JSON file
+config = load_system_config()
+system_prompt = config["system_prompt"]
+sample_conversations = config["sample_conversations"] 
+daily_prompt = config["daily_prompt"]
 
 # Populate the "messages" list with the system prompt, sample conversations, and daily prompt
 messages = [{"role": "system", "content": fill_vars(system_prompt, gonky)}]
