@@ -1,8 +1,10 @@
 
+import random
 from typing import Any, Callable, List
 from pydantic import BaseModel
 from simulation.DroidComponents import DroidPersonality
 from simulation.Component import Component, ToolCall
+from simulation.Entity import Location
 from simulation.World import World
 
 # A DroidPersonality is a component that defines how a droid interacts with the world.
@@ -12,22 +14,56 @@ class DroidPersonalitySimple(DroidPersonality):
     pass
 
 class DroidPersonalityRandom(DroidPersonality):
-    """
-    A simple random personality that makes random decisions.
-    This is a placeholder for more complex personalities.
-    """
     def on_tick(self, world: World):
-        pass
 
-        # Check to see if we have an active task or tool call
-
+        # Check to see if we are currently busy w/ an active task or tool call
         # If there is no active tool call, then we can perform one
         #if self.active_tool_call:
         #  print (f"Active tool call: {self.active_tool_call.function_ptr.__name__}")
         #else:
         #  print("No active tool call, performing random action.")
         #  TODO: Move to a random entity or location, charge something, etc.
+        
+        # For now, the only action is to move, but can code in more complex actions later
+        
+        # Only think about moving when not currently moving
+        if self.chassis.destination is not None:
+            # Currently moving, so don't do anything new.
+            return
+        
+        # Only think about moving when not currently moving
+        self.think_interval += 1
+        if self.think_timer < self.think_interval:
+            # Not time to think yet, so do nothing
+            return
+        
+        # We are done delaying, so now we can think about moving
+        self.think_timer = 0.0
+        self.think_interval = random.uniform(1.0, 3.0)  # Reset think interval
 
+        # Get possible adjacent tiles
+        adjacent_tiles = [
+            self.chassis.location + Location(x=0, y=-1),  # Up
+            self.chassis.location + Location(x=1, y=0),  # Right
+            self.chassis.location + Location(x=0, y=1),  # Down
+            self.chassis.location + Location(x=-1, y=0),  # Left
+        ]
+        
+        # Filter valid tiles
+        valid_tiles = []
+        for tx, ty in adjacent_tiles:
+            #if self.is_tile_valid(tx, ty):
+            # TODO: World collision check ^
+                valid_tiles.append((tx, ty))
+        
+        # Sometimes don't move (add current position as option)
+        if random.random() < 0.3:  # 30% chance to stay put
+            valid_tiles.append((self.tile_x, self.tile_y))
+        
+        # Choose a random valid tile
+        target_location = random.choice(valid_tiles)
+        if target_location != self.chassis.location:
+            self.chassis.destination = target_location
 
 class DroidPersonalitySimplePowerDroid(DroidPersonalitySimple):
     pass
