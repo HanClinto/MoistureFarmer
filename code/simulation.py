@@ -1,19 +1,23 @@
 import json
 
 class Simulation:
-    def __init__(self):
-        self.gonky = {
-            "object_id": "eg6_gonky",
-            "type": "droid",
-            "subtype": "power droid",
-            "name": "Gonky",
-            "model": "EG-6",
-            "description": "EG-6 power droid",
-            "location": {"x": 0, "y": 0},
-            "battery_level": 30
-        }
-        self.equipment = [
-            self.gonky,
+    def __init__(self, world, preset=None):
+        # If there is a preset, load it; otherwise, initialize with default values
+        if preset:
+            self.equipment = preset.get("equipment", [])
+        else:
+            self._initialize_default()
+        self.entities = [
+            {
+                "object_id": "eg6_gonky",
+                "type": "droid",
+                "subtype": "power droid",
+                "model": "EG-6",
+                "name": "Gonky",
+                "description": "A power droid designed to provide energy to other equipment. It has a limited battery capacity and can recharge itself at power stations.",
+                "location": {"x": 0, "y": 0},
+                "battery_level": 30
+            },
             {"object_id": "vaporator_1", "type": "vaporator", "model": "GX-8", "location": {"x": 10, "y": 15}, "battery_level": 50},
             {"object_id": "power_station_1", "type": "power station", "subtype": "medium fusion reactor power generator", "model": "MFCR-200", "location": {"x": 5, "y": 5}, "battery_level": 100}
         ]

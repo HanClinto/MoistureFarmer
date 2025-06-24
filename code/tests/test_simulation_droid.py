@@ -23,6 +23,7 @@ def test_droid_movement(world):
     assert droid.location.x == 25
     assert droid.location.y == -25
 
+# A droid with low power shouldn't be able to make it all the way to its destination
 def test_droid_movement_low_battery(world):
     droid = GonkDroid(location=Location(x=0, y=0))
     power: PowerPack = droid.get_component(PowerPack)

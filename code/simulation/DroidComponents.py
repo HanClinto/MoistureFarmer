@@ -4,8 +4,6 @@ from simulation.World import World
 from simulation.Entity import Location
 from simulation.Component import Chassis, ComponentSlot, Component, ToolCall, PowerPack, SmallPowerPack, ComputerProbe
 
-
-
 # --- Droid Components ---
 class Motivator(Component):
     def provides_tools(self) -> List[ToolCall]:
