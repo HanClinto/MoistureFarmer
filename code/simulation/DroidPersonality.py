@@ -14,6 +14,9 @@ class DroidPersonalitySimple(DroidPersonality):
     pass
 
 class DroidPersonalityRandom(DroidPersonality):
+    think_timer: int = 0  # Timer to control thinking intervals
+    think_interval: int = 1  # Interval between thoughts in world ticks
+
     def on_tick(self, world: World):
 
         # Check to see if we are currently busy w/ an active task or tool call
@@ -27,20 +30,17 @@ class DroidPersonalityRandom(DroidPersonality):
         # For now, the only action is to move, but can code in more complex actions later
         
         # Only think about moving when not currently moving
-        if self.chassis.destination is not None:
-            # Currently moving, so don't do anything new.
-            return
-        
-        # Only think about moving when not currently moving
-        self.think_interval += 1
-        if self.think_timer < self.think_interval:
-            # Not time to think yet, so do nothing
-            return
-        
-        # We are done delaying, so now we can think about moving
-        self.think_timer = 0.0
-        self.think_interval = random.uniform(1.0, 3.0)  # Reset think interval
+        if self.chassis.destination is None:
+            # Only think about moving when not currently moving
+            self.think_interval += 1
+            if self.think_timer >= self.think_interval:
+                # We are done delaying, so now we can think about moving
+                self.think_timer = 0.0
+                self.think_interval = random.randint(1, 5) # Reset think interval
 
+                self.decide_movement()
+
+    def decide_movement(self):
         # Get possible adjacent tiles
         adjacent_tiles = [
             self.chassis.location + Location(x=0, y=-1),  # Up
@@ -64,7 +64,6 @@ class DroidPersonalityRandom(DroidPersonality):
         target_location = random.choice(valid_tiles)
         if target_location != self.chassis.location:
             self.chassis.destination = target_location
-
 class DroidPersonalitySimplePowerDroid(DroidPersonalitySimple):
     pass
 
