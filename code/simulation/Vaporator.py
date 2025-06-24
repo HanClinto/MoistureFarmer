@@ -6,6 +6,8 @@ from simulation.World import World
 # --- Supporting Components for Vaporators ---
 
 class CondenserUnit(Component):
+    water_per_charge: int = 1 # Amount of water condensed per unit of charge
+
     def on_tick(self, world: World):
         if not self.chassis:
             raise ValueError("CondenserUnit must be installed in a chassis to function.")
@@ -35,7 +37,10 @@ class CondenserUnit(Component):
         # TODO: Condense less water if the Condensor is in poor condition
         # TODO: Condense more water if the Condensor has been tuned / adjusted recently
         power.charge -= 1
-        tank.fill += 1
+        tank.fill += self.water_per_charge
+
+class AdvancedCondenserUnit(CondenserUnit):
+    water_per_charge: int = 2 # More efficient condenser, condenses more water per unit of charge
 
 class WaterTank(Component):
     fill: int = 0
@@ -53,8 +58,16 @@ class LargeWaterTank(WaterTank):
 #  simulation environment.
 
 class Vaporator(Chassis):
-    model: str = "GX-1"
     description: str = "A device used to extract moisture from the air, typically used in arid environments."
+    
+    slots: Dict[str, ComponentSlot] = {
+        "power_pack": ComponentSlot(accepts=PowerPack),
+        "condenser": ComponentSlot(accepts=CondenserUnit),
+        "water_tank": ComponentSlot(accepts=WaterTank),
+    }
+
+class GX1_Vaporator(Vaporator):
+    model: str = "GX-1"
     
     slots: Dict[str, ComponentSlot] = {
         "power_pack": ComponentSlot(accepts=PowerPack, component=SmallPowerPack()),
@@ -62,13 +75,12 @@ class Vaporator(Chassis):
         "water_tank": ComponentSlot(accepts=WaterTank, component=SmallWaterTank()),
     }
 
-class GX8Vaporator(Vaporator):
+class GX8_Vaporator(Vaporator):
     model: str = "GX-8"
     description: str = "An advanced vaporator with improved power capacity and a larger water tank. More efficient condensers can collect more water from the air."
     
     slots: Dict[str, ComponentSlot] = {
         "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
-        # TODO: Actually implement a more advanced CondenserUnit that can collect more water
-        "condenser": ComponentSlot(accepts=CondenserUnit, component=CondenserUnit()),
+        "condenser": ComponentSlot(accepts=CondenserUnit, component=AdvancedCondenserUnit()),
         "water_tank": ComponentSlot(accepts=WaterTank, component=LargeWaterTank()),
     }
