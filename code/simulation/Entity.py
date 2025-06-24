@@ -27,7 +27,7 @@ class GameObject(BaseModel):
     def __init__(__pydantic_self__, **data):
         super().__init__(**data)
         if not __pydantic_self__.id:
-            __pydantic_self__.id = __pydantic_self__.generate_id(__class__)
+            __pydantic_self__.id = __pydantic_self__.generate_id(__pydantic_self__.__class__)
 
 class Entity(GameObject):
     location: Location = Location(x=0, y=0)  # Default location    

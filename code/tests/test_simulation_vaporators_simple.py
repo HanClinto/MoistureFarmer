@@ -52,7 +52,7 @@ def test_gx1_vaporator_low_starting_power(world):
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
 def test_gx8_vaporator(world):
-    vaporator = GX8_Vaporator(id="vaporator1", location=Location(x=0, y=0))
+    vaporator = GX8_Vaporator()
     world.add_entity(vaporator)
 
     tank: WaterTank = vaporator.get_component(WaterTank)
