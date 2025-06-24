@@ -8,10 +8,8 @@ from simulation.Entity import Location
 from simulation.World import World
 
 # A DroidPersonality is a component that defines how a droid interacts with the world.
-#  Specifically, it is an LLM agent that can make decisions based on the world state.
-
-class DroidPersonalitySimple(DroidPersonality):
-    pass
+#  Specifically, it is an agent that can make decisions based on the world state.
+#  Personalities can be simple / random, or can be controlled by more complex AI (such as an LLM)
 
 class DroidPersonalityRandom(DroidPersonality):
     think_timer: int = 0  # Timer to control thinking intervals
@@ -64,6 +62,10 @@ class DroidPersonalityRandom(DroidPersonality):
         target_location = random.choice(valid_tiles)
         if target_location != self.chassis.location:
             self.chassis.destination = target_location
+
+class DroidPersonalitySimple(DroidPersonality):
+    pass
+
 class DroidPersonalitySimplePowerDroid(DroidPersonalitySimple):
     pass
 
