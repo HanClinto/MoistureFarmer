@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject
 from simulation.World import World
@@ -28,12 +28,66 @@ class Component(GameObject):
     def on_tick(self, world: World):
         pass
 
-    def provides(self) -> List[str]:
+    def provides_tools(self) -> List['ToolCall']:
         return []
     
     def on_installed(self, chassis: 'Chassis'):
         # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
         print(f"Component {self.id} installed in chassis {chassis.id}.")
+
+# Information needed to call a function as a tool
+#  This is used to define the tools that a Component provides to the agentic AI.
+class ToolCallParameter(BaseModel):
+    name: str
+    description: str
+    type: str  # Type of the parameter, e.g., "integer", "string", etc.
+    required: bool = True  # Whether the parameter is required or optional
+
+class ToolCall(BaseModel):
+    function_ptr: Callable[..., Any]
+    description: str
+    parameters: List[ToolCallParameter]  # Parameter names and their descriptions
+
+    # serialize to JSON in the format expected by the LLM
+    # example:
+    """
+    {
+        "type":"function",
+        "function":{
+            "name":"move_to_location",
+            "description":"Move to a specific location on the farm.",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "x":{
+                        "type":"integer",
+                        "description":"The x coordinate to move to."
+                    },
+                    "y":{
+                        "type":"integer",
+                        "description":"The y coordinate to move to."
+                    }
+                },
+                "required":["x", "y"],
+                "additionalProperties": false
+            }
+        }
+    },
+    """
+    def to_json(self) -> dict:
+        return {
+            "type": "function",
+            "function": {
+                "name": self.function_ptr.__name__,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
+                    "required": [param.name for param in self.parameters if param.required],
+                    "additionalProperties": False
+                }
+            }
+        }
 
 
 

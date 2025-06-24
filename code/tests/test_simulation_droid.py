@@ -1,8 +1,7 @@
 import pytest
 from simulation.Component import PowerPack
 from simulation.World import World
-from simulation.Vaporator import WaterTank, GX1_Vaporator, GX8_Vaporator
-from simulation.Droid import GonkDroid
+from simulation.DroidModels import GonkDroid
 from simulation.Entity import Location
 
 @pytest.fixture

@@ -2,7 +2,6 @@ import pytest
 from simulation.Component import PowerPack
 from simulation.World import World
 from simulation.Vaporator import WaterTank, GX1_Vaporator, GX8_Vaporator
-from simulation.Droid import GonkDroid
 from simulation.Entity import Location
 
 @pytest.fixture
@@ -70,26 +69,3 @@ def test_gx8_vaporator(world):
 
     assert tank.fill == tank.capacity
     assert power.charge == 0
-
-
-
-"""
-def test_gx1_vaporator_with_gonk_droid(world):
-    vaporator = Vaporator(id="vaporator3", location=Location(x=0, y=0))
-    power = vaporator.get_component(PowerPack)
-    power.charge = 5  # Start with low power
-    gonk = GonkDroid(id="gonk1", location=Location(x=1, y=0))
-    # Stub: Gonk recharges vaporator's power pack each tick if not full
-    def gonk_tick(world):
-        vaporator_power = vaporator.get_component(PowerPack)
-        if vaporator_power.charge < vaporator_power.__class__.charge:
-            vaporator_power.charge += 1
-    gonk.tick = gonk_tick
-    world.add_entity(vaporator)
-    world.add_entity(gonk)
-    for _ in range(100):
-        world.tick()
-    tank = vaporator.get_component(WaterTank)
-    assert tank.fill == tank.capacity
-    assert power.charge > 0
-"""
