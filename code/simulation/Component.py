@@ -59,7 +59,6 @@ class Chassis(Entity):
     slots: Dict[str, 'ComponentSlot']
     destination: Optional[Location] = None
     health: int = 100
-    logic_result: Optional[str] = None
 
     def __init__(__pydantic_self__, **data):
         super().__init__(**data)
@@ -134,18 +133,37 @@ class Motivator(Component):
         return ["move_to_location", "move_to_object"]
 
     def on_tick(self, world: World):
+        if self.chassis.destination == self.chassis.location:
+            # If the destination is the same as the current location, do nothing
+            return
+
+        power = self.chassis.get_component(PowerPack)
+        if not power:
+            print("No power pack found in the chassis. CondenserUnit cannot function without a power pack.")
+            # TODO: Post an error message that the AI can see
+            return
+
+        if power.charge <= 0:
+            print("Power pack is empty. Cannot move without power!")
+            # TODO: Post an error message to world and/or chassis system?
+            return
+        
         # TODO: Collision checking vs. the world map
-        if self.chassis and self.chassis.destination:
-            curr = self.chassis.location
-            dest = self.chassis.destination
-            dx = dest.x - curr.x
-            dy = dest.y - curr.y
-            if dx != 0:
-                curr.x += 1 if dx > 0 else -1
-            elif dy != 0:
-                curr.y += 1 if dy > 0 else -1
-            else:
-                self.chassis.destination = None
+
+        curr = self.chassis.location
+        dest = self.chassis.destination
+        dx = dest.x - curr.x
+        dy = dest.y - curr.y
+        if dx != 0:
+            curr.x += 1 if dx > 0 else -1
+            power.charge -= 1  # Consume power for movement
+        elif dy != 0:
+            curr.y += 1 if dy > 0 else -1
+            power.charge -= 1  # Consume power for movement
+        else:
+            self.chassis.destination = None
+
+        
 
 class AStarMotivator(Motivator):
     def provides(self):
