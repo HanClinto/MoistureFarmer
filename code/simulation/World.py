@@ -5,6 +5,8 @@ from simulation.Entity import Entity
 
 # --- World System ---
 class World(BaseModel):
+    # TODO: Implement a map system to represent the world.
+    #  At the very least, we need a grid collision map for checking movement.
     entities: Dict[str, Entity] = {}
 
     def __init__(self, **data):
