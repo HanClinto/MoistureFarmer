@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, List, Optional, Type
 from pydantic import BaseModel
 
@@ -39,7 +40,52 @@ class World(BaseModel):
         else:
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
 
-    def tick(self):
-        for entity in self.entities.values():
-            entity.tick(self)
+    async def tick(self):
+        # Run all entity ticks concurrently
+        await asyncio.gather(*(entity.tick() for entity in self.entities.values()))
+        
+# --- Simulation System ---
 
+# The Simulation is a high-level controller that manages the world and the simulation loop
+
+class Simulation(BaseModel):
+    world: World = World()
+
+    running: bool = False  # Flag to control the simulation loop
+
+    paused: bool = False  # Flag to pause the simulation
+
+    simulation_delay: float = 0.5  # Delay between simulation ticks in seconds
+    simulation_delay_max: float = 1.0 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    def set_running(self, running: bool):
+        """Set the simulation running state"""
+        do_start_run = not self.running and running
+
+        self.running = running
+
+        if do_start_run:
+            # If we are starting the simulation, we should start the run loop
+            asyncio.create_task(self.run())
+
+    async def run(self):
+        while self.running:
+            if not self.paused:
+                entities_are_thinking = await self.world.tick()
+                if entities_are_thinking:
+                    # If no entities are thinking, then give them the maximum delay to think
+                    await asyncio.sleep(self.simulation_delay_max)
+                else:
+                    # If entities are not thinking, then run as fast as the user wants us to.
+                    await asyncio.sleep(self.simulation_delay)
+            else:
+                # await for a trigger to resume the simulation
+                # TODO: Implement a more sophisticated pause / resume mechanism so that we don't just busy-wait
+                await asyncio.sleep(0.1)
+                
+
+
+    
