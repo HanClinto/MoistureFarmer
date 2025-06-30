@@ -42,7 +42,7 @@ class World(BaseModel):
 
     async def tick(self):
         # Run all entity ticks concurrently
-        await asyncio.gather(*(entity.tick() for entity in self.entities.values()))
+        await asyncio.gather(*(entity.tick(self) for entity in self.entities.values()))
         
 # --- Simulation System ---
 
@@ -54,6 +54,7 @@ class Simulation(BaseModel):
     running: bool = False  # Flag to control the simulation loop
 
     paused: bool = False  # Flag to pause the simulation
+    tick_count: int = 0  # Number of ticks that have occurred in the simulation
 
     simulation_delay: float = 0.5  # Delay between simulation ticks in seconds
     simulation_delay_max: float = 1.0 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
@@ -71,7 +72,9 @@ class Simulation(BaseModel):
             # If we are starting the simulation, we should start the run loop
             asyncio.create_task(self.run())
 
-    async def run(self):
+    async def run(self, ticks: Optional[int] = None):
+        self.running = True
+
         while self.running:
             if not self.paused:
                 entities_are_thinking = await self.world.tick()
@@ -81,6 +84,11 @@ class Simulation(BaseModel):
                 else:
                     # If entities are not thinking, then run as fast as the user wants us to.
                     await asyncio.sleep(self.simulation_delay)
+
+                self.tick_count += 1
+                if ticks is not None and self.tick_count >= ticks:
+                    # If we have reached the number of ticks to run, stop the simulation
+                    self.running = False
             else:
                 # await for a trigger to resume the simulation
                 # TODO: Implement a more sophisticated pause / resume mechanism so that we don't just busy-wait

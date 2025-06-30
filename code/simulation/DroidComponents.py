@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Type, Optional
+from typing import Any, Callable, ClassVar, Dict, Optional, List, Type, Optional
 from pydantic import BaseModel
 from simulation.World import World
 from simulation.Entity import Location
@@ -6,6 +6,17 @@ from simulation.Component import Chassis, ComponentSlot, Component, ToolCall, Po
 
 # --- Droid Components ---
 class Motivator(Component):
+    name: str = "Basic Motivator"
+    # Motivators are components that allow droids to move around the world.
+    # They can be simple (like a basic movement system) or complex (like an A* pathfinding system).
+    # Motivators can be installed in Chassis to provide movement capabilities.
+
+    destination: Optional[Location] = None  # The destination the chassis is moving towards
+
+    path_to_destination: Optional[List[Location]] = None  # The path to the destination
+    current_cooldown: int = 0  # Cooldown for movement after each tick
+    cooldown_delay: int = 1  # Delay in ticks between movements
+
     def provides_tools(self) -> List[ToolCall]:
         return [
             ToolCall(
@@ -24,10 +35,6 @@ class Motivator(Component):
                 }
             )
         ]
-    
-    def move_to_location(self, world: World, x: int, y: int):
-        # Set the destination of the chassis to the specified location
-        self.chassis.destination = Location(x=x, y=y)
 
     # Can move to an entity by its type or by its ID
     #  If a type is provided, it will find the nearest entity of that type.
@@ -45,61 +52,10 @@ class Motivator(Component):
 
         entity = entities[0]  # Get the closest entity
 
-        # Assign our desgination to the entity's location
-        self.chassis.destination = entity.location
+        # Assign our desination to the entity's location
+        self.destination = entity.location
 
-    def on_tick(self, world: World):
-        if self.chassis.destination == self.chassis.location:
-            # If the destination is the same as the current location, do nothing
-            return
 
-        power = self.chassis.get_component(PowerPack)
-        if not power:
-            print("No power pack found in the chassis. CondenserUnit cannot function without a power pack.")
-            # TODO: Post an error message that the AI can see
-            return
-
-        if power.charge <= 0:
-            print("Power pack is empty. Cannot move without power!")
-            # TODO: Post an error message to world and/or chassis system?
-            return
-
-        # TODO: Collision checking vs. the world map
-
-        curr = self.chassis.location
-        dest = self.chassis.destination
-        dx = dest.x - curr.x
-        dy = dest.y - curr.y
-        if dx != 0:
-            curr.x += 1 if dx > 0 else -1
-            power.charge -= 1  # Consume power for movement
-        elif dy != 0:
-            curr.y += 1 if dy > 0 else -1
-            power.charge -= 1  # Consume power for movement
-        else:
-            self.chassis.destination = None
-            # TODO: Once we reach our destination, this tool call is done
-
-class AStarMotivator(Motivator):
-    def provides_tools(self) -> List[ToolCall]:
-        return [
-            ToolCall(
-                function=self.move_to_location,
-                description="Intelligently move to a specific location on the farm.",
-                parameters={
-                    "x": "The x coordinate to move to.",
-                    "y": "The y coordinate to move to."
-                }
-            ),
-            ToolCall(
-                function=self.move_to_entity,
-                description="Intelligently move to the nearest entity of a specific type or by its ID.",
-                parameters={
-                    "identifier": "The type of entity or its ID to move to."
-                }
-            )
-        ]
-    
     def find_path(self, world: World, start: Location, end: Location) -> List[Location]:
         # Placeholder for A* pathfinding logic
         path = []
@@ -116,18 +72,83 @@ class AStarMotivator(Motivator):
             path.append(curr)
         return path
 
-    def on_tick(self, world: World):
-        # Use A* pathfinding to move towards the destination
-        # TODO: Implement collision checking vs. the world map
-        # TODO: Implement A*
-        if self.chassis and self.chassis.destination:
-            # TODO: Cache the path as long as the destination has not changed
-            path = self.find_path(world, self.chassis.location, self.chassis.destination)
-            if path:
-                next_location = path[0]
-                self.chassis.location = next_location
-                if next_location == self.chassis.destination:
-                    self.chassis.destination = None
+    def move_to_location(self, world: World, x: int, y: int):
+        # Set the destination of the chassis to the specified location
+        self.destination = Location(x=x, y=y)
+        # Calculate the path to the destination
+        self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
+
+
+    async def on_tick(self, world: World):
+        if self.chassis.location == self.destination:
+            # We have arrived at our destination, so clear the destination
+            self.destination = None
+            self.current_cooldown = 0  # Reset cooldown after arriving
+            # If the destination is the same as the current location, do nothing
+            # TODO: Announce event that we have arrived (?)
+            return
+        
+        if self.current_cooldown > 0:
+            # We are currently cooling down, so do nothing for this tick
+            self.current_cooldown -= 1
+            return
+
+        power = self.chassis.get_component(PowerPack)
+        if not power:
+            self.chassis.post_error(self, f"No power pack found in the chassis. Cannot function without a power pack.")
+            return
+
+        if power.charge <= 0:
+            self.chassis.post_error(self, "Power pack is empty. Cannot function without power!")
+            return
+
+        # TODO: Collision checking vs. the world map
+        # Get the next location in the path to the destination
+        if not self.path_to_destination:
+            self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
+
+        if not self.path_to_destination or len(self.path_to_destination) == 0:
+            self.chassis.post_error(self, "No path to destination found. Cannot move.")
+            return
+        
+        # Peek at the next location in the path
+        next_location = self.path_to_destination[0]
+            
+        # Check to ensure that we can navigate to the next location
+        if not world.is_location_navigable(next_location):
+            self.chassis.post_error(self, f"Next location {next_location} is not navigable. Cannot move.")
+            self.path_to_destination = None
+            self.destination = None
+            return
+
+        # Move to the next location
+        self.chassis.location = next_location
+        self.path_to_destination.pop(0)  # Remove the first location from the path
+
+        # Consume power for movement
+        power.charge -= 1  # Assuming each movement costs 1 unit of power
+
+        # Wait for X ticks to cooldown after moving, but only if we have more things to in our path
+        self.current_cooldown = self.cooldown_delay
+
+class AStarMotivator(Motivator):
+    name: str = "Advanced Motivator"
+
+    def find_path(self, world: World, start: Location, end: Location) -> List[Location]:
+        # Placeholder for A* pathfinding logic
+        path = []
+        curr = start
+        while curr != end:
+            if curr.x < end.x:
+                curr = Location(x=curr.x + 1, y=curr.y)
+            elif curr.x > end.x:
+                curr = Location(x=curr.x - 1, y=curr.y)
+            elif curr.y < end.y:
+                curr = Location(x=curr.x, y=curr.y + 1)
+            elif curr.y > end.y:
+                curr = Location(x=curr.x, y=curr.y - 1)
+            path.append(curr)
+        return path
 
 class DroidPersonality(Component):
     # Personalities are how droids interact with the world.

@@ -2,7 +2,7 @@ from typing import ClassVar, Dict, Optional, List, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject
 from simulation.World import World
-from DroidPersonality import ToolCall
+from simulation.ToolCall import ToolCall
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to
@@ -26,7 +26,7 @@ class Component(GameObject):
     durability: int = 100
     chassis: Optional['Chassis'] = None
 
-    def on_tick(self, world: World):
+    async def on_tick(self, world: World):
         pass
 
     def provides_tools(self) -> List[ToolCall]:
@@ -57,7 +57,6 @@ class Component(GameObject):
 class Chassis(Entity):
     model: str
     slots: Dict[str, 'ComponentSlot']
-    destination: Optional[Location] = None
     health: int = 100
 
     def __init__(__pydantic_self__, **data):
@@ -115,10 +114,10 @@ class Chassis(Entity):
                 caps.extend(slot.component.provides())
         return caps
 
-    def tick(self, world: World):
+    async def tick(self, world: World):
         for slot in self.slots.values():
             if slot.component:
-                slot.component.on_tick(world)
+                await slot.component.on_tick(world)
 
 class ComponentSlot(BaseModel):
     slot_id: Optional[str] = None

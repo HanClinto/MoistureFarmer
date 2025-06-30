@@ -1,9 +1,6 @@
 
 import random
-from typing import Any, Callable, List
-from pydantic import BaseModel
-from simulation.DroidComponents import DroidPersonality
-from simulation.Component import Component, ToolCall
+from simulation.DroidComponents import DroidPersonality, Motivator
 from simulation.Entity import Location
 from simulation.World import World
 
@@ -15,7 +12,7 @@ class DroidPersonalityRandom(DroidPersonality):
     think_timer: int = 0  # Timer to control thinking intervals
     think_interval: int = 1  # Interval between thoughts in world ticks
 
-    def on_tick(self, world: World):
+    async def on_tick(self, world: World):
 
         # Check to see if we are currently busy w/ an active task or tool call
         # If there is no active tool call, then we can perform one
@@ -27,8 +24,15 @@ class DroidPersonalityRandom(DroidPersonality):
         
         # For now, the only action is to move, but can code in more complex actions later
         
+        # Find the motivator in the chassis
+        motivator:Motivator = self.chassis.get_component(Motivator)
+
+        if not motivator:
+            self.chassis.log_error("No Motivator component found in the chassis. Cannot move.")
+            return
+        
         # Only think about moving when not currently moving
-        if self.chassis.destination is None:
+        if motivator.destination is None:
             # Only think about moving when not currently moving
             self.think_interval += 1
             if self.think_timer >= self.think_interval:
@@ -36,9 +40,11 @@ class DroidPersonalityRandom(DroidPersonality):
                 self.think_timer = 0.0
                 self.think_interval = random.randint(1, 5) # Reset think interval
 
-                self.decide_movement()
+                dest = self.decide_movement()
+                if dest:
+                    motivator.move_to_location(self.chassis.world, dest.x, dest.y)
 
-    def decide_movement(self):
+    def decide_movement(self) -> Location | None:
         # Get possible adjacent tiles
         adjacent_tiles = [
             self.chassis.location + Location(x=0, y=-1),  # Up
@@ -61,7 +67,9 @@ class DroidPersonalityRandom(DroidPersonality):
         # Choose a random valid tile
         target_location = random.choice(valid_tiles)
         if target_location != self.chassis.location:
-            self.chassis.destination = target_location
+            return target_location
+        
+        return None
 
 class DroidPersonalitySimple(DroidPersonality):
     pass
@@ -69,58 +77,4 @@ class DroidPersonalitySimple(DroidPersonality):
 class DroidPersonalitySimplePowerDroid(DroidPersonalitySimple):
     pass
 
-
-# Information needed to call a function as a tool
-#  This is used to define the tools that a Component provides to the agentic AI.
-class ToolCallParameter(BaseModel):
-    name: str
-    description: str
-    type: str  # Type of the parameter, e.g., "integer", "string", etc.
-    required: bool = True  # Whether the parameter is required or optional
-
-class ToolCall(BaseModel):
-    function_ptr: Callable[..., Any]
-    description: str
-    parameters: List[ToolCallParameter]  # Parameter names and their descriptions
-
-    # serialize to JSON in the format expected by the LLM
-    # example:
-    """
-    {
-        "type":"function",
-        "function":{
-            "name":"move_to_location",
-            "description":"Move to a specific location on the farm.",
-            "parameters":{
-                "type":"object",
-                "properties":{
-                    "x":{
-                        "type":"integer",
-                        "description":"The x coordinate to move to."
-                    },
-                    "y":{
-                        "type":"integer",
-                        "description":"The y coordinate to move to."
-                    }
-                },
-                "required":["x", "y"],
-                "additionalProperties": false
-            }
-        }
-    },
-    """
-    def to_llm_json(self) -> dict:
-        return {
-            "type": "function",
-            "function": {
-                "name": self.function_ptr.__name__,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
-                    "required": [param.name for param in self.parameters if param.required],
-                    "additionalProperties": False
-                }
-            }
-        }
 

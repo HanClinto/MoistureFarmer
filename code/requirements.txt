@@ -1,3 +1,5 @@
 requests
 colorama
 pydantic
+pytest
+pytest-asyncio

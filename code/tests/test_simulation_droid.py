@@ -1,22 +1,24 @@
 import pytest
 from simulation.Component import PowerPack
-from simulation.World import World
+from simulation.DroidComponents import Motivator
+from simulation.World import Simulation, World
 from simulation.DroidModels import GonkDroid
 from simulation.Entity import Location
 
 @pytest.fixture
-def world():
-    return World()
+def simulation() -> Simulation:
+    """Fixture to create a simulation instance for testing."""    
+    return Simulation()
 
-def test_droid_movement(world):
+def test_droid_movement(simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
-    world.add_entity(droid)
-    droid.destination = Location(x=25, y=-25)
+    simulation.world.add_entity(droid)
+    motivator = droid.get_component(Motivator)
+    motivator.destination = Location(x=25, y=-25)
 
     print(f'Initial droid location: {droid.location.x}, {droid.location.y}')
 
-    for _ in range(50):
-        world.tick()
+    simulation.run(ticks=50)  # Run the simulation for 50 ticks
     
     print(f'Final droid location: {droid.location.x}, {droid.location.y}')
 
@@ -24,18 +26,18 @@ def test_droid_movement(world):
     assert droid.location.y == -25
 
 # A droid with low power shouldn't be able to make it all the way to its destination
-def test_droid_movement_low_battery(world):
+def test_droid_movement_low_battery(simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
     power: PowerPack = droid.get_component(PowerPack)
     power.charge = 10  # Start with low power
-    world.add_entity(droid)
+    simulation.world.add_entity(droid)
 
-    droid.destination = Location(x=25, y=-25)
+    motivator = droid.get_component(Motivator)
+    motivator.destination = Location(x=25, y=-25)
 
     print(f'Initial droid location: {droid.location.x}, {droid.location.y}')
     print(f'Initial droid power: {power.charge}')
-    for _ in range(50):
-        world.tick()
+    simulation.run(ticks=50)
 
     print(f'Final droid location: {droid.location.x}, {droid.location.y}')
     print(f'Final droid power: {power.charge}')

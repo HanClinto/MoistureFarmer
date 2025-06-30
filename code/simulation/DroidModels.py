@@ -2,7 +2,7 @@
 from typing import Dict
 # --- Specific Droid Types ---
 from simulation.Component import Chassis, Component, ComponentSlot, ComputerProbe, PowerPack, SmallPowerPack
-from simulation.Droid import Motivator
+from simulation.DroidComponents import Motivator
 from simulation.DroidPersonality import DroidPersonalitySimple, DroidPersonalitySimplePowerDroid
 
 
