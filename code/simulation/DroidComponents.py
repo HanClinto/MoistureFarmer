@@ -79,7 +79,7 @@ class Motivator(Component):
         self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
 
 
-    async def on_tick(self, world: World):
+    def tick(self, world: World):
         if self.chassis.location == self.destination:
             # We have arrived at our destination, so clear the destination
             self.destination = None
@@ -149,9 +149,3 @@ class AStarMotivator(Motivator):
                 curr = Location(x=curr.x, y=curr.y - 1)
             path.append(curr)
         return path
-
-class DroidPersonality(Component):
-    # Personalities are how droids interact with the world.
-    #  This is an agentic AI that can be configured to perform tasks.
-    # For actual implementations, see DroidPersonality.py
-    pass

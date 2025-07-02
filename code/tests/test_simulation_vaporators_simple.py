@@ -9,8 +9,7 @@ def simulation() -> Simulation:
     """Fixture to create a simulation instance for testing."""    
     return Simulation()
 
-@pytest.mark.asyncio
-async def test_gx1_vaporator_full_tank(simulation: Simulation):
+def test_gx1_vaporator_full_tank(simulation: Simulation):
     vaporator = GX1_Vaporator()
     simulation.world.add_entity(vaporator)
 
@@ -22,14 +21,13 @@ async def test_gx1_vaporator_full_tank(simulation: Simulation):
 
     print(f'Initial tank fill: {tank.fill}, Initial power charge: {power.charge}')
 
-    await simulation.run(ticks=100)  # Run the simulation for 100 ticks
+    simulation.run(ticks=100)  # Run the simulation for 100 ticks
 
     assert tank.fill == tank.capacity
     assert power.charge == 0
 
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
-@pytest.mark.asyncio
 async def test_gx1_vaporator_low_starting_power(simulation: Simulation):
     vaporator = GX1_Vaporator(location=Location(x=0, y=0))
     tank:WaterTank = vaporator.get_component(WaterTank)
@@ -43,7 +41,7 @@ async def test_gx1_vaporator_low_starting_power(simulation: Simulation):
 
     print(f'Initial tank fill: {tank.fill}, Initial power charge: {power.charge}')
 
-    await simulation.run(ticks=100)  # Run the simulation for 100 ticks
+    simulation.run(ticks=100)  # Run the simulation for 100 ticks
 
     tank = vaporator.get_component(WaterTank)
     assert tank.fill < tank.capacity

@@ -8,7 +8,7 @@ from simulation.World import World
 class CondenserUnit(Component):
     water_per_charge: int = 1 # Amount of water condensed per unit of charge
 
-    async def on_tick(self, world: World):
+    def tick(self, world: World):
         if not self.chassis:
             raise ValueError("CondenserUnit must be installed in a chassis to function.")
         

@@ -26,7 +26,7 @@ class Component(GameObject):
     durability: int = 100
     chassis: Optional['Chassis'] = None
 
-    async def on_tick(self, world: World):
+    def tick(self, world: World):
         pass
 
     def provides_tools(self) -> List[ToolCall]:
