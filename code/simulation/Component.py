@@ -108,16 +108,17 @@ class Chassis(Entity):
             
 
     def get_capabilities(self) -> List[str]:
+        # TODO: Fix this
         caps = []
         for slot in self.slots.values():
             if slot.component:
                 caps.extend(slot.component.provides())
         return caps
 
-    async def tick(self, world: World):
+    def tick(self, world: World):
         for slot in self.slots.values():
             if slot.component:
-                await slot.component.on_tick(world)
+                slot.component.tick(world)
 
 class ComponentSlot(BaseModel):
     slot_id: Optional[str] = None

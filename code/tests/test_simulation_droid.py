@@ -18,7 +18,7 @@ def test_droid_movement(simulation):
 
     print(f'Initial droid location: {droid.location.x}, {droid.location.y}')
 
-    simulation.run_sync(ticks=50)  # Run the simulation for 50 ticks
+    simulation.run_sync(ticks=100)  # Run the simulation for 50 ticks
     
     print(f'Final droid location: {droid.location.x}, {droid.location.y}')
 

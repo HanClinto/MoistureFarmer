@@ -9,6 +9,8 @@ class CondenserUnit(Component):
     water_per_charge: int = 1 # Amount of water condensed per unit of charge
 
     def tick(self, world: World):
+        print(f"CondenserUnit {self.id} tick: {self.water_per_charge} water per charge")
+
         if not self.chassis:
             raise ValueError("CondenserUnit must be installed in a chassis to function.")
         

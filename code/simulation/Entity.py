@@ -49,7 +49,7 @@ class GameObject(BaseModel):
             __pydantic_self__.id = __pydantic_self__.generate_id(__pydantic_self__.__class__)
 
 class Entity(GameObject):
-    location: Location = Location(x=0, y=0)  # Default location    
+    location: Location = Location(x=0, y=0)  # Default location
     name: Optional[str] = None
     description: Optional[str] = None
 
@@ -57,3 +57,7 @@ class Entity(GameObject):
     def distance_to(self, other: 'Entity') -> float:
         return abs(self.location.x - other.location.x) + abs(self.location.y - other.location.y)
 
+    def tick(self, world: 'World'):
+        # This method is called every tick in the simulation.
+        # Entities can override this method to implement their own behavior.
+        print(f"Entity {self.id} at {self.location} ticked.")

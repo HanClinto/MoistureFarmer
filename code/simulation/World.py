@@ -42,6 +42,7 @@ class World(BaseModel):
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
 
     def tick(self):
+        print(f" World: Beginning tick for {len(self.entities)} entities.")
         # Call the tick method on all entities in the world
         for entity in self.entities.values():
             entity.tick(self)
@@ -85,7 +86,7 @@ class Simulation(BaseModel):
 
         while self.running:
             self.tick_count += 1
-            print(f"Simulation: Beginning tick {self.tick_count}")
+            #print(f"Simulation: Beginning tick {self.tick_count}")
 
             # Send on-before-tick event to the event bus
             #if self.event_bus:
@@ -107,7 +108,7 @@ class Simulation(BaseModel):
             # Sleep for the specified delay before the next tick
             asyncio.sleep(sleep_time)
 
-            print(f"Simulation: Finished tick {self.tick_count}")
+            #print(f"Simulation: Finished tick {self.tick_count}")
 
             if ticks is not None and self.tick_count >= ticks:
                 # If we have reached the number of ticks to run, stop the simulation
