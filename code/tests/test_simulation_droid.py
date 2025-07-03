@@ -10,7 +10,7 @@ def simulation() -> Simulation:
     """Fixture to create a simulation instance for testing."""    
     return Simulation()
 
-def test_droid_movement(simulation):
+def test_droid_movement(simulation: Simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
     simulation.world.add_entity(droid)
     motivator = droid.get_component(Motivator)
@@ -26,7 +26,7 @@ def test_droid_movement(simulation):
     assert droid.location.y == -25
 
 # A droid with low power shouldn't be able to make it all the way to its destination
-def test_droid_movement_low_battery(simulation):
+def test_droid_movement_low_battery(simulation: Simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
     power: PowerPack = droid.get_component(PowerPack)
     power.charge = 10  # Start with low power
