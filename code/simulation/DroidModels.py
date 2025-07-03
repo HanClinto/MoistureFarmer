@@ -3,7 +3,7 @@ from typing import Dict
 # --- Specific Droid Types ---
 from simulation.Component import Chassis, Component, ComponentSlot, ComputerProbe, PowerPack, SmallPowerPack
 from simulation.DroidComponents import Motivator
-from simulation.DroidPersonality import DroidPersonalitySimple, DroidPersonalitySimplePowerDroid
+from simulation.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
 
 
 class R2Astromech(Chassis):
@@ -26,7 +26,7 @@ class GonkDroid(Chassis):
     description: str = "A power droid designed to provide energy to other equipment. It has a limited battery capacity and can recharge itself at power stations."
 
     slots: Dict[str, ComponentSlot] = {
-        "personality": ComponentSlot(accepts=DroidPersonalitySimple, component=DroidPersonalitySimplePowerDroid()),
+        "agent": ComponentSlot(accepts=DroidAgentSimple, component=DroidAgentSimplePowerDroid()),
         "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
         "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
     }

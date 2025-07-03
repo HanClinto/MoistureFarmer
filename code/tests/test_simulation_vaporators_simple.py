@@ -21,14 +21,14 @@ def test_gx1_vaporator_full_tank(simulation: Simulation):
 
     print(f'Initial tank fill: {tank.fill}, Initial power charge: {power.charge}')
 
-    simulation.run(ticks=100)  # Run the simulation for 100 ticks
+    simulation.run_sync(ticks=100)  # Run the simulation for 100 ticks
 
     assert tank.fill == tank.capacity
     assert power.charge == 0
 
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
-async def test_gx1_vaporator_low_starting_power(simulation: Simulation):
+def test_gx1_vaporator_low_starting_power(simulation: Simulation):
     vaporator = GX1_Vaporator(location=Location(x=0, y=0))
     tank:WaterTank = vaporator.get_component(WaterTank)
     power:PowerPack = vaporator.get_component(PowerPack)   
@@ -41,7 +41,7 @@ async def test_gx1_vaporator_low_starting_power(simulation: Simulation):
 
     print(f'Initial tank fill: {tank.fill}, Initial power charge: {power.charge}')
 
-    simulation.run(ticks=100)  # Run the simulation for 100 ticks
+    simulation.run_sync(ticks=100)  # Run the simulation for 100 ticks
 
     tank = vaporator.get_component(WaterTank)
     assert tank.fill < tank.capacity
@@ -61,7 +61,7 @@ def test_gx8_vaporator(simulation: Simulation):
     assert tank.fill == 0  # Initial tank fill should be 0
     assert power.charge == power.charge_max  # Initial power pack charge should be full
 
-    simulation.run(ticks=100)  # Run the simulation for 100 ticks
+    simulation.run_sync(ticks=100)  # Run the simulation for 100 ticks
 
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 

@@ -42,14 +42,9 @@ class World(BaseModel):
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
 
     def tick(self):
-        entities_are_thinking = False
         # Call the tick method on all entities in the world
         for entity in self.entities.values():
             entity.tick(self)
-            if entity.is_thinking:
-                entities_are_thinking = True
-
-        return entities_are_thinking  # Return True if any entity is thinking, otherwise False
         
 # --- Simulation System ---
 
@@ -65,31 +60,20 @@ class Simulation(BaseModel):
     simulation_delay: float = 0.5  # Delay between simulation ticks in seconds
     simulation_delay_max: float = 1.0 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
 
-    simulation_task: Optional[asyncio.Task] = None  # Task for running the simulation loop
-
-    event_bus: Optional[asyncio.Event] = None  # Event bus for sending and receiving events
+    # HACK: Should eventually think of a better way to handle this.
+    entity_thinking_count: int = 0  # Count of how many entities are currently thinking
 
     def __init__(self, **data):
         super().__init__(**data)
 
     def run(self, ticks: Optional[int] = None):
         # Start the simulation loop in a separate thread
-        self.running = True
+        simulation_task = asyncio.create_task(self._do_run(ticks))
 
-        if self.simulation_task and not self.simulation_task.done():
-            print("Simulation is already running.")
-            return self.simulation_task
-
-        self.simulation_task = asyncio.create_task(self._do_run(ticks))
-
-        return self.simulation_task
+        return simulation_task
     
     def run_sync(self, ticks: Optional[int] = None):
         """Run the simulation synchronously for a specified number of ticks."""
-        if self.simulation_task and not self.simulation_task.done():
-            print("Simulation is already running.")
-            return self.simulation_task
-
         # Run the simulation loop in a blocking manner
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self._do_run(ticks))
@@ -104,17 +88,21 @@ class Simulation(BaseModel):
             print(f"Simulation: Beginning tick {self.tick_count}")
 
             # Send on-before-tick event to the event bus
-            if self.event_bus:
-                await self.event_bus.send_event("on-before-tick", {"tick": self.tick_count})
+            #if self.event_bus:
+            #    await self.event_bus.send_event("on-before-tick", {"tick": self.tick_count})
+
+            self.entity_thinking_count = 0
 
             # Tick everything in the world
-            entities_are_thinking = self.world.tick()
+            self.world.tick()
 
             sleep_time = self.simulation_delay
-            if entities_are_thinking:
-                # If no entities are thinking, then give them the maximum delay to think
+
+            # Check to see if any agents are thinking
+            if self.entity_thinking_count > 0:
+                # If any entities are thinking, then give them the maximum delay to think
                 sleep_time = self.simulation_delay_max
-                print(f"Simulation: Entities are thinking, sleeping for {sleep_time} seconds.")
+                print(f"Simulation: {self.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
 
             # Sleep for the specified delay before the next tick
             asyncio.sleep(sleep_time)

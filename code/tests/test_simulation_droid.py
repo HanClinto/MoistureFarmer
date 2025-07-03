@@ -18,7 +18,7 @@ def test_droid_movement(simulation):
 
     print(f'Initial droid location: {droid.location.x}, {droid.location.y}')
 
-    simulation.run(ticks=50)  # Run the simulation for 50 ticks
+    simulation.run_sync(ticks=50)  # Run the simulation for 50 ticks
     
     print(f'Final droid location: {droid.location.x}, {droid.location.y}')
 
@@ -37,7 +37,7 @@ def test_droid_movement_low_battery(simulation):
 
     print(f'Initial droid location: {droid.location.x}, {droid.location.y}')
     print(f'Initial droid power: {power.charge}')
-    simulation.run(ticks=50)
+    simulation.run_sync(ticks=50)
 
     print(f'Final droid location: {droid.location.x}, {droid.location.y}')
     print(f'Final droid power: {power.charge}')

@@ -2,7 +2,7 @@ import asyncio
 import random
 from typing import List, Optional
 
-from simulation import Component
+from simulation.Component import Component
 from simulation.DroidComponents import Motivator
 from simulation.Entity import Location
 from simulation.QueuedWebRequest import QueuedWebRequest
