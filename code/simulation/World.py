@@ -10,8 +10,10 @@ class World(BaseModel):
     # TODO: Implement a map system to represent the world.
     #  At the very least, we need a grid collision map for checking movement.
     entities: Dict[str, Entity] = {}
+    simulation: 'Simulation'
 
-    def __init__(self, **data):
+    def __init__(self, sim:'Simulation', **data):
+        self.simulation = sim
         super().__init__(**data)
 
     def add_entity(self, entity: Entity):
@@ -31,12 +33,12 @@ class World(BaseModel):
             # TODO: Raise this as an error that can be seen by any AI
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
         
-    def get_entities(self, identifier: Type[Entity] | str) -> List[Optional[Entity]]:
+    def get_entities(self, identifier: Type[Entity] | str) -> List[Entity]:
         if isinstance(identifier, str):
             # Return a list of entities with the given ID
             return [self.entities.get(identifier, None)]
         elif isinstance(identifier, type) and issubclass(identifier, Entity):
-            # If a Type is provided, return all entities of that type found
+            # If a Type is provided, return all Entities found of that type
             return [entity for entity in self.entities.values() if isinstance(entity, identifier)]
         else:
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
@@ -61,7 +63,9 @@ class Simulation(BaseModel):
     simulation_delay: float = 0.5  # Delay between simulation ticks in seconds
     simulation_delay_max: float = 1.0 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
 
-    # HACK: Should eventually think of a better way to handle this.
+    llm_url: str = "http://localhost:8080/v1/chat/completions"  # URL for the LLM endpoint
+
+    # HACK: Should eventually maybe think of a better way to handle this.
     entity_thinking_count: int = 0  # Count of how many entities are currently thinking
 
     def __init__(self, **data):

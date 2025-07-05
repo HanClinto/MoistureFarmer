@@ -32,6 +32,9 @@ class DroidAgent(Component):
         
         if self.queued_web_request:
             if self.queued_web_request.in_progress:
+                # TODO: What's the best way to let the simulation know that the agent is thinking?
+                # HACK: For now, set a flag on the world manually
+                world.entity_thinking_count += 1
                 print(f'Still thinking...')
             else:
                 # If the queued web request is done, we can process the response
@@ -40,6 +43,7 @@ class DroidAgent(Component):
                 self.queued_web_request = None
                 # For each tool call, execute it, and save the response to the agent context
                 # TODO: ^^
+                # handle_tool_calls(resp)
                 # For now, we will just print the response
                 print(f'Agent response: {resp}')
         else:
@@ -48,7 +52,7 @@ class DroidAgent(Component):
             self.agent_context.append(f"{world.get_state()}: What is your next action?")  # Current world state with prompt for next action
 
             queued_web_request = QueuedWebRequest(
-                url="http://example.com/llm",  # Replace with actual LLM endpoint
+                url=world.simulation.llm_url,  # Replace with actual LLM endpoint
                 data={
                     "prompt": "\n".join(self.agent_context),  # Join the context into a single prompt
                     "tools": [tool.to_llm_json() for tool in self.provides_tools()],  # Serialize tools to JSON
