@@ -29,42 +29,21 @@ class ToolCall(BaseModel):
     parameters: List[ToolCallParameter]  # Parameter names and their descriptions
 
     # serialize to JSON in the format expected by the LLM
-    # OpenAI format: https://platform.openai.com/docs/guides/function-calling?api-mode=responses&strict-mode=enabled#defining-functions
-    # example:
-    """
-    {
-        "type":"function",
-        "name":"move_to_location",
-        "description":"Move to a specific location on the farm.",
-        "strict":true,
-        "parameters":{
-            "type":"object",
-            "properties":{
-                "x":{
-                    "type":"integer",
-                    "description":"The x coordinate to move to."
-                },
-                "y":{
-                    "type":"integer",
-                    "description":"The y coordinate to move to."
-                }
-            },
-            "required":["x", "y"],
-            "additionalProperties": false
-        }
-    },
-    """
-    def to_llm_json(self) -> dict:
+    # OpenAI format: 
+    #  https://platform.openai.com/docs/guides/function-calling?api-mode=responses&strict-mode=enabled#defining-functions
+    #  https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
+    def to_openai_json(self) -> dict:
         return {
             "type": "function",
-            "name": self.function_ptr.__name__,
-            "description": self.description,
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
-                "required": [param.name for param in self.parameters if param.required],
-                "additionalProperties": False
+            "function": {
+                "name": self.function_ptr.__name__,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
+                    "required": [param.name for param in self.parameters if param.required],
+                    "additionalProperties": False
+                }
             }
         }
     

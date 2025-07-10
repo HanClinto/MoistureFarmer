@@ -1,46 +1,102 @@
 import asyncio
 import random
-from typing import List, Optional
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel
 
 from simulation.Component import Component
 from simulation.DroidComponents import Motivator
 from simulation.Entity import Location
 from simulation.QueuedWebRequest import QueuedWebRequest
+from simulation.ToolCall import ToolCall
 from simulation.World import World
 
-# Import the LlamaCppServerProvider of llama-cpp-agent
-from llama_cpp_agent import LlamaCppAgent
-from llama_cpp_agent.providers import LlamaCppServerProvider
-from llama_cpp_agent import MessagesFormatterType
+class AgentContext(BaseModel):
+    """
+    A context for the agent that contains the system prompt, tools, recent history, and world state.
+    This is used to provide the agent with the necessary information to make decisions.
+    """
+    prompt_goal: str  # The goal of the agent, typically a prompt for the LLM
+    prompt_system: Optional[str] = None  # The system prompt for the agent stating general instructions
+    tools: List[ToolCall] = []  # List of tools available to the agent
+
+    _recent_messages: List[Dict] = []  # Recent messages or history for the agent to consider
+
+    def __init__(self,
+                 prompt_goal: str,
+                 prompt_system: Optional[str] = None,
+                 # cache_prompt: bool = True, # TODO: Only used by llama.cpp
+                 tools: Optional[List[ToolCall]] = None):
+        super().__init__()
+        self.prompt_goal = prompt_goal
+        self.prompt_system = prompt_system
+        # self.cache_prompt = cache_prompt  # TODO: Only used by llama.cpp
+        self.tools = tools if tools is not None else []
+
+    def to_json(self) -> Dict:
+        messages:List[Dict] = []
+
+        # If a system prompt is provided, append it as the first message
+        if self.prompt_system:
+            messages.append(dict(
+                role="system", 
+                content=self.prompt_system))
+            
+        # Append the goal as a user message            
+        messages.append(dict(
+            role="user", 
+            content=self.prompt_goal))
+        
+        # Append the recent messages to the context
+        for message in self._recent_messages:
+            messages.append(message)
+
+        # Serialize tools to JSON
+        tools_as_json = [tool.to_openai_json() for tool in self.tools]
+
+        return dict(
+                    messages=self.messages,
+                    model="gpt-3.5-turbo",  # TODO: Make this configurable
+                    tools=tools_as_json,
+                    cache_prompt=True,      # TODO: Only used by llama.cpp
+                    # TODO: Make all of these configurable
+                    #temperature=temperature,
+                    #top_p=top_p,
+                    #top_k=top_k,
+                    #seed=seed,
+                )
+
+    def append_message(self, role: str, content: str):
+        """
+        Append a message to the recent messages in the agent context.
+        Args:
+            role (str): The role of the message sender (e.g., "user", "assistant", "system").
+            content (str): The content of the message.
+        """
+        self._recent_messages.append(dict(role=role, content=content))
+        # TODO: Optionally limit the size of recent messages to avoid memory overflow
+        #if len(self._recent_messages) > 10: # TODO: Configurable threshold
+        #    self._recent_messages.pop(0)
 
 
-# Create the provider by passing the server URL to the LlamaCppServerProvider class, you can also pass an API key for authentication and a flag to use a llama-cpp-python server.
-provider = LlamaCppServerProvider("http://127.0.0.1:8080")
 
 # A DroidAgent is a component that defines how a droid interacts with the world.
 #  Specifically, it is an agent that can make decisions based on the world state.
 #  Personalities can be simple / random, or can be controlled by more complex AI (such as an LLM)
 class DroidAgent(Component):
     name: str = "Droid Agent"
-    description: str = "A simple droid agent that can make decisions based on the world state."
+    description: str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
+
+    prompt_goal: str 
 
     is_active: bool = False # Whether the agent is currently active / awake (and running its agentic loop)
 
     queued_web_request: Optional[QueuedWebRequest] = None  # A queued web request that the agent can use to communicate with an LLM or other service
 
-    #agent: LlamaCppAgent = None
+    agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
     def on_activate(self):
         # Initialize the agent with the provider and system prompt
-        #self.agent = LlamaCppAgent(
-        #    provider=provider,
-        #    system_prompt=self.system_prompt,
-        #    tools=self.provides_tools(),
-        #    recent_history=self.recent_history,
-        #    predefined_messages_formatter_type=MessagesFormatterType.CHATML
-        #)
-
-        self.chassis
 
         # Activate the agent
         self.activate()
@@ -51,13 +107,13 @@ class DroidAgent(Component):
             # If the agent is not active, do nothing
             return
 
-        world = self.chassis.world
+        world:World = self.chassis.world
 
         if self.queued_web_request:
             if self.queued_web_request.in_progress:
                 # TODO: What's the best way to let the simulation know that the agent is thinking?
                 # HACK: For now, set a flag on the world manually
-                world.simulation.entity_thinking_count += 1
+                world.entity_thinking_count += 1
                 print(f'Still thinking...')
             else:
                 # If the queued web request is done, we can process the response
@@ -88,15 +144,7 @@ class DroidAgent(Component):
 
     def activate(self):
         self.is_active = True
-
-        world = self.chassis.world
-
-        # Build the initial context for the agent
-        self.agent_context = []
-        self.agent_context.append(self.system_prompt)  # System prompt
-        self.agent_context.append(self.provides_tools())  # Tool calls available to the agent
-        self.agent_context.append(self.recent_history)  # Recent history of actions
-        self.agent_context.append(f"{world.get_state()}: What is your next action?")  # Current world state with prompt for next action
+        # Initialize the agent context with the system prompt, tools, and recent history
 
 
 class DroidAgentRandom(DroidAgent):

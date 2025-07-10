@@ -63,6 +63,8 @@ class Simulation(BaseModel):
     simulation_delay: float = 0.1  # Delay between simulation ticks in seconds
     simulation_delay_max: float = 0.5 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
 
+    log_level: int = 0  # Log level for the simulation (0 = info, 1 = warning, 2 = error)
+
     # TODO: Make this more easily configurable -- possibly with a dictionary of endpoints for different model names or services.
     llm_url: str = "http://localhost:8080/v1/chat/completions"  # URL for the LLM endpoint
 

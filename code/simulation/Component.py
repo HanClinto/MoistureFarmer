@@ -1,3 +1,4 @@
+from datetime import datetime
 import inspect
 from typing import ClassVar, Dict, Optional, List, Type, Callable, Any
 from pydantic import BaseModel
@@ -122,11 +123,21 @@ class Chassis(Entity):
                         all_tools[tool_name] = tool_call
                     else:
                         # If a tool with the same name already exists, we can either skip or somehow denote which component they come from.
-                        # Here we choose to skip and give preference to the first one found.                        
-                        print(f"Warning: Tool '{tool_name}' already exists on {self.id}. Skipping duplicate.")
+                        # Here we choose to skip and give preference to the first one found.
+                        self.warn(f"Tool '{tool_name}' already exists in {self.id}. Skipping duplicate.")
 
         return all_tools
-
+    
+    def get_logs(self) -> List[(str, int, datetime)]:
+        # Return the log history for this object and all components, sorted by timestamp
+        logs = super().get_logs()
+        for slot in self.slots.values():
+            if slot.component:
+                logs.extend(slot.component.get_logs())
+        # Sort logs by timestamp
+        logs.sort(key=lambda log: log[2])  # Sort by timestamp
+        return logs
+    
     def tick(self):
         for slot in self.slots.values():
             if slot.component:

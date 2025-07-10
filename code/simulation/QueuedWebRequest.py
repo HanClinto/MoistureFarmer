@@ -1,16 +1,17 @@
 
 import asyncio
 import aiohttp
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel
 
 
 class QueuedWebRequest(BaseModel):
     in_progress: bool = False  # Whether the request is currently being sent
-    response: Optional[str] = None  # The response from the web request, if any
+    response: Optional[Any] = None  # The response from the web request, if any
     _task: Optional[asyncio.Task] = None  # The task that is running the web request
+    headers: Optional[dict] = None  # Optional headers for the request
 
-    def __init__(self, url: str, data: Optional[dict] = None):
+    def __init__(self, url: str, data: Optional[dict] = None, headers: Optional[dict] = {'Content-Type': 'application/json'}):
         self.url = url
         self.data = data
 
@@ -30,9 +31,10 @@ class QueuedWebRequest(BaseModel):
     async def _send_request_async(self):
         # Send the request asynchronously
         print(f"Sending request to {self.url} with data: {self.data}")
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=self.headers) as session:
             async with session.post(self.url, json=self.data) as response:
-                self.response = await response.text()
+                response.raise_for_status()
+                self.response = await response.json()
                 self.in_progress = False
                 print(f"Received response: {self.response}")
 
