@@ -1,8 +1,10 @@
 from typing import Any, Callable, ClassVar, Dict, Optional, List, Type, Optional
 from pydantic import BaseModel
+from simulation.ToolCall import tool
 from simulation.World import World
 from simulation.Entity import Location
 from simulation.Component import Chassis, ComponentSlot, Component, ToolCall, PowerPack, SmallPowerPack, ComputerProbe
+from random import randint
 
 # --- Droid Components ---
 class Motivator(Component):
@@ -17,29 +19,21 @@ class Motivator(Component):
     current_cooldown: int = 0  # Cooldown for movement after each tick
     cooldown_delay: int = 1  # Delay in ticks between movements
 
-    def provides_tools(self) -> List[ToolCall]:
-        return [
-            ToolCall(
-                function=self.move_to_location,
-                description="Move to a specific location on the farm.",
-                parameters={
-                    "x": "The x coordinate to move to.",
-                    "y": "The y coordinate to move to."
-                }
-            ),
-            ToolCall(
-                function=self.move_to_entity,
-                description="Move to the nearest entity of a specific type or by its ID.",
-                parameters={
-                    "identifier": "The type of entity or its ID to move to."
-                }
-            )
-        ]
-
     # Can move to an entity by its type or by its ID
     #  If a type is provided, it will find the nearest entity of that type.
     #  If more than one entity matches and is equidistant, it will choose the first one found.
-    def move_to_entity(self, world: World, identifier: Type[Component] | str):
+    @tool
+    def move_to_entity(self, identifier: Type[Component] | str):
+        """
+        Move the chassis to the nearest entity of a specific type or by its ID.
+
+        Args:
+            world (World): The world in which the chassis is located.
+            identifier (Type[Component] | str): The type of entity or its ID to move to.
+        """
+
+        world = self.chassis.world
+        
         # Find the entity by ID and set the destination to its location
         entities = world.get_entities(identifier)
 
@@ -55,31 +49,50 @@ class Motivator(Component):
         # Assign our desination to the entity's location
         self.destination = entity.location
 
+        # Calculate the path to the destination
+        self.path_to_destination = self.find_path(self.chassis.location, self.destination)
 
-    def find_path(self, world: World, start: Location, end: Location) -> List[Location]:
-        # Placeholder for A* pathfinding logic
-        path = []
-        curr = start
-        while curr != end:
-            if curr.x < end.x:
-                curr = Location(x=curr.x + 1, y=curr.y)
-            elif curr.x > end.x:
-                curr = Location(x=curr.x - 1, y=curr.y)
-            elif curr.y < end.y:
-                curr = Location(x=curr.x, y=curr.y + 1)
-            elif curr.y > end.y:
-                curr = Location(x=curr.x, y=curr.y - 1)
-            path.append(curr)
-        return path
-
-    def move_to_location(self, world: World, x: int, y: int):
+    @tool
+    def move_to_location(self, x: int, y: int):
+        """
+        Move the chassis to a specific location in the world.
+        Args:
+            world (World): The world in which the chassis is located.
+            x (int): The x-coordinate of the destination.
+            y (int): The y-coordinate of the destination.
+        """
         # Set the destination of the chassis to the specified location
         self.destination = Location(x=x, y=y)
         # Calculate the path to the destination
         self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
 
+    def find_path(self, start: Location, end: Location) -> List[Location]:
+        # Overly simplistic pathfinding algorithm.
+        path = []
+        curr = start
+        while curr != end:
+            # Alternate randomly between moving in x or y direction
+            x_first = randint(0, 1) == 0
+            if x_first:
+                if curr.x != end.x:
+                    # Move in the x direction towards the end
+                    curr = Location(x=curr.x + (1 if end.x > curr.x else -1), y=curr.y)
+                elif curr.y != end.y:
+                    # Move in the y direction towards the end
+                    curr = Location(x=curr.x, y=curr.y + (1 if end.y > curr.y else -1))
+            else:
+                if curr.y != end.y:
+                    # Move in the y direction towards the end
+                    curr = Location(x=curr.x, y=curr.y + (1 if end.y > curr.y else -1))
+                elif curr.x != end.x:
+                    # Move in the x direction towards the end
+                    curr = Location(x=curr.x + (1 if end.x > curr.x else -1), y=curr.y)
 
-    def tick(self, world: World):
+            # Add the current location to the path
+            path.append(curr)
+        return path
+
+    def tick(self):
         print(f"  Motivator {self.id} tick at location {self.chassis.location} with destination {self.destination}")
         if self.chassis.location == self.destination:
             # We have arrived at our destination, so clear the destination
@@ -113,7 +126,7 @@ class Motivator(Component):
         # TODO: Collision checking vs. the world map
         # Get the next location in the path to the destination
         if not self.path_to_destination:
-            self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
+            self.path_to_destination = self.find_path(self.chassis.location, self.destination)
 
         if not self.path_to_destination or len(self.path_to_destination) == 0:
             err_msg = "No path to destination found. Cannot move."
@@ -146,18 +159,7 @@ class Motivator(Component):
 class AStarMotivator(Motivator):
     name: str = "Advanced Motivator"
 
-    def find_path(self, world: World, start: Location, end: Location) -> List[Location]:
-        # Placeholder for A* pathfinding logic
-        path = []
-        curr = start
-        while curr != end:
-            if curr.x < end.x:
-                curr = Location(x=curr.x + 1, y=curr.y)
-            elif curr.x > end.x:
-                curr = Location(x=curr.x - 1, y=curr.y)
-            elif curr.y < end.y:
-                curr = Location(x=curr.x, y=curr.y + 1)
-            elif curr.y > end.y:
-                curr = Location(x=curr.x, y=curr.y - 1)
-            path.append(curr)
-        return path
+    def find_path(self, start: Location, end: Location) -> List[Location]:
+        # A* pathfinding logic
+        # TODO: Use the world's collision map to find a valid path
+        return super().find_path(start, end)

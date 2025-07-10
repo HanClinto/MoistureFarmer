@@ -3,3 +3,4 @@ colorama
 pydantic
 pytest
 pytest-asyncio
+llm

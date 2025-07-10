@@ -10,13 +10,15 @@ class World(BaseModel):
     # TODO: Implement a map system to represent the world.
     #  At the very least, we need a grid collision map for checking movement.
     entities: Dict[str, Entity] = {}
-    simulation: 'Simulation'
 
-    def __init__(self, sim:'Simulation', **data):
-        self.simulation = sim
+    # HACK: Should eventually maybe think of a better way to handle this.
+    entity_thinking_count: int = 0  # Count of how many entities are currently thinking
+
+    def __init__(self, **data):
         super().__init__(**data)
 
     def add_entity(self, entity: Entity):
+        entity.world = self  # Set the world reference in the entity
         self.entities[entity.id] = entity
 
     def get_entity(self, identifier: Type[Entity] | str) -> Optional[Entity]:
@@ -47,29 +49,32 @@ class World(BaseModel):
         print(f" World: Beginning tick for {len(self.entities)} entities.")
         # Call the tick method on all entities in the world
         for entity in self.entities.values():
-            entity.tick(self)
+            entity.tick()
         
 # --- Simulation System ---
 
 # The Simulation is a high-level controller that manages the world and the simulation loop
 
 class Simulation(BaseModel):
-    world: World = World()
-
     running: bool = False  # Flag to control the simulation loop
 
     tick_count: int = 0  # Number of ticks that have occurred in the simulation
 
-    simulation_delay: float = 0.5  # Delay between simulation ticks in seconds
-    simulation_delay_max: float = 1.0 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
+    simulation_delay: float = 0.1  # Delay between simulation ticks in seconds
+    simulation_delay_max: float = 0.5 # What is the maximum delay between simulation ticks? If LLM-based entities are thinking, then wait this long before proceeding to the next tick. This gives the simulation a semblance of determinism even as it runs at variable speeds.
 
+    # TODO: Make this more easily configurable -- possibly with a dictionary of endpoints for different model names or services.
     llm_url: str = "http://localhost:8080/v1/chat/completions"  # URL for the LLM endpoint
 
-    # HACK: Should eventually maybe think of a better way to handle this.
-    entity_thinking_count: int = 0  # Count of how many entities are currently thinking
+    world: World = World()  # The world that the simulation is running in
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    # Singleton pattern to ensure only one instance of Simulation exists
+    __instance: Optional['Simulation'] = None
+    @classmethod
+    def get_instance(cls) -> 'Simulation':
+        if cls.__instance is None:
+            cls.__instance = cls()
+        return cls.__instance
 
     def run(self, ticks: Optional[int] = None):
         # Start the simulation loop in a separate thread
@@ -96,7 +101,7 @@ class Simulation(BaseModel):
             #if self.event_bus:
             #    await self.event_bus.send_event("on-before-tick", {"tick": self.tick_count})
 
-            self.entity_thinking_count = 0
+            self.world.entity_thinking_count = 0
 
             # Tick everything in the world
             self.world.tick()
@@ -104,10 +109,10 @@ class Simulation(BaseModel):
             sleep_time = self.simulation_delay
 
             # Check to see if any agents are thinking
-            if self.entity_thinking_count > 0:
+            if self.world.entity_thinking_count > 0:
                 # If any entities are thinking, then give them the maximum delay to think
                 sleep_time = self.simulation_delay_max
-                print(f"Simulation: {self.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
+                print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
 
             # Sleep for the specified delay before the next tick
             asyncio.sleep(sleep_time)
@@ -117,7 +122,4 @@ class Simulation(BaseModel):
             if ticks is not None and self.tick_count >= ticks:
                 # If we have reached the number of ticks to run, stop the simulation
                 self.running = False
-                
 
-
-    

@@ -3,7 +3,19 @@
 #  This is used to define the tools that a Component provides to the agentic AI.
 from typing import Any, Callable, List
 from pydantic import BaseModel
+from docstring_parser import parse
 
+_IS_TOOL_FUNCTION = "_is_tool_function"
+
+# Decorator to mark a method as a tool function
+#  This allows the method to be recognized as a tool that can be called by an Agent
+# Note: Any function marked as a tool MUST have a complete docstring
+#  that describes itself and its parameters, with Pydantic types and descriptions for all
+def tool(func):
+    setattr(func, _IS_TOOL_FUNCTION, True)
+    if not func.__doc__:
+        raise ValueError(f"Function {func.__name__} must have a docstring if it is going to be used as a tool.")
+    return func
 
 class ToolCallParameter(BaseModel):
     name: str
@@ -17,42 +29,69 @@ class ToolCall(BaseModel):
     parameters: List[ToolCallParameter]  # Parameter names and their descriptions
 
     # serialize to JSON in the format expected by the LLM
+    # OpenAI format: https://platform.openai.com/docs/guides/function-calling?api-mode=responses&strict-mode=enabled#defining-functions
     # example:
     """
     {
         "type":"function",
-        "function":{
-            "name":"move_to_location",
-            "description":"Move to a specific location on the farm.",
-            "parameters":{
-                "type":"object",
-                "properties":{
-                    "x":{
-                        "type":"integer",
-                        "description":"The x coordinate to move to."
-                    },
-                    "y":{
-                        "type":"integer",
-                        "description":"The y coordinate to move to."
-                    }
+        "name":"move_to_location",
+        "description":"Move to a specific location on the farm.",
+        "strict":true,
+        "parameters":{
+            "type":"object",
+            "properties":{
+                "x":{
+                    "type":"integer",
+                    "description":"The x coordinate to move to."
                 },
-                "required":["x", "y"],
-                "additionalProperties": false
-            }
+                "y":{
+                    "type":"integer",
+                    "description":"The y coordinate to move to."
+                }
+            },
+            "required":["x", "y"],
+            "additionalProperties": false
         }
     },
     """
     def to_llm_json(self) -> dict:
         return {
             "type": "function",
-            "function": {
-                "name": self.function_ptr.__name__,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
-                    "required": [param.name for param in self.parameters if param.required],
-                    "additionalProperties": False
-                }
+            "name": self.function_ptr.__name__,
+            "description": self.description,
+            "strict": True,
+            "parameters": {
+                "type": "object",
+                "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
+                "required": [param.name for param in self.parameters if param.required],
+                "additionalProperties": False
             }
         }
+    
+    def __init__(self, function_ptr: Callable[..., Any]):
+        # Use docstring_parser to extract the function's docstring and parameters
+        docstring = parse(function_ptr.__doc__)
+        self.function_ptr = function_ptr
+        # Assert that we have a short description
+        if not docstring.short_description:
+            raise ValueError(f"Function {function_ptr.__name__} must have a docstring with a short description.")
+        self.description = docstring.short_description
+        self.parameters = []
+        for param in docstring.params:
+            # Create a ToolCallParameter for each parameter in the function's docstring
+            if not param.description:
+                raise ValueError(f"Function {function_ptr.__name__} parameter '{param.arg_name}' must have a description.")
+            if not param.type_name:
+                raise ValueError(f"Function {function_ptr.__name__} parameter '{param.arg_name}' must have a Pydantic type specified.")
+
+            self.parameters.append(
+                ToolCallParameter(
+                    name=param.arg_name,
+                    description=param.description,
+                    type=param.type_name,
+                    required=True  # Assume all parameters are required by default
+                )
+            )
+        # If the function has a return type, add it to the parameters
+        # TODO: Are there tool call formats that expect this? OpenAI does not.
+        # if docstring.returns:

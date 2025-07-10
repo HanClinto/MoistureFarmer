@@ -1,8 +1,9 @@
+import inspect
 from typing import ClassVar, Dict, Optional, List, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject
 from simulation.World import World
-from simulation.ToolCall import ToolCall
+from simulation.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to
@@ -26,29 +27,28 @@ class Component(GameObject):
     durability: int = 100
     chassis: Optional['Chassis'] = None
 
-    def tick(self, world: World):
+    def tick(self):
         pass
 
-    def provides_tools(self) -> List[ToolCall]:
-        return []
-    
+    def provides_tools(self) -> Dict[str, ToolCall]:
+        # Find all methods (including inherited) marked as tool functions
+        tool_methods = {}
+        for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
+            if getattr(method, _IS_TOOL_FUNCTION, False):
+                tool_methods[name] = ToolCall(method)
+        return tool_methods
+
     def on_installed(self, chassis: 'Chassis'):
         # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
         print(f"Component {self.id} installed in chassis {chassis.id}.")
 
-
 # -- Chassis System ---
-# Chassis are the physical bodies of entities that can have components 
-#  installed in them to extend their capabilities.
-# Chassis can be droids, equipment (such as vaporators), or anything 
-#  that would need to be repaired, upgraded, run-down, or otherwise 
-#  interacted with in the game world.
+# Chassis are the physical bodies of entities that can have components#  installed in them to extend their capabilities.
+# Chassis can be droids, equipment (such as vaporators), or anything#  that would need to be repaired, upgraded, run-down, or otherwise#  interacted with in the game world.
 # If an Entity does not need to be repaired or upgraded or have modular
-#  capabilities, then it does not need a Chassis, and can be an Entity 
-#  directly.
+#  capabilities, then it does not need a Chassis, and can be an Entity#  directly.
 # Chassis have slots for Components, which can be installed or removed.
-# Different Chassis will have different Slots that accept different 
-#  types of Components.
+# Different Chassis will have different Slots that accept different#  types of Components.
 # Components add funcionality to the Chassis, such as movement, power,
 #  or other capabilities. Some of these capabilities will be exposed to
 #  the agentic AI as functions that can be called in the form of tools,
@@ -105,20 +105,27 @@ class Chassis(Entity):
             return None
         else:
             raise TypeError("Identifier must be a Type of Component or a string representing a slot ID or component ID.")
-            
 
-    def get_capabilities(self) -> List[str]:
-        # TODO: Fix this
-        caps = []
+    def get_available_tools(self) -> Dict[str, ToolCall]:
+        # Collect all tool calls from all components in the chassis
+        all_tools = {}
         for slot in self.slots.values():
             if slot.component:
-                caps.extend(slot.component.provides())
-        return caps
+                tools = slot.component.provides_tools()
+                for tool_name, tool_call in tools.items():
+                    if tool_name not in all_tools:
+                        all_tools[tool_name] = tool_call
+                    else:
+                        # If a tool with the same name already exists, we can either skip or merge them
+                        # Here we choose to skip, but you could also merge functionality if needed
+                        print(f"Warning: Tool '{tool_name}' already exists on {self.id}. Skipping duplicate.")
 
-    def tick(self, world: World):
+        return all_tools
+
+    def tick(self):
         for slot in self.slots.values():
             if slot.component:
-                slot.component.tick(world)
+                slot.component.tick()
 
 class ComponentSlot(BaseModel):
     slot_id: Optional[str] = None

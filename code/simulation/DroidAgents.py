@@ -8,6 +8,14 @@ from simulation.Entity import Location
 from simulation.QueuedWebRequest import QueuedWebRequest
 from simulation.World import World
 
+# Import the LlamaCppServerProvider of llama-cpp-agent
+from llama_cpp_agent import LlamaCppAgent
+from llama_cpp_agent.providers import LlamaCppServerProvider
+from llama_cpp_agent import MessagesFormatterType
+
+
+# Create the provider by passing the server URL to the LlamaCppServerProvider class, you can also pass an API key for authentication and a flag to use a llama-cpp-python server.
+provider = LlamaCppServerProvider("http://127.0.0.1:8080")
 
 # A DroidAgent is a component that defines how a droid interacts with the world.
 #  Specifically, it is an agent that can make decisions based on the world state.
@@ -20,21 +28,36 @@ class DroidAgent(Component):
 
     queued_web_request: Optional[QueuedWebRequest] = None  # A queued web request that the agent can use to communicate with an LLM or other service
 
-    # Context for the agent, including system prompt, tools, and recent history
-    agent_context: List[str] = []  # This will hold the accumulated context for the agent, such as system prompt, tools, and recent history
+    #agent: LlamaCppAgent = None
 
-    def tick(self, world: World):
+    def on_activate(self):
+        # Initialize the agent with the provider and system prompt
+        #self.agent = LlamaCppAgent(
+        #    provider=provider,
+        #    system_prompt=self.system_prompt,
+        #    tools=self.provides_tools(),
+        #    recent_history=self.recent_history,
+        #    predefined_messages_formatter_type=MessagesFormatterType.CHATML
+        #)
+
+        self.chassis
+
+        # Activate the agent
+        self.activate()
+
+    def tick(self):
         # A re-entrant ReAct agent "loop" that steps forward every tick
-
         if not self.is_active:
             # If the agent is not active, do nothing
             return
-        
+
+        world = self.chassis.world
+
         if self.queued_web_request:
             if self.queued_web_request.in_progress:
                 # TODO: What's the best way to let the simulation know that the agent is thinking?
                 # HACK: For now, set a flag on the world manually
-                world.entity_thinking_count += 1
+                world.simulation.entity_thinking_count += 1
                 print(f'Still thinking...')
             else:
                 # If the queued web request is done, we can process the response
@@ -55,18 +78,18 @@ class DroidAgent(Component):
                 url=world.simulation.llm_url,  # Replace with actual LLM endpoint
                 data={
                     "prompt": "\n".join(self.agent_context),  # Join the context into a single prompt
-                    "tools": [tool.to_llm_json() for tool in self.provides_tools()],  # Serialize tools to JSON
+                    "tools": [tool.to_llm_json() for tool in self.provides_tools().values],  # Serialize tools to JSON
                 }
             )
             queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
             self.queued_web_request = queued_web_request
 
-
         # If there is no queued web request, then we should kick off the next step in the agentic loop
 
-
-    def activate(self, world: World):
+    def activate(self):
         self.is_active = True
+
+        world = self.chassis.world
 
         # Build the initial context for the agent
         self.agent_context = []
@@ -80,7 +103,7 @@ class DroidAgentRandom(DroidAgent):
     think_timer: int = 0  # Timer to control thinking intervals
     think_interval: int = 1  # Interval between thoughts in world ticks
 
-    def tick(self, world: World):
+    def tick(self):
 
         # Check to see if we are currently busy w/ an active task or tool call
         # If there is no active tool call, then we can perform one
@@ -110,7 +133,7 @@ class DroidAgentRandom(DroidAgent):
 
                 dest = self.decide_movement()
                 if dest:
-                    motivator.move_to_location(self.chassis.world, dest.x, dest.y)
+                    motivator.move_to_location(dest.x, dest.y)
 
     def decide_movement(self) -> Location | None:
         # Get possible adjacent tiles

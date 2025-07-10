@@ -43,21 +43,22 @@ class GameObject(BaseModel):
         cls._type_counter[obj_type] += 1
         return f"{obj_type.__name__}_{cls._type_counter[obj_type]}"
 
-    def __init__(__pydantic_self__, **data):
+    def __init__(self, **data):
         super().__init__(**data)
-        if not __pydantic_self__.id:
-            __pydantic_self__.id = __pydantic_self__.generate_id(__pydantic_self__.__class__)
+        if not self.id:
+            self.id = self.generate_id(self.__class__)
 
 class Entity(GameObject):
     location: Location = Location(x=0, y=0)  # Default location
     name: Optional[str] = None
     description: Optional[str] = None
+    world: Optional['World'] = None  # Reference to the world this entity belongs to
 
     # Manhattan distance to another entity
     def distance_to(self, other: 'Entity') -> float:
         return abs(self.location.x - other.location.x) + abs(self.location.y - other.location.y)
 
-    def tick(self, world: 'World'):
+    def tick(self):
         # This method is called every tick in the simulation.
         # Entities can override this method to implement their own behavior.
         print(f"Entity {self.id} at {self.location} ticked.")
