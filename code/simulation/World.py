@@ -46,7 +46,6 @@ class World(BaseModel):
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
 
     def tick(self):
-        print(f" World: Beginning tick for {len(self.entities)} entities.")
         # Call the tick method on all entities in the world
         for entity in self.entities.values():
             entity.tick()

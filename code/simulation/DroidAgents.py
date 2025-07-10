@@ -87,7 +87,7 @@ class DroidAgent(Component):
     name: str = "Droid Agent"
     description: str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
 
-    prompt_goal: str 
+    prompt_goal: str
 
     is_active: bool = False # Whether the agent is currently active / awake (and running its agentic loop)
 
@@ -114,17 +114,16 @@ class DroidAgent(Component):
                 # TODO: What's the best way to let the simulation know that the agent is thinking?
                 # HACK: For now, set a flag on the world manually
                 world.entity_thinking_count += 1
-                print(f'Still thinking...')
+                self.info(f'Agent is thinking... (World thinking count: {world.entity_thinking_count})')
             else:
                 # If the queued web request is done, we can process the response
                 resp = self.queued_web_request.response
-                print(f'Processing response: {resp}')
+                self.info(f'Agent received response from web request: {resp}')
                 self.queued_web_request = None
                 # For each tool call, execute it, and save the response to the agent context
                 # TODO: ^^
                 # handle_tool_calls(resp)
                 # For now, we will just print the response
-                print(f'Agent response: {resp}')
         else:
             # No queued web request, so we can proceed with the next step in the agentic loop.
             # Append the current world state + query to the agent context and send it to the LLM
@@ -167,7 +166,7 @@ class DroidAgentRandom(DroidAgent):
         motivator:Motivator = self.chassis.get_component(Motivator)
 
         if not motivator:
-            self.chassis.log_error("No Motivator component found in the chassis. Cannot move.")
+            self.error("Motivator component not found in chassis. Cannot move.")
             return
         
         # Only think about moving when not currently moving
@@ -214,6 +213,6 @@ class DroidAgentSimple(DroidAgent):
     pass
 
 class DroidAgentSimplePowerDroid(DroidAgentSimple):
-    pass
+    prompt_goal:str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
 
 

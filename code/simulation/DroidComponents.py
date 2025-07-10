@@ -38,8 +38,7 @@ class Motivator(Component):
         entities = world.get_entities(identifier)
 
         if len(entities) == 0:
-            print(f"No entities found with identifier {identifier}.")
-            return
+            raise ValueError(f"No entities found with identifier `{identifier}`.")
         
         # Sort entities by distance to the chassis
         entities.sort(key=lambda e: self.chassis.location.distance_to(e.location))
@@ -93,7 +92,7 @@ class Motivator(Component):
         return path
 
     def tick(self):
-        print(f"  Motivator {self.id} tick at location {self.chassis.location} with destination {self.destination}")
+        self.info(f"Tick at location {self.chassis.location} with destination {self.destination}")
         if self.chassis.location == self.destination:
             # We have arrived at our destination, so clear the destination
             self.destination = None
@@ -105,22 +104,16 @@ class Motivator(Component):
         if self.current_cooldown > 0:
             # We are currently cooling down, so do nothing for this tick
             self.current_cooldown -= 1
-            print(f"  Motivator {self.id} cooling down. {self.current_cooldown} ticks remaining.")
+            self.info(f"Cooling down, {self.current_cooldown} ticks remaining.")
             return
 
         power:PowerPack = self.chassis.get_component(PowerPack)
         if not power:
-            err_msg = f"No power pack found in the chassis. Cannot function without a power pack."
-            print(err_msg)
-            # TODO: Raise an error that can be seen by any AI
-            #self.chassis.post_error(self, err_msg)
+            self.error(f"Cannot function without a power pack.")
             return
 
         if power.charge <= 0:
-            err_msg = f"Power pack is empty. Cannot function without power!"
-            print(err_msg)
-            # TODO:
-            #self.chassis.post_error(self, "Power pack is empty. Cannot function without power!")
+            self.warn(f"Power pack is empty. Cannot function without power!")
             return
 
         # TODO: Collision checking vs. the world map
@@ -129,10 +122,7 @@ class Motivator(Component):
             self.path_to_destination = self.find_path(self.chassis.location, self.destination)
 
         if not self.path_to_destination or len(self.path_to_destination) == 0:
-            err_msg = "No path to destination found. Cannot move."
-            print(err_msg)
-            # TODO:
-            #self.chassis.post_error(self, "No path to destination found. Cannot move.")
+            self.error(f"No path to destination found. Cannot move.")
             return
         
         # Peek at the next location in the path

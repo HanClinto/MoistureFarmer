@@ -1,8 +1,6 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Optional
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Optional
 from pydantic import BaseModel
-
-from simulation.World import Simulation
 
 # --- Entity ---
 # Entities are objects that have a location and can move around and interact in the world.
@@ -36,7 +34,7 @@ class Location(BaseModel):
     
 class GameObject(BaseModel):
     id: Optional[str] = None
-    _log_history: List[(str, int, datetime)] = []  # List of tuples (message, level, timestamp)
+    _log_history: List[Tuple[str, int, datetime]] = []  # List of tuples (message, level, timestamp)
 
     _type_counter: ClassVar[Dict[Type, int]] = {}
     @classmethod
@@ -56,13 +54,14 @@ class GameObject(BaseModel):
         # Log a message with a specific level (0 = info, 1 = warning, 2 = error)
         timestamp = datetime.now()
         self._log_history.append((message, level, timestamp))
-        if level >= Simulation.get_instance().log_level:
-            print(f"[{timestamp}] {self.id} - Level {level}: {message}")
+        if level >= 0: # TODO: Get this from an env or configuration?
+            level_str = ["INFO", "WARN", "ERROR"][level]
+            print(f"[{timestamp}] [{level_str}] {self.id}: {message}")
 
     def info(self, message: str):
         # Log an informational message
         self.log(message, level=0)
-        
+
     def warn(self, message: str):
         # Log a warning message
         self.log(message, level=1)
@@ -71,7 +70,7 @@ class GameObject(BaseModel):
         # Log an error message
         self.log(message, level=2)
 
-    def get_logs(self) -> List[(str, int, datetime)]:
+    def get_logs(self) -> List[Tuple[str, int, datetime]]:
         # Return the log history for this object
         return self._log_history
 
@@ -88,4 +87,4 @@ class Entity(GameObject):
     def tick(self):
         # This method is called every tick in the simulation.
         # Entities can override this method to implement their own behavior.
-        print(f"Entity {self.id} at {self.location} ticked.")
+        self.info(f"Entity {self.id} at {self.location} ticked.")

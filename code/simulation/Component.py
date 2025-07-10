@@ -1,6 +1,6 @@
 from datetime import datetime
 import inspect
-from typing import ClassVar, Dict, Optional, List, Type, Callable, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject
 from simulation.World import World
@@ -41,7 +41,7 @@ class Component(GameObject):
 
     def on_installed(self, chassis: 'Chassis'):
         # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
-        print(f"Component {self.id} installed in chassis {chassis.id}.")
+        self.info(f"Component {self.id} installed in chassis {chassis.id}.")
 
 # -- Chassis System ---
 # Chassis are the physical bodies of entities that can have components
@@ -128,7 +128,7 @@ class Chassis(Entity):
 
         return all_tools
     
-    def get_logs(self) -> List[(str, int, datetime)]:
+    def get_logs(self) -> List[Tuple[str, int, datetime]]:
         # Return the log history for this object and all components, sorted by timestamp
         logs = super().get_logs()
         for slot in self.slots.values():
@@ -163,6 +163,7 @@ class LargePowerPack(PowerPack):
     charge: int = 200
 
 class ComputerProbe(Component):
-    def provides(self):
-        return ["connect_to_device", "download_status", "program"]
+    pass
+    #def provides(self):
+    #    return ["connect_to_device", "download_status", "program"]
 
