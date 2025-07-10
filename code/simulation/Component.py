@@ -43,12 +43,17 @@ class Component(GameObject):
         print(f"Component {self.id} installed in chassis {chassis.id}.")
 
 # -- Chassis System ---
-# Chassis are the physical bodies of entities that can have components#  installed in them to extend their capabilities.
-# Chassis can be droids, equipment (such as vaporators), or anything#  that would need to be repaired, upgraded, run-down, or otherwise#  interacted with in the game world.
+# Chassis are the physical bodies of entities that can have components
+#  installed in them to extend their capabilities.
+# Chassis can be droids, equipment (such as vaporators), or anything
+#  that would need to be repaired, upgraded, run-down, or otherwise
+#  interacted with in the game world.
 # If an Entity does not need to be repaired or upgraded or have modular
-#  capabilities, then it does not need a Chassis, and can be an Entity#  directly.
+#  capabilities, then it does not need a Chassis, and can be an Entity
+#  directly.
 # Chassis have slots for Components, which can be installed or removed.
-# Different Chassis will have different Slots that accept different#  types of Components.
+# Different Chassis will have different Slots that accept different
+#  types of Components.
 # Components add funcionality to the Chassis, such as movement, power,
 #  or other capabilities. Some of these capabilities will be exposed to
 #  the agentic AI as functions that can be called in the form of tools,
@@ -116,8 +121,8 @@ class Chassis(Entity):
                     if tool_name not in all_tools:
                         all_tools[tool_name] = tool_call
                     else:
-                        # If a tool with the same name already exists, we can either skip or merge them
-                        # Here we choose to skip, but you could also merge functionality if needed
+                        # If a tool with the same name already exists, we can either skip or somehow denote which component they come from.
+                        # Here we choose to skip and give preference to the first one found.                        
                         print(f"Warning: Tool '{tool_name}' already exists on {self.id}. Skipping duplicate.")
 
         return all_tools
