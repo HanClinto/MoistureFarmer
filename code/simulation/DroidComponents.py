@@ -32,8 +32,8 @@ class Motivator(Component):
             identifier (Type[Component] | str): The type of entity or its ID to move to.
         """
 
-        world = self.chassis.world
-        
+        world:World = self.chassis.world
+
         # Find the entity by ID and set the destination to its location
         entities = world.get_entities(identifier)
 
@@ -64,7 +64,7 @@ class Motivator(Component):
         # Set the destination of the chassis to the specified location
         self.destination = Location(x=x, y=y)
         # Calculate the path to the destination
-        self.path_to_destination = self.find_path(world, self.chassis.location, self.destination)
+        self.path_to_destination = self.find_path(self.chassis.location, self.destination)
 
     def find_path(self, start: Location, end: Location) -> List[Location]:
         # Overly simplistic pathfinding algorithm.
