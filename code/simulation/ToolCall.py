@@ -27,6 +27,14 @@ class ToolCall(BaseModel):
     function_ptr: Callable[..., Any]
     description: str
     parameters: List[ToolCallParameter]  # Parameter names and their descriptions
+    # TODO: Add a way to check to see if the tool call has completed successfully (did we reach our destination? Did we charge our target?)
+
+    def execute(self, *args, **kwargs) -> Any:
+        """
+        Execute the tool function with the provided arguments.
+        This method is used to call the function as a tool.
+        """
+        return self.function_ptr(*args, **kwargs)
 
     # serialize to JSON in the format expected by the LLM
     # OpenAI format: 

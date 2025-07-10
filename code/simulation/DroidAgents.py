@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from simulation.Component import Component
 from simulation.DroidComponents import Motivator
 from simulation.Entity import Location
+from simulation.GlobalConfig import GlobalConfig
 from simulation.QueuedWebRequest import QueuedWebRequest
 from simulation.ToolCall import ToolCall
 from simulation.World import World
@@ -59,22 +60,33 @@ class AgentContext(BaseModel):
                     model="gpt-3.5-turbo",  # TODO: Make this configurable
                     tools=tools_as_json,
                     cache_prompt=True,      # TODO: Only used by llama.cpp
-                    # TODO: Make all of these configurable
-                    #temperature=temperature,
-                    #top_p=top_p,
-                    #top_k=top_k,
-                    #seed=seed,
+                    temperature=GlobalConfig.llm_temperature,
+                    top_p=GlobalConfig.llm_top_p,
+                    top_k=GlobalConfig.llm_top_k,
+                    seed=GlobalConfig.llm_seed,
                 )
 
-    def append_message(self, role: str, content: str):
+    def append_message(self, role: str, content: str, tool_call_id: Optional[str] = None, tool_name: Optional[str] = None):
         """
         Append a message to the recent messages in the agent context.
         Args:
             role (str): The role of the message sender (e.g., "user", "assistant", "system").
             content (str): The content of the message.
         """
-        self._recent_messages.append(dict(role=role, content=content))
+        if tool_call_id and tool_name:
+            # If a tool call ID and name are provided, append a tool message
+            self._recent_messages.append(dict(
+                role=role,
+                content=content,
+                tool_call_id=tool_call_id,
+                name=tool_name
+            ))
+        else:
+            # Otherwise, append a regular message
+            self._recent_messages.append(dict(role=role, content=content))
+
         # TODO: Optionally limit the size of recent messages to avoid memory overflow
+        # TODO: Provide hooks here for context-engineering?
         #if len(self._recent_messages) > 10: # TODO: Configurable threshold
         #    self._recent_messages.pop(0)
 
@@ -92,6 +104,9 @@ class DroidAgent(Component):
     is_active: bool = False # Whether the agent is currently active / awake (and running its agentic loop)
 
     queued_web_request: Optional[QueuedWebRequest] = None  # A queued web request that the agent can use to communicate with an LLM or other service
+    pending_tool_call: Optional[ToolCall] = None  # A tool call that has started, but not yet completed.
+    pending_tool_call_tick_count: int = 0  # A tick count for the pending tool call, used to track how long it has been pending, so we can abort it if it takes too long.
+    pending_tool_call_id: Optional[str] = None  # The ID of the pending tool call, if any
 
     agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
@@ -120,21 +135,71 @@ class DroidAgent(Component):
                 resp = self.queued_web_request.response
                 self.info(f'Agent received response from web request: {resp}')
                 self.queued_web_request = None
-                # For each tool call, execute it, and save the response to the agent context
-                # TODO: ^^
-                # handle_tool_calls(resp)
-                # For now, we will just print the response
+
+                assert len(resp["choices"]) > 0, "No choices in response from LLM API"
+                # TODO: Turn the agent off and back on again to clear context and try again.
+
+                choice = resp["choices"][0]
+                content = choice["message"]["content"]
+
+                if content:
+                    self.info(f'Received response: {content}')
+                    self.agent_context.append_message("assistant", content)  # Append the response to the agent context
+
+                if choice["finish_reason"] == "tool_calls":
+                    assert "tool_calls" in choice["message"], "No tool calls in response from LLM API"
+                    self.info(f'Response contained {len(choice["message"]["tool_calls"])} tool calls.')
+
+                    for tool_call in choice["message"]["tool_calls"]:
+                        # For each tool call, execute it, and save the response to the agent context
+                        tool_name = tool_call["function"]["name"]
+                        tool_call_id = tool_call["id"]
+
+                        params = tool_call["function"]["arguments"]
+                        self.info(f'Executing tool call: {tool_name} with params: {params}')
+
+                        tools = self.chassis.get_available_tools()
+
+                        if tool_name in tools:
+                            tool = tools[tool_name]
+                            # Execute the tool call and get the response
+                            try:
+                                tool_response = tool.execute(params)
+                                if tool_response:
+                                    self.agent_context.append_message("tool", f"{tool_name} executed successfully: {tool_response}")
+                                    self.info(f'Tool call {tool_name} executed successfully: {tool_response}', tool_call_id=tool_call_id, tool_name=tool_name)
+                                else:
+                                    self.pending_tool_call = tool
+                                    self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
+                                    self.pending_tool_call_tick_count = 0  # Reset the tick count for the pending tool call
+                                    self.info(f'Tool call {tool_name} is executing and pending resolution. Count is {self.pending_tool_call_tick_count}')
+                            except Exception as e:
+                                self.error(f'Error executing tool `{tool_name}`: {e}')
+                                self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
+                        else:
+                            self.error(f'Tool call `{tool_name}` not found in available tools.')
+                            self.agent_context.append_message("error", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=tool_call_id, tool_name=tool_name)
+                else:
+                    # If the response does not contain tool calls, just append the content to the agent context
+                    self.agent_context.append_message("assistant", content)
+        elif self.pending_tool_call:
+            # If there is a pending tool call, we need to check if it has completed
+            # TODO: Query another function that (optionally) lives alongside the tool calls and determines if it's still pending or if it's completed
+
+            self.pending_tool_call_tick_count += 1
+            if self.pending_tool_call_tick_count >= GlobalConfig.tool_call_timeout_ticks:
+                # If the tool call has timed out, we need to abort it
+                self.error(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` timed out after {self.pending_tool_call_tick_count} ticks.')
+                self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` timed out after {self.pending_tool_call_tick_count} ticks.", tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                self.pending_tool_call = None
         else:
             # No queued web request, so we can proceed with the next step in the agentic loop.
             # Append the current world state + query to the agent context and send it to the LLM
-            self.agent_context.append(f"{world.get_state()}: What is your next action?")  # Current world state with prompt for next action
+            self.agent_context.append_message("user", f"{world.get_state()}: What is your next action?")  # Current world state with prompt for next action
 
             queued_web_request = QueuedWebRequest(
-                url=world.simulation.llm_url,  # Replace with actual LLM endpoint
-                data={
-                    "prompt": "\n".join(self.agent_context),  # Join the context into a single prompt
-                    "tools": [tool.to_llm_json() for tool in self.provides_tools().values],  # Serialize tools to JSON
-                }
+                url=GlobalConfig.llm_api_url,
+                data= self.agent_context.to_json(),
             )
             queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
             self.queued_web_request = queued_web_request

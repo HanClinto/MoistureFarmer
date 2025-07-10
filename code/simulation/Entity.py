@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Optional
 from pydantic import BaseModel
 
+from simulation.GlobalConfig import GlobalConfig
+
 # --- Entity ---
 # Entities are objects that have a location and can move around and interact in the world.
 #  In the context of a game simulation, entities will be active sprites on the map
@@ -54,7 +56,7 @@ class GameObject(BaseModel):
         # Log a message with a specific level (0 = info, 1 = warning, 2 = error)
         timestamp = datetime.now()
         self._log_history.append((message, level, timestamp))
-        if level >= 0: # TODO: Get this from an env or configuration?
+        if level >= GlobalConfig.log_print_level:
             level_str = ["INFO", "WARN", "ERROR"][level]
             print(f"[{timestamp}] [{level_str}] {self.id}: {message}")
 
