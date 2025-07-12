@@ -49,7 +49,13 @@ class World(BaseModel):
         # Call the tick method on all entities in the world
         for entity in self.entities.values():
             entity.tick()
-        
+        # No broadcast here; handled by Simulation
+
+    def to_json(self):
+        return {
+            "entities": {eid: entity.to_json() for eid, entity in self.entities.items()}
+        }
+
 # --- Simulation System ---
 
 # The Simulation is a high-level controller that manages the world and the simulation loop
@@ -68,6 +74,8 @@ class Simulation(BaseModel):
     llm_url: str = "http://localhost:8080/v1/chat/completions"  # URL for the LLM endpoint
 
     world: World = World()  # The world that the simulation is running in
+
+    _on_tick_subscribers: List = []  # List of callback functions to call after each tick
 
     # Singleton pattern to ensure only one instance of Simulation exists
     __instance: Optional['Simulation'] = None
@@ -89,23 +97,35 @@ class Simulation(BaseModel):
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self._do_run(ticks))
 
+    def subscribe_on_tick(self, callback):
+        if callback not in self._on_tick_subscribers:
+            self._on_tick_subscribers.append(callback)
+
+    def unsubscribe_on_tick(self, callback):
+        if callback in self._on_tick_subscribers:
+            self._on_tick_subscribers.remove(callback)
 
     async def _do_run(self, ticks: Optional[int] = None):
         """Run the simulation asynchronously for a specified number of ticks."""
         self.running = True
+        count = 0
 
         while self.running:
-            self.tick_count += 1
-            #print(f"Simulation: Beginning tick {self.tick_count}")
-
-            # Send on-before-tick event to the event bus
-            #if self.event_bus:
-            #    await self.event_bus.send_event("on-before-tick", {"tick": self.tick_count})
-
-            self.world.entity_thinking_count = 0
-
-            # Tick everything in the world
             self.world.tick()
+            self.tick_count += 1
+            count += 1
+            # Call all on_tick subscribers
+            for cb in self._on_tick_subscribers:
+                try:
+                    cb(self)
+                except Exception as e:
+                    print(f"[WARN] on_tick subscriber error: {e}")
+
+            broadcast_game_state(self.world.to_json())
+
+            if ticks is not None and count >= ticks:
+                self.running = False
+                break
 
             sleep_time = self.simulation_delay
 
@@ -116,11 +136,6 @@ class Simulation(BaseModel):
                 print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
 
             # Sleep for the specified delay before the next tick
-            asyncio.sleep(sleep_time)
+            await asyncio.sleep(sleep_time)
 
-            #print(f"Simulation: Finished tick {self.tick_count}")
-
-            if ticks is not None and self.tick_count >= ticks:
-                # If we have reached the number of ticks to run, stop the simulation
-                self.running = False
 

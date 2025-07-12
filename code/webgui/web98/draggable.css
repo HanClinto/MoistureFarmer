@@ -1,0 +1,22 @@
+/* Draggable and Resizable Window Styles */
+
+.window.draggable {
+  position: absolute;
+  cursor: default;
+  user-select: none;
+}
+
+.window.draggable .title-bar {
+  cursor: move;
+  user-select: none;
+}
+
+.window.resizeable .resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  right: 0;
+  bottom: 0;
+  cursor: se-resize;
+  background: transparent;
+}

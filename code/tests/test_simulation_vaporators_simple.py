@@ -6,8 +6,9 @@ from simulation.Entity import Location
 
 @pytest.fixture
 def simulation() -> Simulation:
-    """Fixture to create a simulation instance for testing."""    
-    return Simulation()
+    """Fixture to create a simulation instance for testing."""
+    sim = Simulation(simulation_delay=0, web_server_enabled=False)
+    return sim
 
 def test_gx1_vaporator_full_tank(simulation: Simulation):
     vaporator = GX1_Vaporator()

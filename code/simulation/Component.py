@@ -43,6 +43,15 @@ class Component(GameObject):
         # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
         self.info(f"Component {self.id} installed in chassis {chassis.id}.")
 
+    def to_json(self):
+        return {
+            **super().to_json(),
+            "name": self.name,
+            "description": self.description,
+            "durability": self.durability,
+            # Optionally add more fields here
+        }
+
 # -- Chassis System ---
 # Chassis are the physical bodies of entities that can have components
 #  installed in them to extend their capabilities.
@@ -142,6 +151,19 @@ class Chassis(Entity):
         for slot in self.slots.values():
             if slot.component:
                 slot.component.tick()
+
+    def to_json(self):
+        data = super().to_json()
+        data["model"] = getattr(self, "model", None)
+        data["health"] = getattr(self, "health", None)
+        # Serialize slots and their components
+        data["slots"] = {
+            slot_id: {
+                "accepts": slot.accepts.__name__,
+                "component": slot.component.to_json() if slot.component else None
+            } for slot_id, slot in self.slots.items()
+        }
+        return data
 
 class ComponentSlot(BaseModel):
     slot_id: Optional[str] = None

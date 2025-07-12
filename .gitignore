@@ -5,6 +5,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore all .ds_store files
+.DS_Store
+
 # C extensions
 *.so
 

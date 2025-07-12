@@ -8,6 +8,7 @@ from simulation.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
 
 class R2Astromech(Chassis):
     model:str = "R2 Astromech"
+    sprite: str = "R2-D2 (794).png"
 
     slots: Dict[str, ComponentSlot] = {
         "processor": ComponentSlot(accepts=Component),
@@ -24,6 +25,7 @@ class GonkDroid(Chassis):
     model: str = "EG-6"
     subtype: str = "power droid"
     description: str = "A power droid designed to provide energy to other equipment. It has a limited battery capacity and can recharge itself at power stations."
+    sprite: str = "Droid2 (1786).png"
 
     slots: Dict[str, ComponentSlot] = {
         "agent": ComponentSlot(accepts=DroidAgentSimple, component=DroidAgentSimplePowerDroid()),

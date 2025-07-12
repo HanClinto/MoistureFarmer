@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="128" height="128" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="11">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="128" height="128" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="11">
  <editorsettings>
   <export format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="tiles" tilewidth="32" tileheight="32" tilecount="1232" columns="28">
-  <image source="C:/Users/ben/Documents/GitHub/MoistureFarmer/assets/ys_tiles.png" trans="00ff00" width="896" height="1408"/>
+  <image source="ys_tiles.png" trans="00ff00" width="896" height="1408"/>
   <tile id="188">
    <properties>
     <property name="collide" type="bool" value="true"/>

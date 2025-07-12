@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moisture Farmer v0.98 - Phaser.js w/ Windows 98 Styling</title>
+    <link rel="stylesheet" href="98.css/98.css">
+    <link rel="stylesheet" href="draggable.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="draggable.js" defer></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+  <div id="main-window" class="window draggable resizeable" style="width: 250px">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        Moisture Farmer v0.98
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <p>Hello, world!</p>
+    </div>
+  </div>
+  <div id="fixed-window" class="window" style="width: 300px; height: 200px; position: fixed; top: 20px; left: 20px;">
+    <div class="title-bar">
+      <div class="title-bar-text">Fixed Window</div>
+      <div class="title-bar-controls">
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <p>This window cannot be moved or resized.</p>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -3,4 +3,5 @@ colorama
 pydantic
 pytest
 pytest-asyncio
-llm
+fastapi
+uvicorn

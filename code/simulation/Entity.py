@@ -1,8 +1,11 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, Type, Optional
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, TYPE_CHECKING
 from pydantic import BaseModel
 
 from simulation.GlobalConfig import GlobalConfig
+
+if TYPE_CHECKING:
+    from simulation.World import World
 
 # --- Entity ---
 # Entities are objects that have a location and can move around and interact in the world.
@@ -76,11 +79,21 @@ class GameObject(BaseModel):
         # Return the log history for this object
         return self._log_history
 
+    def to_json(self):
+        return {
+            "id": self.id,
+            "type": self.__class__.__name__,
+            "logs": [
+                {"msg": msg, "level": level, "timestamp": ts.isoformat()} for msg, level, ts in self._log_history
+            ]
+        }
+
 class Entity(GameObject):
     location: Location = Location(x=0, y=0)  # Default location
     name: Optional[str] = None
     description: Optional[str] = None
     world: Optional['World'] = None  # Reference to the world this entity belongs to
+    sprite: str = "Droid Body (1357).png"
 
     # Manhattan distance to another entity
     def distance_to(self, other: 'Entity') -> float:
@@ -90,3 +103,12 @@ class Entity(GameObject):
         # This method is called every tick in the simulation.
         # Entities can override this method to implement their own behavior.
         self.info(f"Entity {self.id} at {self.location} ticked.")
+
+    def to_json(self):
+        return {
+            **super().to_json(),
+            "name": self.name,
+            "description": self.description,
+            "location": {"x": self.location.x, "y": self.location.y} if self.location else None,
+            # Optionally add more fields here
+        }

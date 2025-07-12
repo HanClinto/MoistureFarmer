@@ -8,7 +8,8 @@ from simulation.Entity import Location
 @pytest.fixture
 def simulation() -> Simulation:
     """Fixture to create a simulation instance for testing."""    
-    return Simulation()
+    sim = Simulation(simulation_delay=0, web_server_enabled=False)
+    return sim
 
 def test_droid_movement(simulation: Simulation):
     droid = GonkDroid(location=Location(x=0, y=0))

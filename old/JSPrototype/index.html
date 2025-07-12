@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="CameraController.js"></script>
+    <script src="CollisionManager.js"></script>
+    <script src="MobileActor.js"></script>
+    <script src="Player.js"></script>
+    <script src="RandomMover.js"></script>
+    <script src="easystar.js"></script>
+    <!-- <script src="astar.js"></script> -->
+</head>
+
+<body oncontextmenu="return false;">
+    <script>
+        const blockTileIds = [
+            // Green generator
+            188, 189, 216, 217, 
+            
+            // Simple building
+            323, 324, 325, 351, 352, 353, 379, 380, 381,
+            
+            // Machinery
+            329, 330, 332, 923, 
+
+            // Tank
+            866, 867,
+
+            // Sandcrawler
+            918, 919, 920, 921, 946, 947, 948, 949
+        ];
+
+        class MoistureGameScene extends Phaser.Scene {
+            preload() {
+                this.load.image("tiles", "ys_tiles.png");
+                this.load.tilemapTiledJSON("map", "world.tmj");
+
+                // Load the character spritesheet
+                this.load.spritesheet("droid", "ys_astromech.png", { frameWidth: 32, frameHeight: 32 });
+            }
+
+            create() {
+                // Set up tilemap.
+                const map = this.make.tilemap({ key: "map" });
+                const tileset = map.addTilesetImage("tiles", "tiles", 32, 32);
+
+                this.belowLayer = map.createLayer("Background", tileset, 0, 0);
+                this.belowLayer.setDepth(0); // Ensure background is at depth 0
+
+                this.aboveLayer = map.createLayer("Foreground", tileset, 0, 0);
+                this.aboveLayer.setDepth(10); // Ensure foreground is at depth 10
+
+                // Get the object layer and store objects for use by RandomMover
+                const objects = map.getObjectLayer("Objects").objects;
+                this.objects = objects.filter(obj => obj.name !== "CameraSpawn"); // Exclude spawn if desired
+                const spawnPoint = objects.find(obj => obj.name === "CameraSpawn");
+
+                this.collisionManager = new CollisionManager(this, {
+                    blockTileIds,
+                    layers: [this.belowLayer, this.aboveLayer]
+                });
+
+                // Place the character at the spawn point, snapped to the nearest tile
+                const tileSize = 32;
+                const startX = Math.floor(spawnPoint.x / tileSize) * tileSize + tileSize / 2;
+                const startY = Math.floor(spawnPoint.y / tileSize) * tileSize + tileSize / 2;
+                this.player = new Player(this, startX, startY, "droid");
+                // Spawn 8 random movers
+                this.randomMovers = [];
+                for (let i = 0; i < 8; i++) {
+                    // Offset each mover a bit to avoid overlap
+                    const offsetX = ((i % 4) - 1.5) * 32;
+                    const offsetY = (Math.floor(i / 4) - 0.5) * 32;
+                    this.randomMovers.push(new RandomMover(this, startX + 32 + offsetX, startY + offsetY, "droid"));
+                }
+
+                // Set the camera's center to the spawn point position.
+                this.cameras.main.setZoom(3 );
+                this.cameras.main.centerOn(spawnPoint.x, spawnPoint.y);
+
+                // Camera logic refactored to CameraController (now imported)
+                this.cameraController = new window.CameraController(this, this.cameras.main);
+
+                // --- CHARACTER SETUP ---
+                // Facing directions: 0=down, 1=right, 2=left, 3=up
+                this.playerDirection = 0;
+                this.isMoving = false;
+                this.targetTile = { x: startX, y: startY };
+
+                // Keyboard input
+                this.cursors = this.input.keyboard.createCursorKeys();
+
+            }
+
+            update() {
+                this.player.update();
+                if (this.randomMovers) {
+                    for (const mover of this.randomMovers) {
+                        mover.update();
+                    }
+                }
+                // Only allow new movement if not already moving or bumping
+                if (!this.player.isMoving && !this.player.isBumping) {
+                    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+                        this.player.moveLeft();
+                    } else if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+                        this.player.moveRight();
+                    } else if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+                        this.player.moveUp();
+                    } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
+                        this.player.moveDown();
+                    }
+                }
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            pixelArt: true,
+            scene: MoistureGameScene,
+        };
+
+        const game = new Phaser.Game(config);
+        window.addEventListener('resize', () => {
+            // Get the current camera center in world coordinates
+            const scene = game.scene.keys[Object.keys(game.scene.keys)[0]];
+            if (scene && scene.cameras && scene.cameras.main) {
+                const cam = scene.cameras.main;
+                // Get the world point at the center of the screen before resize
+                const centerWorld = cam.getWorldPoint(cam.width / 2, cam.height / 2);
+                // Resize the game
+                game.scale.resize(window.innerWidth, window.innerHeight);
+                // After resize, center the camera on the same world point
+                cam.centerOn(centerWorld.x, centerWorld.y);
+            } else {
+                game.scale.resize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

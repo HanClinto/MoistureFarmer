@@ -60,6 +60,7 @@ class LargeWaterTank(WaterTank):
 #  simulation environment.
 
 class Vaporator(Chassis):
+    sprite: str = "168-169.png"
     description: str = "A device used to extract moisture from the air, typically used in arid environments."
     
     slots: Dict[str, ComponentSlot] = {

@@ -1,0 +1,17 @@
+{
+    "self":{
+        "object_id":"eg6_gonky",
+        "type":"droid",
+        "name":"Gonky",
+        "model":"EG-6",
+        "description":"EG-6 power droid",
+        "location":{"x":0,"y":0},
+        "battery_level":50
+    },
+    "equipment":[
+        {"object_id":"vaporator_1","location":{"x":10,"y":5},"distance":15,"battery_level":50},
+        {"object_id":"vaporator_2","location":{"x":15,"y":10},"distance":25,"battery_level":20},
+        {"object_id":"vaporator_3","location":{"x":20,"y":15},"distance":35,"battery_level":80},
+        {"object_id":"power_station_1","location":{"x":0,"y":0},"distance":0,"battery_level":100}
+    ]
+}
