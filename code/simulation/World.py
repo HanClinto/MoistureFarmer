@@ -105,6 +105,14 @@ class Simulation(BaseModel):
         if callback in self._on_tick_subscribers:
             self._on_tick_subscribers.remove(callback)
 
+    def dispatch_on_tick(self):
+        """Call all on_tick subscribers."""
+        for cb in self._on_tick_subscribers:
+            try:
+                cb(self)
+            except Exception as e:
+                print(f"[WARN] on_tick subscriber error: {e}")
+
     async def _do_run(self, ticks: Optional[int] = None):
         """Run the simulation asynchronously for a specified number of ticks."""
         self.running = True
@@ -121,7 +129,7 @@ class Simulation(BaseModel):
                 except Exception as e:
                     print(f"[WARN] on_tick subscriber error: {e}")
 
-            broadcast_game_state(self.world.to_json())
+            self.dispatch_on_tick()
 
             if ticks is not None and count >= ticks:
                 self.running = False

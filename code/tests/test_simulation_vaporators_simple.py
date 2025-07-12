@@ -29,6 +29,12 @@ def test_gx1_vaporator_full_tank(simulation: Simulation):
 
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
+    #import json
+    #world_json = simulation.world.to_json()
+    ## Convert to valid JSON for Javascript
+    #world_json_str = json.dumps(world_json, indent=2)
+    #print(f"World JSON: {world_json_str}")
+
 def test_gx1_vaporator_low_starting_power(simulation: Simulation):
     vaporator = GX1_Vaporator(location=Location(x=0, y=0))
     tank:WaterTank = vaporator.get_component(WaterTank)

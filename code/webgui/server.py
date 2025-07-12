@@ -36,13 +36,13 @@ async def sse(request: Request):
             subscribers.remove(queue)
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-def broadcast_game_state(game_state: dict):
-    data = json.dumps(game_state)
+def broadcast_game_state(simulation: Simulation):
+    game_state = json.dumps(simulation.world.to_json())
     for queue in list(subscribers):
-        queue.put_nowait(data)
+        queue.put_nowait(game_state)
 
 # --- Simulation integration ---
 def attach_to_simulation(sim: Simulation):
     def on_tick(simulation):
-        broadcast_game_state(simulation.world.to_json())
+        broadcast_game_state(simulation)
     sim.subscribe_on_tick(on_tick)

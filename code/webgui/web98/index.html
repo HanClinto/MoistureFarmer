@@ -12,30 +12,51 @@
     <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="main-window" class="window draggable resizeable" style="width: 250px">
-    <div class="title-bar">
-      <div class="title-bar-text">
-        Moisture Farmer v0.98
-      </div>
-      <div class="title-bar-controls">
-        <button aria-label="Close"></button>
-      </div>
-    </div>
-    <div class="window-body">
-      <p>Hello, world!</p>
-    </div>
-  </div>
   <div id="fixed-window" class="window" style="width: 300px; height: 200px; position: fixed; top: 20px; left: 20px;">
     <div class="title-bar">
       <div class="title-bar-text">Fixed Window</div>
-      <div class="title-bar-controls">
-        <button aria-label="Close"></button>
-      </div>
     </div>
     <div class="window-body">
       <p>This window cannot be moved or resized.</p>
     </div>
   </div>
+  <div id="droid-window" class="window draggable resizeable closeable" style="width: 450px; height: 300px;">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        R5-D5
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <ul>
+        <li>Battery Level: 40 / 100</li>
+      </ul>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">Battery Level:</p>
+      <p class="status-bar-field">
+          40 / 100
+      </p>
+    </div>
+  </div>
+
+  <div id="main-window" class="window draggable resizeable" style="width: 500px; height: 640px;">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        Moisture Farmer v0.98
+      </div>
+    </div>
+    <div class="window-body">
+      <div id="window-body-entities">
+        <ul>
+          <!-- Entities will be dynamically populated here -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>

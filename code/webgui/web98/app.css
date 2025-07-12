@@ -1,6 +1,6 @@
 /* Apply Windows Default theme to body (desktop) */
 body {
-  background-color: var(--desktop);
+  background-color: var(--#000000);
 }
 
 /* Apply the Windows Default theme class to the root */
@@ -27,4 +27,19 @@ body {
   --disabledtext: #C0C0C0;
   --highlight: #A4C8F0;
   --highlightedtext: #000000;
+}
+
+/* Window layout improvements to allow status-bars to stick to the bottom */
+.window {
+  display: flex;
+  flex-direction: column;
+}
+
+.window-body {
+  flex: 1;
+  overflow: auto;
+}
+
+.status-bar {
+  margin-top: auto;
 }
