@@ -1,0 +1,30 @@
+/* Apply Windows Default theme to body (desktop) */
+body {
+  background-color: var(--desktop);
+}
+
+/* Apply the Windows Default theme class to the root */
+:root {
+  /* Inherit Windows Default theme variables */
+  --desktop: #C0C0C0;
+  --applicationworkspace: #C0C0C0;
+  --windowbackground: #FFFFFF;
+  --windowtext: #000000;
+  --menubar: #FFFFFF;
+  --menutext: #000000;
+  --activetitlebar: #A4C8F0;
+  --inactivetitlebar: #C0C0C0;
+  --activetitlebartext: #000000;
+  --inactivetitlebartext: #000000;
+  --activeborder: #C0C0C0;
+  --inactiveborder: #C0C0C0;
+  --windowframe: #000000;
+  --scrollbars: #C0C0C0;
+  --buttonface: #C0C0C0;
+  --buttonshadow: #808080;
+  --buttontext: #000000;
+  --buttonhighlight: #FFFFFF;
+  --disabledtext: #C0C0C0;
+  --highlight: #A4C8F0;
+  --highlightedtext: #000000;
+}
