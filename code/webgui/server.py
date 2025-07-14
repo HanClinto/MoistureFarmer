@@ -63,8 +63,8 @@ simulation_thread:threading.Thread = None
 
 def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     simulation = Simulation()
-    simulation.simulation_delay = 1.0  # Set a default simulation delay
-    simulation.simulation_delay_max = 5.0  # Set a maximum simulation delay
+    simulation.simulation_delay = 5.0  # Set a default simulation delay
+    simulation.simulation_delay_max = 10.0  # Set a maximum simulation delay
 
     attach_to_simulation(simulation)
 
