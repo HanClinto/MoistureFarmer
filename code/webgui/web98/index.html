@@ -20,6 +20,82 @@
       <p>This window cannot be moved or resized.</p>
     </div>
   </div>
+  <div id="simulation-control-window" class="window draggable resizeable" style="width: 640px; left:50%; transform: translateX(-50%); top: 20px">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        Moisture Farmer v0.98
+      </div>
+    </div>
+    <div class="menu-bar">
+      <div class="menu-bar-item">
+        <button aria-label="File"><u>F</u>ile</button>
+        <ul class="menu">
+          <li><u>N</u>ew</li>
+          <li><u>O</u>pen...</li>
+          <li><u>S</u>ave</li>
+          <li>Save <u>A</u>s...</li>
+          <li class="divider"></li>
+          <li>Page Se<u>t</u>up...</li>
+          <li class="disabled"><u>P</u>rint</li>
+          <li class="divider"></li>
+          <li>E<u>x</u>it</li>
+        </ul>
+      </div>
+      <div class="menu-bar-item">
+        <button aria-label="Edit"><u>E</u>dit</button>
+        <ul class="menu">
+          <li class="disabled"><u>U</u>ndo<span>Ctrl+Z</span></li>
+          <li class="divider"></li>
+          <li class="disabled"><u>C</u>ut<span>Ctrl+X</span></li>
+          <li class="disabled"><u>C</u>opy<span>Ctrl+C</span></li>
+          <li class="disabled"><u>P</u>aste<span>Ctrl+V</span></li>
+          <li class="disabled">De<u>l</u>ete<span>Del</span></li>
+          <li class="divider"></li>
+          <li>Select <u>A</u>ll</li>
+          <li>Time/<u>D</u>ate<span>F5</span></li>
+          <li class="divider"></li>
+          <li><u>W</u>ord Wrap</li>
+          <li>Set <u>F</u>ont...</li>
+        </ul>
+      </div>
+      <div class="menu-bar-item">
+        <button aria-label="File"><u>S</u>earch</button>
+        <ul class="menu">
+          <li><u>F</u>ind...</li>
+          <li>Find <u>N</u>ext<span>F3</span></li>
+        </ul>
+      </div>
+      <div class="menu-bar-item">
+        <button aria-label="File"><u>H</u>elp</button>
+        <ul class="menu">
+          <li><u>H</u>elp Topics</li>
+          <li class="divider"></li>
+          <li><u>A</u>bout Notepad</li>
+        </ul>
+      </div>
+    </div>
+    <div class="window-body">
+      <button id="open-entity-view">Open Entity View</button>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">Simulation Status:</p>
+      <p class="status-bar-field">
+          Running
+      </p>
+      <p class="status-bar-field">
+          <button id="pause-simulation">Pause</button>
+          <button id="run-simulation-1x">1x</button>
+          <button id="run-simulation-4x">4x</button>
+          <button id="run-simulation-10x">10x</button>
+      </p>
+      <p id="simulation-tick-count-label" class="status-bar-field">
+          Tick:
+      </p>
+      <p id="simulation-tick-count" class="status-bar-field">
+          0
+      </p>
+    </div>
+  </div>
   <div id="droid-window" class="window draggable resizeable closeable" style="width: 450px; height: 300px;">
     <div class="title-bar">
       <div class="title-bar-text">
@@ -42,7 +118,7 @@
     </div>
   </div>
 
-  <div id="main-window" class="window draggable resizeable" style="width: 500px; height: 640px;">
+  <div id="entity-view" class="window draggable resizeable" style="width: 500px; height: 640px;">
     <div class="title-bar">
       <div class="title-bar-text">
         Moisture Farmer v0.98

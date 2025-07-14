@@ -1,5 +1,6 @@
 import pytest
 from simulation.Component import PowerPack
+from simulation.DroidAgents import DroidAgent
 from simulation.DroidComponents import Motivator
 from simulation.World import Simulation, World
 from simulation.DroidModels import GonkDroid
@@ -46,3 +47,16 @@ def test_droid_movement_low_battery(simulation: Simulation):
     assert droid.location.x < 25
     assert droid.location.y > -25
     assert power.charge < 10  # Should have used some power
+
+def test_droid_agent_behavior(simulation: Simulation):
+    droid = GonkDroid(location=Location(x=0, y=0))
+    # Add an agent brain to the droid in the correct slot
+    agent = DroidAgent()
+    droid.install_component("agent", agent)
+    simulation.world.add_entity(droid)
+
+    # Test the droid's behavior when it receives a command
+    simulation.run_sync(ticks=50)
+
+    assert droid.location.x == 10
+    assert droid.location.y == 10

@@ -53,7 +53,8 @@ class World(BaseModel):
 
     def to_json(self):
         return {
-            "entities": {eid: entity.to_json() for eid, entity in self.entities.items()}
+            "entity_thinking_count": self.entity_thinking_count,
+            "entities": {eid: entity.to_json() for eid, entity in self.entities.items()},
         }
 
 # --- Simulation System ---
@@ -79,11 +80,30 @@ class Simulation(BaseModel):
 
     # Singleton pattern to ensure only one instance of Simulation exists
     __instance: Optional['Simulation'] = None
+
     @classmethod
-    def get_instance(cls) -> 'Simulation':
-        if cls.__instance is None:
-            cls.__instance = cls()
-        return cls.__instance
+    def get_instance(cls, **data) -> 'Simulation':
+        if not cls.__instance is None:
+            return cls.__instance
+        return cls(**data)
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Ensure the world is initialized
+        if not self.world:
+            self.world = World(**data.get('world', {}))
+
+        Simulation.__instance = self  # Set the singleton instance
+
+    def to_json(self):
+        """Convert the simulation state to JSON format."""
+        return {
+            "tick_count": self.tick_count,
+            "simulation_delay": self.simulation_delay,
+            "simulation_delay_max": self.simulation_delay_max,
+            "log_level": self.log_level,
+            "world": self.world.to_json(),
+        }
 
     def run(self, ticks: Optional[int] = None):
         # Start the simulation loop in a separate thread
@@ -94,7 +114,14 @@ class Simulation(BaseModel):
     def run_sync(self, ticks: Optional[int] = None):
         """Run the simulation synchronously for a specified number of ticks."""
         # Run the simulation loop in a blocking manner
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError as e:
+            if 'There is no current event loop in thread' in str(e):
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            else:
+                raise e
         return loop.run_until_complete(self._do_run(ticks))
 
     def subscribe_on_tick(self, callback):

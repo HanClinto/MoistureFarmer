@@ -43,3 +43,10 @@ body {
 .status-bar {
   margin-top: auto;
 }
+
+/* Simulation window positioning - centered and near bottom */
+#simulation-window {
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+}
