@@ -13,9 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const resizeableElements = document.querySelectorAll('.resizeable');
     resizeableElements.forEach(el => resizeableElement(el));
 
-//    dragElement(document.getElementById('main-window'));
-//    resizeElement(document.getElementById('main-window'));
-
     // Add button click handlers
     initializeButtonHandlers();
 
