@@ -12,6 +12,9 @@ body {
 .window.hidden {
   display: none; /* Windows are hidden with this class */
 }
+.button.hidden {
+  display: none; /* Buttons are hidden with this class */
+}
 
 .window-body {
   display: flex;

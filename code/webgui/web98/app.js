@@ -123,11 +123,9 @@ function updateSimulationDisplay(simulationData) {
 
     // Update the simulation delay buttons
     const buttons = document.querySelectorAll('.simulation-delay-button');
-    console.log('Looking for simulation delay button `' + `simulation-delay-${simulationData.simulation_delay}` + '` in buttons of length:', buttons.length);
     buttons.forEach(button => {
         if (button.id === `simulation-delay-${simulationData.simulation_delay}`) {
             button.classList.add('active');
-            console.log('Setting button `' + button.id + '` as pressed');
         } else {
             button.classList.remove('active');
         }
@@ -261,6 +259,54 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
         html += '</details>';
     }
     return html;
+}
+
+function doFullscreen(enable) {
+    // Request or exit fullscreen mode
+    const doc = document.documentElement;
+    if (enable) {
+        if (doc.requestFullscreen) {
+            doc.requestFullscreen();
+        } else if (doc.mozRequestFullScreen) { // Firefox
+            doc.mozRequestFullScreen();
+        } else if (doc.webkitRequestFullscreen) { // Chrome, Safari and Opera
+            doc.webkitRequestFullscreen();
+        } else if (doc.msRequestFullscreen) { // IE/Edge
+            doc.msRequestFullscreen();
+        }
+        // Find all Maximize buttons and hide them
+        const maximizeButtons = document.querySelectorAll('.title-bar-controls button[aria-label="Maximize"]');
+        maximizeButtons.forEach(button => {
+            button.classList.add('hidden');
+        });
+        // Show Restore button
+        const restoreButtons = document.querySelectorAll('.title-bar-controls button[aria-label="Restore"]');
+        restoreButtons.forEach(button => {
+            button.classList.remove('hidden');
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { // Firefox
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE/Edge
+            document.msExitFullscreen();
+        }
+
+        // Find all Maximize buttons and show them
+        const maximizeButtons = document.querySelectorAll('.title-bar-controls button[aria-label="Maximize"]');
+        maximizeButtons.forEach(button => {
+            button.classList.remove('hidden');
+        });
+        // Hide Restore buttons
+        const restoreButtons = document.querySelectorAll('.title-bar-controls button[aria-label="Restore"]');
+        restoreButtons.forEach(button => {
+            button.classList.add('hidden');
+        });
+
+    }
 }
 
 function navigateTo(url) {
