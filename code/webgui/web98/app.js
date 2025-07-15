@@ -14,12 +14,29 @@ document.addEventListener('DOMContentLoaded', function () {
 //    dragElement(document.getElementById('main-window'));
 //    resizeElement(document.getElementById('main-window'));
 
+    // Add button click handlers
+    initializeButtonHandlers();
+
     // Initialize SSE connection with a small delay for Firefox compatibility
     setTimeout(() => {
         initializeSSE();
     }, 100);
 
 });
+
+function initializeButtonHandlers() {
+    // Handle close buttons for windows with closeable functionality
+    const closeButtons = document.querySelectorAll('.title-bar-controls button[aria-label="Close"]');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const window = button.closest('.window');
+            if (window) {
+                // Hide any window when its close button is clicked
+                window.classList.add('hidden');
+            }
+        });
+    });
+}
 
 function initializeSSE() {
     // Check if EventSource is supported
@@ -67,10 +84,15 @@ function updateSimulationDisplay(simulationData) {
     if (tickCountElement && simulationData.tick_count !== undefined) {
         tickCountElement.textContent = simulationData.tick_count;
     }
+
+    const simulationRunningElement = document.getElementById('simulation-running');
+    if (simulationRunningElement) {
+        simulationRunningElement.textContent = simulationData.running ? 'Running' : 'Paused';
+    }
     
     // Update entities display if needed
     if (simulationData.world && simulationData.world.entities) {
-        const windowBodyEntities = document.getElementById('window-body-entities');
+        const windowBodyEntities = document.getElementById('simulation-detail-window-body-entities');
         if (windowBodyEntities) {
             updateJsonHtmlIncrementally(windowBodyEntities, simulationData, 'Entities', 'entities');
         }

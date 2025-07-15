@@ -98,6 +98,8 @@ class Simulation(BaseModel):
     def to_json(self):
         """Convert the simulation state to JSON format."""
         return {
+            "running": self.running,
+            "llm_url": self.llm_url,
             "tick_count": self.tick_count,
             "simulation_delay": self.simulation_delay,
             "simulation_delay_max": self.simulation_delay_max,

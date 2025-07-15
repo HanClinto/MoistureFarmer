@@ -14,6 +14,15 @@ function bringToFront(elmnt) {
     elmnt.style.zIndex = ++newTop;
 }
 
+function showWindow(elmntId) {
+    // Show the window with the given ID
+    const elmnt = document.getElementById(elmntId);
+    if (elmnt) {
+        elmnt.classList.remove('hidden');
+        bringToFront(elmnt);
+    }
+}
+
 // Draggable / moveable elements
 function draggableElement(elmnt) {
     const bar = elmnt.querySelector('.title-bar');

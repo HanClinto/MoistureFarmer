@@ -13,12 +13,53 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-  <div id="fixed-window" class="window" style="width: 300px; height: 200px; position: fixed; top: 20px; left: 20px;">
+  <div id="fixed-window" class="window hidden" style="width: 300px; height: 200px; position: fixed; top: 20px; left: 20px;">
     <div class="title-bar">
       <div class="title-bar-text">Fixed Window</div>
     </div>
     <div class="window-body">
       <p>This window cannot be moved or resized.</p>
+    </div>
+  </div>
+  <div id="droid-window" class="window draggable resizeable hidden" style="width: 450px; height: 300px;">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        R5-D5
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Help"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <ul>
+        <li>Battery Level: 40 / 100</li>
+      </ul>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">Battery Level:</p>
+      <p class="status-bar-field">
+          40 / 100
+      </p>
+    </div>
+  </div>
+
+  <div id="simulation-detail-window" class="window draggable resizeable hidden" style="width: 500px; height: 640px;">
+    <div class="title-bar">
+      <div class="title-bar-text">
+        Simulation Detail View
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Help"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div id="simulation-detail-window-body-entities">
+        <ul>
+          <!-- Entities will be dynamically populated here -->
+        </ul>
+      </div>
     </div>
   </div>
   <div id="simulation-control-window" class="window draggable resizeable" style="width: 640px; left:50%; transform: translateX(-50%); top: 20px">
@@ -76,12 +117,12 @@
       </div>
     </div>
     <div class="window-body">
-      <button id="open-entity-view">Open Entity View</button>
+      <button id="open-simulation-detail-view" onclick="showWindow('simulation-detail-window')">Open Simulation Detail View</button>
     </div>
     <div class="status-bar">
       <p class="status-bar-field">Simulation Status:</p>
-      <p class="status-bar-field">
-          Running
+      <p id="simulation-running" class="status-bar-field">
+          -
       </p>
       <p class="status-bar-field">
           <button id="pause-simulation">Pause</button>
@@ -95,42 +136,6 @@
       <p id="simulation-tick-count" class="status-bar-field">
           -
       </p>
-    </div>
-  </div>
-  <div id="droid-window" class="window draggable resizeable closeable" style="width: 450px; height: 300px;">
-    <div class="title-bar">
-      <div class="title-bar-text">
-        R5-D5
-      </div>
-      <div class="title-bar-controls">
-        <button aria-label="Close"></button>
-      </div>
-    </div>
-    <div class="window-body">
-      <ul>
-        <li>Battery Level: 40 / 100</li>
-      </ul>
-    </div>
-    <div class="status-bar">
-      <p class="status-bar-field">Battery Level:</p>
-      <p class="status-bar-field">
-          40 / 100
-      </p>
-    </div>
-  </div>
-
-  <div id="entity-view" class="window draggable resizeable" style="width: 500px; height: 640px;">
-    <div class="title-bar">
-      <div class="title-bar-text">
-        Moisture Farmer v0.98
-      </div>
-    </div>
-    <div class="window-body">
-      <div id="window-body-entities">
-        <ul>
-          <!-- Entities will be dynamically populated here -->
-        </ul>
-      </div>
     </div>
   </div>
 

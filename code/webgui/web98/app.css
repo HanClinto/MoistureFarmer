@@ -35,7 +35,12 @@ body {
   flex-direction: column;
 }
 
+.window.hidden {
+  display: none; /* Windows are hidden with this class */
+}
+
 .window-body {
+  display: flex;
   flex: 1;
   overflow: auto;
 }
