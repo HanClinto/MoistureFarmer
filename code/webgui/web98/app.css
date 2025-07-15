@@ -1,6 +1,6 @@
 /* Apply Windows Default theme to body (desktop) */
 body {
-  background-color: var(--#000000);
+  background-color: #00ADAC;
 }
 
 /* Apply the Windows Default theme class to the root */
