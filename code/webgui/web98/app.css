@@ -3,32 +3,6 @@ body {
   background-color: #00ADAC;
 }
 
-/* Apply the Windows Default theme class to the root */
-:root {
-  /* Inherit Windows Default theme variables */
-  --desktop: #C0C0C0;
-  --applicationworkspace: #C0C0C0;
-  --windowbackground: #FFFFFF;
-  --windowtext: #000000;
-  --menubar: #FFFFFF;
-  --menutext: #000000;
-  --activetitlebar: #A4C8F0;
-  --inactivetitlebar: #C0C0C0;
-  --activetitlebartext: #000000;
-  --inactivetitlebartext: #000000;
-  --activeborder: #C0C0C0;
-  --inactiveborder: #C0C0C0;
-  --windowframe: #000000;
-  --scrollbars: #C0C0C0;
-  --buttonface: #C0C0C0;
-  --buttonshadow: #808080;
-  --buttontext: #000000;
-  --buttonhighlight: #FFFFFF;
-  --disabledtext: #C0C0C0;
-  --highlight: #A4C8F0;
-  --highlightedtext: #000000;
-}
-
 /* Window layout improvements to allow status-bars to stick to the bottom */
 .window {
   display: flex;
@@ -54,4 +28,19 @@ body {
   left: 50%;
   bottom: 20px;
   transform: translateX(-50%);
+}
+
+/* Allow us to simulate a button pressed state to "lock" a button down */
+button.active {
+  box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a,
+    inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+}
+
+button.simulation-delay-button {
+  min-width: 20px;
+}
+
+/* buttons that are in the status-bar should have min-height of 16px */
+.status-bar button {
+  min-height: 16px;
 }

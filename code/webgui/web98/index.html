@@ -13,14 +13,6 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-  <div id="fixed-window" class="window hidden" style="width: 300px; height: 200px; position: fixed; top: 20px; left: 20px;">
-    <div class="title-bar">
-      <div class="title-bar-text">Fixed Window</div>
-    </div>
-    <div class="window-body">
-      <p>This window cannot be moved or resized.</p>
-    </div>
-  </div>
   <div id="droid-window" class="window draggable resizeable hidden" style="width: 450px; height: 300px;">
     <div class="title-bar">
       <div class="title-bar-text">
@@ -55,17 +47,20 @@
       </div>
     </div>
     <div class="window-body">
-      <div id="simulation-detail-window-body-entities">
+      <div id="simulation-detail-window-body-entities" style="height: 100%; width:100%;">
         <ul>
           <!-- Entities will be dynamically populated here -->
         </ul>
       </div>
     </div>
   </div>
-  <div id="simulation-control-window" class="window draggable resizeable" style="width: 640px; left:50%; transform: translateX(-50%); top: 20px">
+  <div id="simulation-control-window" class="window" style="position: absolute; width: 640px; left:50%; transform: translateX(-50%); top: 20px">
     <div class="title-bar">
       <div class="title-bar-text">
         Moisture Farmer v0.98
+      </div>
+      <div class="title-bar-controls">
+        <button aria-label="Help" onclick="navigateTo('http://github.com/HanClinto/MoistureFarmer')"></button>
       </div>
     </div>
     <div class="menu-bar">
@@ -77,10 +72,10 @@
           <li><u>S</u>ave</li>
           <li>Save <u>A</u>s...</li>
           <li class="divider"></li>
-          <li>Page Se<u>t</u>up...</li>
-          <li class="disabled"><u>P</u>rint</li>
+          <li class="disabled">Page Se<u>t</u>up...</li>
+          <li onmousedown="print()"><u>P</u>rint</li>
           <li class="divider"></li>
-          <li>E<u>x</u>it</li>
+          <li onmousedown="navigateTo('http://starwars.com/')">E<u>x</u>it</li>
         </ul>
       </div>
       <div class="menu-bar-item">
@@ -121,20 +116,22 @@
     </div>
     <div class="status-bar">
       <p class="status-bar-field">Simulation Status:</p>
-      <p id="simulation-running" class="status-bar-field">
+      <p id="simulation-status-paused" class="status-bar-field">
           -
       </p>
       <p class="status-bar-field">
-          <button id="pause-simulation">Pause</button>
-          <button id="run-simulation-1x">1x</button>
-          <button id="run-simulation-4x">4x</button>
-          <button id="run-simulation-10x">10x</button>
+          <button id="simulation-pause" onclick="toggleSimulationPaused()">Pause</button>
+      </p>
+      <p class="status-bar-field">
+          <button id="simulation-delay-2" class="simulation-delay-button active" onclick="setSimulationDelay(2)">1x</button>
+          <button id="simulation-delay-0.5" class="simulation-delay-button" onclick="setSimulationDelay(0.5)">4x</button>
+          <button id="simulation-delay-0.2" class="simulation-delay-button" onclick="setSimulationDelay(0.2)">10x</button>
       </p>
       <p id="simulation-tick-count-label" class="status-bar-field">
           Tick:
       </p>
       <p id="simulation-tick-count" class="status-bar-field">
-          -
+          #
       </p>
     </div>
   </div>

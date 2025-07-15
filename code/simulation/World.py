@@ -63,7 +63,7 @@ class World(BaseModel):
 
 class Simulation(BaseModel):
     running: bool = False  # Flag to control the simulation loop
-
+    paused: bool = False  # Flag to pause the simulation
     tick_count: int = 0  # Number of ticks that have occurred in the simulation
 
     simulation_delay: float = 0.1  # Delay between simulation ticks in seconds
@@ -99,6 +99,7 @@ class Simulation(BaseModel):
         """Convert the simulation state to JSON format."""
         return {
             "running": self.running,
+            "paused": self.paused,
             "llm_url": self.llm_url,
             "tick_count": self.tick_count,
             "simulation_delay": self.simulation_delay,
@@ -148,29 +149,32 @@ class Simulation(BaseModel):
         count = 0
 
         while self.running:
-            self.world.tick()
-            self.tick_count += 1
-            count += 1
-            # Call all on_tick subscribers
-            for cb in self._on_tick_subscribers:
-                try:
-                    cb(self)
-                except Exception as e:
-                    print(f"[WARN] on_tick subscriber error: {e}")
+            sleep_time = 0.1
 
-            self.dispatch_on_tick()
+            if not self.paused:
+                self.world.tick()
+                self.tick_count += 1
+                count += 1
+                # Call all on_tick subscribers
+                for cb in self._on_tick_subscribers:
+                    try:
+                        cb(self)
+                    except Exception as e:
+                        print(f"[WARN] on_tick subscriber error: {e}")
 
-            if ticks is not None and count >= ticks:
-                self.running = False
-                break
+                self.dispatch_on_tick()
 
-            sleep_time = self.simulation_delay
+                if ticks is not None and count >= ticks:
+                    self.running = False
+                    break
 
-            # Check to see if any agents are thinking
-            if self.world.entity_thinking_count > 0:
-                # If any entities are thinking, then give them the maximum delay to think
-                sleep_time = self.simulation_delay_max
-                print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
+                sleep_time = self.simulation_delay
+
+                # Check to see if any agents are thinking
+                if self.world.entity_thinking_count > 0:
+                    # If any entities are thinking, then give them the maximum delay to think
+                    sleep_time = self.simulation_delay_max
+                    print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
 
             # Sleep for the specified delay before the next tick
             await asyncio.sleep(sleep_time)

@@ -1,3 +1,5 @@
+simulationData = {}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Loop through all elements and find those with the 'draggable' class
     const draggableElements = document.querySelectorAll('.draggable');
@@ -22,6 +24,17 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeSSE();
     }, 100);
 
+    // Fetch the initial simulation state and populate the display to reduce GUI loading lag
+    fetch('/simulation')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Initial simulation state:', data);
+            simulationData = data;
+            updateSimulationDisplay(data);
+        })
+        .catch(error => {
+            console.error('Error fetching initial simulation state:', error);
+        });
 });
 
 function initializeButtonHandlers() {
@@ -50,7 +63,7 @@ function initializeSSE() {
     eventSource.onmessage = function(event) {
         try {
             console.log('On tick: Received SSE data ' + event.data.length + ' bytes');
-            const simulationData = JSON.parse(event.data);
+            simulationData = JSON.parse(event.data);
             updateSimulationDisplay(simulationData);
         } catch (error) {
             console.error('Error parsing SSE data:', error);
@@ -85,22 +98,44 @@ function updateSimulationDisplay(simulationData) {
         tickCountElement.textContent = simulationData.tick_count;
     }
 
-    const simulationRunningElement = document.getElementById('simulation-running');
-    if (simulationRunningElement) {
-        simulationRunningElement.textContent = simulationData.running ? 'Running' : 'Paused';
-    }
-    
     // Update entities display if needed
     if (simulationData.world && simulationData.world.entities) {
         const windowBodyEntities = document.getElementById('simulation-detail-window-body-entities');
         if (windowBodyEntities) {
-            updateJsonHtmlIncrementally(windowBodyEntities, simulationData, 'Entities', 'entities');
+            updateJsonTreeviewHtmlIncrementally(windowBodyEntities, simulationData, 'Entities', 'entities');
         }
     }
+
+    const simulationStatusPausedElement = document.getElementById('simulation-status-paused');
+    if (simulationStatusPausedElement) {
+        simulationStatusPausedElement.textContent = simulationData.paused ? 'Paused' : 'Running';
+    }
+    
+    // Update button text based on the new state
+    const pauseButton = document.getElementById('simulation-pause');
+    if (pauseButton) {
+        if (simulationData.paused) {
+            pauseButton.textContent = 'Resume';
+        } else {
+            pauseButton.textContent = 'Pause';
+        }
+    }
+
+    // Update the simulation delay buttons
+    const buttons = document.querySelectorAll('.simulation-delay-button');
+    console.log('Looking for simulation delay button `' + `simulation-delay-${simulationData.simulation_delay}` + '` in buttons of length:', buttons.length);
+    buttons.forEach(button => {
+        if (button.id === `simulation-delay-${simulationData.simulation_delay}`) {
+            button.classList.add('active');
+            console.log('Setting button `' + button.id + '` as pressed');
+        } else {
+            button.classList.remove('active');
+        }
+    });
 }
 
 
-function updateJsonHtmlIncrementally(containerElement, json, title, id_path, depth = 0) {
+function updateJsonTreeviewHtmlIncrementally(containerElement, json, title, id_path, depth = 0) {
     // Get or create the root container
     let rootContainer = containerElement;
 
@@ -109,7 +144,7 @@ function updateJsonHtmlIncrementally(containerElement, json, title, id_path, dep
         let treeView = containerElement.querySelector('ul.tree-view');
         if (!treeView) {
             // Create initial structure if it doesn't exist
-            containerElement.innerHTML = jsonToHtml(json, title, id_path, depth);
+            containerElement.innerHTML = jsonToTreeviewHtml(json, title, id_path, depth);
             return;
         }
         rootContainer = treeView;
@@ -161,7 +196,7 @@ function updateJsonHtmlIncrementally(containerElement, json, title, id_path, dep
             // Recursively update the nested object
             const nestedList = listItem.querySelector('details > ul');
             if (nestedList) {
-                updateJsonHtmlIncrementally(nestedList, value, key, elementId, depth + 1);
+                updateJsonTreeviewHtmlIncrementally(nestedList, value, key, elementId, depth + 1);
             }
         } else {
             // Handle primitive values (string, number, boolean)
@@ -193,54 +228,9 @@ function updateJsonHtmlIncrementally(containerElement, json, title, id_path, dep
 }
 
 // Keep the original function for initial rendering when needed
-function jsonToHtml(json, title, id_path, depth = 0) {
+function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
     // Take JSON data and convert it to HTML in the following format:
-
-    /* Output style:
-    <ul class="tree-view">
-        <li>Table of Contents</li>
-        <li>What is web development?</li>
-        <li>
-        CSS
-        <ul>
-            <li>Selectors</li>
-            <li>Specificity</li>
-            <li>Properties</li>
-        </ul>
-        </li>
-        <li>
-        <details open>
-            <summary>JavaScript</summary>
-            <ul>
-            <li>Avoid at all costs</li>
-            <li>
-                <details>
-                <summary>Unless</summary>
-                <ul>
-                    <li>Avoid</li>
-                    <li>
-                    <details>
-                        <summary>At</summary>
-                        <ul>
-                        <li>Avoid</li>
-                        <li>At</li>
-                        <li>All</li>
-                        <li>Cost</li>
-                        </ul>
-                    </details>
-                    </li>
-                    <li>All</li>
-                    <li>Cost</li>
-                </ul>
-                </details>
-            </li>
-            </ul>
-        </details>
-        </li>
-        <li>HTML</li>
-        <li>Special Thanks</li>
-    </ul>
-    */
+    //  https://jdan.github.io/98.css/#tree-view
 
     // If a value is an object or an array, it should be displayed as a nested list
     // If a nested list has more than two items, it should be displayed as a details element with a summary
@@ -248,19 +238,20 @@ function jsonToHtml(json, title, id_path, depth = 0) {
     // If a value is a boolean, it should be displayed as a list item with the key and value
     let added_details = false;
     let html = '';
-    if (json && (typeof json === 'object' || Array.isArray(json))) {
+    if (json && depth > 0 && (typeof json === 'object' || Array.isArray(json))) {
         added_details = true;
-        html += '<details><summary>' + title + '</summary>';
+        // Count the number of keys in the object, if more than 2, default to open
+        const keysCount = Object.keys(json).length;
+        const isOpen = keysCount > 2; // Default to open if more than 2 keys
+        const detailsOpen = isOpen ? ' open' : '';
+        html += '<details' + detailsOpen + '><summary>' + title + '</summary>';
     }
     html += depth === 0 ? '<ul class="tree-view">' : '<ul>';
     for (const key in json) {
         if (json.hasOwnProperty(key)) {
             if (typeof json[key] === 'object' || Array.isArray(json[key])) {
-                //html += `<li id="${id_path + '.' + key}">${jsonToHtml(json[key], key, id_path + '.' + key, depth + 1)}</li>`;
-                //html += `<li id="${id_path + '.' + key}" data-key="${id_path + '.' + key}">${jsonToHtml(json[key], key, id_path + '.' + key, depth + 1)}</li>`;
-                html += `<li id="${id_path + '.' + key}" data-key="${key}">${jsonToHtml(json[key], key, id_path + '.' + key, depth + 1)}</li>`;
+                html += `<li id="${id_path + '.' + key}" data-key="${key}">${jsonToTreeviewHtml(json[key], key, id_path + '.' + key, depth + 1)}</li>`;
             } else {
-                //html += `<li id="${id_path + '.' + key}">${key}: ${json[key]}</li>`;
                 html += `<li id="${id_path + '.' + key}" data-key="${key}">${key}: ${json[key]}</li>`;
             }
         }
@@ -272,3 +263,53 @@ function jsonToHtml(json, title, id_path, depth = 0) {
     return html;
 }
 
+function navigateTo(url) {
+    // Navigate to the specified URL
+    console.log('Navigating to:', url);
+    window.location.href = url;
+}
+
+function setSimulationDelay(simulation_delay) {
+    // Set the simulation delay
+    console.log('Setting simulation delay to:', simulation_delay);
+    fetch(`/simulation/simulation_delay/${simulation_delay}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Simulation delay set:', data);
+    })
+    .catch(error => {
+        console.error('Error setting simulation delay:', error);
+    });
+
+    simulationData.simulation_delay = simulation_delay; // Update the local state
+
+    // Update view based on new data
+    updateSimulationDisplay(simulationData);
+}
+
+function toggleSimulationPaused() {
+    // Toggle the simulation pause state
+    console.log('Toggling simulation pause');
+    fetch(`/simulation/paused/${simulationData.paused ? false : true}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Simulation paused:', data);
+    })
+    .catch(error => {
+        console.error('Error setting simulation pause:', error);
+    });
+
+    simulationData.paused = !simulationData.paused; // Toggle the local state
+
+    updateSimulationDisplay(simulationData); // Update the display to reflect the new state
+}

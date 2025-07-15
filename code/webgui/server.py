@@ -52,6 +52,28 @@ async def sse(request: Request):
         headers=headers
     )
 
+@app.post("/simulation/simulation_delay/{simulation_delay}")
+def set_simulation_delay(simulation_delay: float):
+    # Cannot set simulation delay above simulation_delay_max
+    simulation_delay = min(simulation_delay, simulation.simulation_delay_max)
+    simulation.simulation_delay = simulation_delay
+    return {"status": "success"}
+
+@app.post("/simulation/paused/{paused_bool}")
+def set_simulation_paused(paused_bool: bool):
+    if simulation:
+        simulation.paused = paused_bool
+        return {"status": "success"}
+    return {"error": "No simulation loaded"}
+
+@app.get("/simulation")
+def get_simulation_state():
+    """Get the current state of the simulation."""
+    if simulation:
+        return simulation.to_json()
+    else:
+        return {"error": "No simulation loaded"}
+
 def broadcast_simulation_state(simulation: Simulation):
     sim_state = json.dumps(simulation.to_json())
     for queue in list(subscribers):
@@ -63,7 +85,7 @@ simulation_thread:threading.Thread = None
 
 def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     simulation = Simulation()
-    simulation.simulation_delay = 5.0  # Set a default simulation delay
+    simulation.simulation_delay = 4.0  # Set a default simulation delay
     simulation.simulation_delay_max = 10.0  # Set a maximum simulation delay
 
     attach_to_simulation(simulation)
