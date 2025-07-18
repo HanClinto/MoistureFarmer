@@ -21,6 +21,26 @@ class World(BaseModel):
         entity.world = self  # Set the world reference in the entity
         self.entities[entity.id] = entity
 
+    def clear_entities(self):
+        """Clear all entities from the world."""
+        self.entities.clear()
+        self.entity_thinking_count = 0
+
+    def remove_entity(self, entity: Entity):
+        """Remove an entity from the world."""
+        if entity.id in self.entities:
+            del self.entities[entity.id]
+            if entity.thinking:
+                self.entity_thinking_count -= 1
+
+    def remove_entity_by_id(self, entity_id: str):
+        """Remove an entity by its ID."""
+        if entity_id in self.entities:
+            entity = self.entities[entity_id]
+            if entity.thinking:
+                self.entity_thinking_count -= 1
+            del self.entities[entity_id]
+
     def get_entity(self, identifier: Type[Entity] | str) -> Optional[Entity]:
         if isinstance(identifier, str):
             # Check for an entity with the given ID
@@ -92,7 +112,7 @@ class Simulation(BaseModel):
         # Ensure the world is initialized
         if not self.world:
             self.world = World(**data.get('world', {}))
-
+            
         Simulation.__instance = self  # Set the singleton instance
 
     def to_json(self):

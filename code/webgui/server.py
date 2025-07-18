@@ -1,6 +1,7 @@
 import threading 
 import asyncio
 import json
+from simulation.AutoScenarioManager import AutoScenarioManager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -74,6 +75,43 @@ def get_simulation_state():
     else:
         return {"error": "No simulation loaded"}
 
+# --- Scenario Save/Load Endpoints ---
+@app.post("/scenario/save")
+async def save_scenario(request: Request):
+    """Serialize the current simulation and return as JSON file."""
+    if not simulation:
+        return {"error": "No simulation loaded"}
+    body = await request.json()
+    name = body.get("name", "Scenario")
+    description = body.get("description", "")
+    scenario_data = AutoScenarioManager._simulation_to_dict(simulation, name, description)
+    return HTMLResponse(
+        content=json.dumps(scenario_data, indent=2),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename={name}.json"
+        }
+    )
+
+@app.post("/scenario/load")
+async def load_scenario(request: Request):
+    """Load a scenario from uploaded JSON and replace the global simulation."""
+    try:
+        scenario_data = await request.json()
+        print(f'*** Loading scenario with data: {scenario_data} ***')
+
+        # Use AutoScenarioManager to create a new Simulation
+        AutoScenarioManager._dict_to_simulation(scenario_data)
+        
+        print("Scenario loaded successfully")
+
+        # Immediately broadcast the new simulation state
+        broadcast_simulation_state(simulation)
+
+        return {"status": "success"}
+    except Exception as e:
+        return {"error": str(e)}
+
 def broadcast_simulation_state(simulation: Simulation):
     sim_state = json.dumps(simulation.to_json())
     for queue in list(subscribers):
@@ -85,7 +123,7 @@ simulation_thread:threading.Thread = None
 
 def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     simulation = Simulation()
-    simulation.simulation_delay = 4.0  # Set a default simulation delay
+    simulation.simulation_delay = 2.0  # Set a default simulation delay
     simulation.simulation_delay_max = 10.0  # Set a maximum simulation delay
 
     attach_to_simulation(simulation)

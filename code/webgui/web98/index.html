@@ -69,10 +69,9 @@
       <div class="menu-bar-item">
         <button aria-label="File"><u>F</u>ile</button>
         <ul class="menu">
-          <li><u>N</u>ew</li>
-          <li><u>O</u>pen...</li>
-          <li><u>S</u>ave</li>
-          <li>Save <u>A</u>s...</li>
+          <li onmousedown="createNewScenario()"><u>N</u>ew</li>
+          <li onmousedown="openScenarioFile()"><u>O</u>pen...</li>
+          <li onmousedown="saveScenarioFile()"><u>S</u>ave</li>
           <li class="divider"></li>
           <li class="disabled">Page Se<u>t</u>up...</li>
           <li onmousedown="print()"><u>P</u>rint</li>
@@ -137,7 +136,6 @@
       </p>
     </div>
   </div>
-
 </body>
 
 </html>

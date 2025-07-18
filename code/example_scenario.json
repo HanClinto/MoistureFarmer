@@ -1,0 +1,69 @@
+{
+  "name": "Test Scenario",
+  "description": "Auto-generated test scenario",
+  "simulation_settings": {
+    "paused": true,
+    "simulation_delay": 0.2
+  },
+  "entities": [
+    {
+      "type": "GonkDroid",
+      "module": "simulation.DroidModels",
+      "id": "GonkDroid_1",
+      "location": {
+        "x": 15,
+        "y": 25
+      },
+      "components": {
+        "agent": {
+          "type": "DroidAgentSimplePowerDroid",
+          "module": "simulation.DroidAgents",
+          "id": "DroidAgentSimplePowerDroid_1"
+        },
+        "power_pack": {
+          "type": "PowerPack",
+          "module": "simulation.Component",
+          "id": "PowerPack_1",
+          "charge": 65
+        },
+        "motivator": {
+          "type": "Motivator",
+          "module": "simulation.DroidComponents",
+          "id": "Motivator_2",
+          "destination": {
+            "x": 100,
+            "y": 200
+          },
+          "current_cooldown": 2
+        }
+      }
+    },
+    {
+      "type": "GX1_Vaporator",
+      "module": "simulation.Vaporator",
+      "id": "GX1_Vaporator_1",
+      "location": {
+        "x": 50,
+        "y": 75
+      },
+      "components": {
+        "power_pack": {
+          "type": "SmallPowerPack",
+          "module": "simulation.Component",
+          "id": "SmallPowerPack_2",
+          "charge": 45
+        },
+        "condenser": {
+          "type": "CondenserUnit",
+          "module": "simulation.Vaporator",
+          "id": "CondenserUnit_1"
+        },
+        "water_tank": {
+          "type": "SmallWaterTank",
+          "module": "simulation.Vaporator",
+          "id": "SmallWaterTank_1"
+        }
+      }
+    }
+  ]
+}

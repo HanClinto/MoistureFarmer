@@ -44,13 +44,13 @@ class Component(GameObject):
         self.info(f"Component {self.id} installed in chassis {chassis.id}.")
 
     def to_json(self):
-        return {
-            **super().to_json(),
-            "name": self.name,
-            "description": self.description,
-            "durability": self.durability,
-            # Optionally add more fields here
-        }
+        props = self.model_dump(
+                exclude_defaults=False,
+                exclude_none=False,
+                exclude={'chassis', 'world', 'entity'}  # Exclude back-references
+            )
+        props['type'] = self.__class__.__name__
+        return props
 
 # -- Chassis System ---
 # Chassis are the physical bodies of entities that can have components
