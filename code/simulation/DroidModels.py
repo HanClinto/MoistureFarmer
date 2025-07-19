@@ -8,7 +8,7 @@ from simulation.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
 
 class R2Astromech(Chassis):
     model:str = "R2 Astromech"
-    sprite: str = "R2-D2 (794).png"
+    sprite: str = "794.png"
 
     slots: Dict[str, ComponentSlot] = {
         "processor": ComponentSlot(accepts=Component),

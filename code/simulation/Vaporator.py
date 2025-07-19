@@ -60,7 +60,7 @@ class LargeWaterTank(WaterTank):
 #  simulation environment.
 
 class Vaporator(Chassis):
-    sprite: str = "168-169.png"
+    sprite: str = "vaporator3.png"
     description: str = "A device used to extract moisture from the air, typically used in arid environments."
     
     slots: Dict[str, ComponentSlot] = {
@@ -71,6 +71,7 @@ class Vaporator(Chassis):
 
 class GX1_Vaporator(Vaporator):
     model: str = "GX-1"
+    sprite: str = "vaporator2.png"
     
     slots: Dict[str, ComponentSlot] = {
         "power_pack": ComponentSlot(accepts=PowerPack, component=SmallPowerPack()),
@@ -81,7 +82,8 @@ class GX1_Vaporator(Vaporator):
 class GX8_Vaporator(Vaporator):
     model: str = "GX-8"
     description: str = "An advanced vaporator with improved power capacity and a larger water tank. More efficient condensers can collect more water from the air."
-    
+    sprite: str = "vaporator1.png"
+
     slots: Dict[str, ComponentSlot] = {
         "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
         "condenser": ComponentSlot(accepts=CondenserUnit, component=AdvancedCondenserUnit()),
