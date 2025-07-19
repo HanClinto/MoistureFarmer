@@ -2,7 +2,7 @@ from datetime import datetime
 import inspect
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
 from pydantic import BaseModel
-from simulation.Entity import Entity, Location, GameObject
+from simulation.Entity import Entity, Location, GameObject, LogMessage
 from simulation.World import World
 from simulation.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 
@@ -137,14 +137,14 @@ class Chassis(Entity):
 
         return all_tools
     
-    def get_logs(self) -> List[Tuple[str, int, datetime]]:
-        # Return the log history for this object and all components, sorted by timestamp
+    def get_logs(self) -> List[LogMessage]:
+        """Get the log history for this chassis and all components, sorted by timestamp."""
         logs = super().get_logs()
         for slot in self.slots.values():
             if slot.component:
                 logs.extend(slot.component.get_logs())
         # Sort logs by timestamp
-        logs.sort(key=lambda log: log[2])  # Sort by timestamp
+        logs.sort(key=lambda log: log.timestamp)  # Sort by timestamp
         return logs
     
     def tick(self):

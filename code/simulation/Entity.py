@@ -37,9 +37,29 @@ class Location(BaseModel):
             return NotImplemented
         return Location(x=self.x - other.x, y=self.y - other.y)
     
+class LogMessage(BaseModel):
+    colors: ClassVar[Dict[str, str]] = {
+        0: GlobalConfig.INFO_COLOR,
+        1: GlobalConfig.WARN_COLOR,
+        2: GlobalConfig.ERR_COLOR
+    }
+    message: str
+    level: int  # 0 = info, 1 = warning, 2 = error
+    timestamp: datetime
+    def __str__(self):
+        level_str = ["INFO", "WARN", "ERROR"][self.level]
+        return f"[{self.timestamp}] [{self.colors[self.level]}{level_str}{GlobalConfig.colors.RESET}] {self.message}"
+    
+    def to_json(self):
+        return {
+            "message": self.message,
+            "level": self.level,
+            "timestamp": self.timestamp.isoformat()
+        }
+
 class GameObject(BaseModel):
     id: Optional[str] = None
-    _log_history: List[Tuple[str, int, datetime]] = []  # List of tuples (message, level, timestamp)
+    _log_history: List[LogMessage] = []  # List of LogMessage objects
 
     _type_counter: ClassVar[Dict[Type, int]] = {}
     @classmethod
@@ -56,36 +76,34 @@ class GameObject(BaseModel):
             self.id = self.generate_id(self.__class__)
 
     def log(self, message: str, level:int = 0):
-        # Log a message with a specific level (0 = info, 1 = warning, 2 = error)
+        """Log a message with a specific level (0 = info, 1 = warning, 2 = error)"""
         timestamp = datetime.now()
-        self._log_history.append((message, level, timestamp))
+        log_message = LogMessage(message=message, level=level, timestamp=timestamp)
+        self._log_history.append(log_message)
         if level >= GlobalConfig.log_print_level:
-            level_str = ["INFO", "WARN", "ERROR"][level]
-            print(f"[{timestamp}] [{level_str}] {self.id}: {message}")
+            print(log_message)
 
     def info(self, message: str):
-        # Log an informational message
+        """Log an informational message"""
         self.log(message, level=0)
 
     def warn(self, message: str):
-        # Log a warning message
+        """Log a warning message"""
         self.log(message, level=1)
 
     def error(self, message: str):
-        # Log an error message
+        """Log an error message"""
         self.log(message, level=2)
 
-    def get_logs(self) -> List[Tuple[str, int, datetime]]:
-        # Return the log history for this object
+    def get_logs(self) -> List[LogMessage]:
+        """Return the log history for this object."""
         return self._log_history
 
     def to_json(self):
         return {
             "id": self.id,
             "type": self.__class__.__name__,
-            "logs": [
-                {"msg": msg, "level": level, "timestamp": ts.isoformat()} for msg, level, ts in self._log_history
-            ]
+            "logs": [log.to_json() for log in self.get_logs()]
         }
 
 class Entity(GameObject):

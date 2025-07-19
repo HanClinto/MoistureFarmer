@@ -16,6 +16,9 @@ class Colors:
             self.PURPLE = '\033[1;35m'
             self.YELLOW = '\033[1;33m'
             self.GREEN = '\033[1;32m'
+            self.RED = '\033[1;31m'
+            self.BLUE = '\033[1;34m'
+            self.CYAN = '\033[1;36m'
         else:
             # No colors - just use empty strings
             self.BOLD = ''
@@ -24,6 +27,9 @@ class Colors:
             self.PURPLE = ''
             self.YELLOW = ''
             self.GREEN = ''
+            self.RED = ''
+            self.BLUE = ''
+            self.CYAN = ''
     
     def _init_colors(self):
         """Initialize ANSI color support for cross-platform compatibility."""
