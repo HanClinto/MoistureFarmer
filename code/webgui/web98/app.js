@@ -166,6 +166,7 @@ function updateJsonTreeviewHtmlIncrementally(containerElement, json, title, id_p
         const value = json[key];
         const elementId = `${id_path}.${key}`;
 
+        // TODO: Arrays don't seem to be handled correctly here -- need to fix this better
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
             // Handle object values
             let listItem = existingElements.get(key);
@@ -239,6 +240,7 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
         const keysCount = Object.keys(json).length;
         const isOpen = keysCount > 2; // Default to open if more than 2 keys
         const detailsOpen = isOpen ? ' open' : '';
+        // Create a details element with a summary
         html += '<details' + detailsOpen + '><summary>' + title + '</summary>';
     }
     html += depth === 0 ? '<ul class="tree-view">' : '<ul>';
