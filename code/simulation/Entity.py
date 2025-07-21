@@ -117,7 +117,7 @@ class Entity(GameObject):
     name: Optional[str] = None
     description: Optional[str] = None
     world: Optional['World'] = None  # Reference to the world this entity belongs to
-    sprite: str = "Droid Body (1357).png"
+    model: str = "Generic Entity"  # Default model name
 
     # Manhattan distance to another entity
     def distance_to(self, other: 'Entity') -> float:
