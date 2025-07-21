@@ -48,3 +48,25 @@ button.simulation-delay-button {
 .status-bar button {
   min-height: 16px;
 }
+.entity-icon {
+  position: absolute;
+  transform: translate(-50%, -100%); /* anchor bottom-center */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.entity-icon-sprite {
+  display: block;
+}
+
+.entity-icon-caption {
+  font-family: "Pixelated MS Sans Serif", Arial;
+  -webkit-font-smoothing: none;
+  font-size: 11px;
+  margin-top: 2px;
+  color: black;
+  white-space: nowrap;
+}
+

@@ -12,7 +12,7 @@
       "id": "GonkDroid_1",
       "location": {
         "x": 15,
-        "y": 25
+        "y": 15
       },
       "components": {
         "agent": {
@@ -43,8 +43,8 @@
       "module": "simulation.Vaporator",
       "id": "GX1_Vaporator_1",
       "location": {
-        "x": 50,
-        "y": 75
+        "x": 20,
+        "y": 15
       },
       "components": {
         "power_pack": {

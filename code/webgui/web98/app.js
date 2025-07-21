@@ -144,16 +144,29 @@ function updateSimulationDisplay(simulationData) {
 
         // simulationData.world.entities is a dictionary of entities where the key is the entity ID
 
-        // Add new icons for each entity
+        // Add new icons for each entity, with a caption centered underneath like an icon's name in Windows 98
         Object.values(simulationData.world.entities).forEach(entity => {
+            // Create a group entity to hold both the icon and caption
+            const group = document.createElement('div');
+            group.className = 'entity-icon';
+            group.style.position = 'absolute';
+            group.style.left = `${entity.location.x * 32}px`;
+            group.style.top = `832px`; // `${entity.location.y * 32}px`;
+            group.setAttribute('data-entity-id', entity.id);
+
+            // Create the icon image element
             const icon = document.createElement('img');
             icon.src = `/resources/sprites/${entity.model}.png`; // Use the model name for the sprite
-            icon.className = 'entity-icon';
-            icon.style.position = 'absolute';
-            icon.style.left = `${(entity.location.x * 32) + 16}px`; // Center the icon
-            icon.style.top = `${(entity.location.y * 32) + 16}px`; // Center the icon
-            icon.setAttribute('data-entity-id', entity.id);
-            desktop.appendChild(icon);
+            icon.className = 'entity-icon-sprite';
+            group.appendChild(icon);
+
+            // Create the caption element
+            const caption = document.createElement('div');
+            caption.className = 'entity-icon-caption';
+            caption.textContent = entity.name || entity.id; // Use name if available, otherwise use ID
+            group.appendChild(caption);
+
+            desktop.appendChild(group);
             console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
         });
 
