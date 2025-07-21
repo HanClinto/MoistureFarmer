@@ -1,6 +1,7 @@
 /* Apply Windows Default theme to body (desktop) */
 body {
-  background-color: #00ADAC;
+  background-color: #efb387; /* Sand color */
+  /* background-color: #00ADAC; /* Teal desktop color */
 }
 
 /* Window layout improvements to allow status-bars to stick to the bottom */

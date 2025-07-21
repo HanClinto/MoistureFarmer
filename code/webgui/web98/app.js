@@ -127,6 +127,39 @@ function updateSimulationDisplay(simulationData) {
             button.classList.remove('active');
         }
     });
+
+    // Add / update icons on the desktop for each entity in the World
+    // Each entity should use /resources/sprites/{entity.model}.png as its icon
+    // Then position the icon based on the entity's location, with 0,0 as the center of the desktop, and each unit of location counting for 32 pixels.
+    // Each icon should use the class 'entity-icon' and have a data-entity-id attribute set to the entity's ID
+    // Each icon should have a caption that is the entity.name or entity.id if name is not set
+
+    const desktop = document.getElementById('desktop');
+    if (desktop) {
+        // Clear existing icons
+        const existingIcons = desktop.querySelectorAll('.entity-icon');
+        existingIcons.forEach(icon => icon.remove());
+
+        console.log(simulationData.world.entities);
+
+        // simulationData.world.entities is a dictionary of entities where the key is the entity ID
+
+        // Add new icons for each entity
+        Object.values(simulationData.world.entities).forEach(entity => {
+            const icon = document.createElement('img');
+            icon.src = `/resources/sprites/${entity.model}.png`; // Use the model name for the sprite
+            icon.className = 'entity-icon';
+            icon.style.position = 'absolute';
+            icon.style.left = `${(entity.location.x * 32) + 16}px`; // Center the icon
+            icon.style.top = `${(entity.location.y * 32) + 16}px`; // Center the icon
+            icon.setAttribute('data-entity-id', entity.id);
+            desktop.appendChild(icon);
+            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
+        });
+
+    }
+
+    
 }
 
 
