@@ -70,3 +70,9 @@ button.simulation-delay-button {
   white-space: nowrap;
 }
 
+.entity-detail-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+

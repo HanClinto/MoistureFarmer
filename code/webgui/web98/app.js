@@ -1,4 +1,5 @@
-simulationData = {}
+simulationData = {};
+simulationDataDictionary = {};
 
 document.addEventListener('DOMContentLoaded', function () {
     // Loop through all elements and find those with the 'draggable' class
@@ -61,7 +62,7 @@ function initializeSSE() {
         try {
             console.log('On tick: Received SSE data ' + event.data.length + ' bytes');
             simulationData = JSON.parse(event.data);
-            updateSimulationDisplay(simulationData);
+            updateSimulationDisplay();
         } catch (error) {
             console.error('Error parsing SSE data:', error);
         }
@@ -88,7 +89,27 @@ function initializeSSE() {
     window.sseConnection = eventSource;
 }
 
-function updateSimulationDisplay(simulationData) {
+function updateSimulationDisplay() {
+    // For each entity in the simulation data, populate the simulationDataDictionary
+    if (simulationData.world && simulationData.world.entities) {
+        Object.keys(simulationData.world.entities).forEach(entityId => {
+            const entity = simulationData.world.entities[entityId];
+            simulationDataDictionary[entityId] = entity;
+
+            // For each entity's slots, populate the simulationDataDictionary
+            if (entity.slots) {
+                Object.keys(entity.slots).forEach(slotName => {
+                    const slot = entity.slots[slotName];
+                    if (slot.component) {
+                        // If the slot has a component, add it to the dictionary
+                        simulationDataDictionary[`${entityId}.${slotName}`] = slot;
+                        simulationDataDictionary[slot.component.id] = slot.component;
+                    }
+                });
+            }
+        });
+    }
+
     // Update tick count
     const tickCountElement = document.getElementById('simulation-tick-count');
     if (tickCountElement && simulationData.tick_count !== undefined) {
@@ -166,15 +187,21 @@ function updateSimulationDisplay(simulationData) {
             caption.textContent = entity.name || entity.id; // Use name if available, otherwise use ID
             group.appendChild(caption);
 
+            // When mouse-down on the anything in the group, open the entity detail window
+            group.addEventListener('mousedown', function() {
+                console.log(`Opening entity detail for ${entity.id}`);
+                showEntityDetailWindow(entity.id);
+            });
+
+            group.addEventListener('mouseover', function(event) {
+                console.log(`Mouse over entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
+            });
+
             desktop.appendChild(group);
-            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
+            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown + mouseover handler`);
         });
-
     }
-
-    
 }
-
 
 function updateJsonTreeviewHtmlIncrementally(containerElement, json, title, id_path, depth = 0) {
     // Get or create the root container
@@ -306,6 +333,156 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
     return html;
 }
 
+function showEntityDetailWindow(entityId) {
+    // Create or focus the entity detail window for the given entity ID
+    let window = document.getElementById(`entity-detail-window-${entityId}`);
+    if (!window) {
+        // Create a new window if it doesn't exist
+        window = document.createElement('div');
+        window.id = `entity-detail-window-${entityId}`;
+        window.className = 'window entity-detail-window draggable resizeable';
+        window.innerHTML = `
+            <div class="title-bar">
+                <div class="title-bar-text">Entity Detail - ${entityId}</div>
+                <div class="title-bar-controls">
+                    <button aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="window-body">
+                <div id="entity-detail-window-body-${entityId}" class="entity-detail-body">
+                    <p>Loading entity details...</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(window);
+        // Add close button functionality
+
+        const closeButton = window.querySelector('.title-bar-controls button[aria-label="Close"]');
+        closeButton.addEventListener('click', function() {
+            const window = closeButton.closest('.window');
+            if (window) {
+                // Hide any window when its close button is clicked
+                window.classList.add('hidden');
+            }
+        });
+
+        resizeableElement(window);
+        draggableElement(window);
+        bringableToFront(window);
+    }
+
+    // Populate the entity details
+    const entity = simulationDataDictionary[entityId];
+    const detailBody = document.getElementById(`entity-detail-window-body-${entityId}`);
+    detailBody.innerHTML = ''; // Clear existing content
+    detailBody.style.width = '100%'; // Ensure it takes full width
+
+    // Add the Name, ID, and Model of the entity
+    const entityInfo = document.createElement('fieldset');
+    entityInfo.className = 'entity-info';
+    entityInfo.style.width = 'calc(100% - 24px)';
+    entityInfo.innerHTML = `
+        <strong>Name:</strong> ${entity.name || 'Unknown'}<br>
+        <strong>ID:</strong> ${entity.id}<br>
+        <strong>Model:</strong> ${entity.model || 'Unknown'}<br>
+    `;
+    detailBody.appendChild(entityInfo);
+
+    // Loop through the component slots and create specialized views if needed.
+    if (entity.slots) {
+        Object.keys(entity.slots).forEach(slotName => {
+            const slot = entity.slots[slotName];
+            // Create a specialized view for each slot based on what it can accept
+            switch (slot.accepts) {
+                case 'PowerPack':
+                    // Add a progress bar to display the power pack charge and capacity
+                    // <div class="progress-indicator segmented">
+                    //     <span class="progress-indicator-bar" style="width: 40%;" />
+                    // </div>
+                    progressGroup = document.createElement('fieldset');
+                    progressGroup.style.width = 'calc(100% - 24px)';
+                    progressGroupLabel = document.createElement('legend');
+                    progressGroupLabel.textContent = `Power Pack - ${slotName}`;
+                    progressGroup.appendChild(progressGroupLabel);
+
+                    progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-indicator segmented';
+                    progressDiv.style.width = '100%'; // Ensure it takes full width
+                    const progressBar = document.createElement('span');
+                    progressBar.className = 'progress-indicator-bar';
+                    progressBar['data-key'] = `${entityId}.${slotName}`;
+                    if (slot.component) {
+                        progressBar['data-charge'] = slot.component.charge;
+                        progressBar['data-charge_max'] = slot.component.charge_max;
+                        progressBar['data-capacity'] = slot.component.capacity;
+                        progressBar['data-capacity_max'] = slot.component.capacity_max;
+                        // progressBar.textContent = `${slotName}: ${slot.component.charge}/${slot.component.charge_max}`;
+                        // Add a tooltip with the charge and capacity
+                        progressBar.title = `Charge: ${slot.component.charge}, Capacity: ${slot.component.charge_max}`;
+                        // Remove the disabled class if it exists
+                        progressBar.classList.remove('disabled');
+                        // Set the width based on the charge percentage
+                        const chargePercentage = (slot.component.charge / slot.component.charge_max) * 100;
+                        progressBar.style.width = `${chargePercentage}%`;
+                    } else {
+                        // Otherwise, set it to 0% width and grey it out as disabled
+                        progressBar.style.width = '0%';
+                        progressBar.classList.add('disabled');
+                        // progressBar.textContent = `${slotName}: 0/0`;
+                        // Add a tooltip indicating no component is present
+                        progressBar.title = 'No component present';
+                    }
+                    progressDiv.appendChild(progressBar);
+                    progressGroup.appendChild(progressDiv);
+                    detailBody.appendChild(progressGroup);
+                    break;
+                case 'WaterTank':
+                    // Add a progress bar to display the water tank level and capacity
+                    progressGroup = document.createElement('fieldset');
+                    progressGroup.style.width = 'calc(100% - 24px)';
+                    progressGroupLabel = document.createElement('legend');
+                    progressGroupLabel.textContent = `Water Tank - ${slotName}`;
+                    progressGroup.appendChild(progressGroupLabel);
+
+                    progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-indicator segmented';
+                    progressDiv.style.width = '100%'; // Ensure it takes full width
+                    const waterBar = document.createElement('span');
+                    waterBar.className = 'progress-indicator-bar';
+                    waterBar['data-key'] = `${entityId}.${slotName}`;
+                    if (slot.component) {
+                        waterBar['data-fill'] = slot.component.fill;
+                        waterBar['data-capacity'] = slot.component.capacity;
+                        // waterBar.textContent = `${slotName}: ${slot.component.fill}/${slot.component.capacity}`;
+                        // Add a tooltip with the fill and capacity
+                        waterBar.title = `Fill: ${slot.component.fill}, Capacity: ${slot.component.capacity}`;
+                        // Remove the disabled class if it exists
+                        waterBar.classList.remove('disabled');
+                        // Set the width based on the fill percentage
+                        const fillPercentage = (slot.component.fill / slot.component.capacity) * 100;
+                        waterBar.style.width = `${fillPercentage}%`;
+                    } else {
+                        // Otherwise, set it to 0% width and grey it out as disabled
+                        waterBar.style.width = '0%';
+                        waterBar.classList.add('disabled');
+                        // waterBar.textContent = `${slotName}: 0/0`;
+                        // Add a tooltip indicating no component is present
+                        waterBar.title = 'No component present';
+                    }
+                    progressDiv.appendChild(waterBar);
+                    progressGroup.appendChild(progressDiv);
+                    detailBody.appendChild(progressGroup);
+
+                    break;
+            }
+        });
+    }
+
+    // Show the window and bring it to the front
+    showWindow(window.id);
+    bringToFront(window);
+}
+
 function doFullscreen(enable) {
     // Request or exit fullscreen mode
     const doc = document.documentElement;
@@ -380,7 +557,7 @@ function setSimulationDelay(simulation_delay) {
     simulationData.simulation_delay = simulation_delay; // Update the local state
 
     // Update view based on new data
-    updateSimulationDisplay(simulationData);
+    updateSimulationDisplay();
 }
 
 function toggleSimulationPaused() {
@@ -402,7 +579,7 @@ function toggleSimulationPaused() {
 
     simulationData.paused = !simulationData.paused; // Toggle the local state
 
-    updateSimulationDisplay(simulationData); // Update the display to reflect the new state
+    updateSimulationDisplay(); // Update the display to reflect the new state
 }
 // --- Scenario Management ---
 function createNewScenario() {
