@@ -192,13 +192,13 @@ function updateSimulationDisplay() {
 
             // When mouse-down on the anything in the group, open the entity detail window
             // TODO: Why doesn't this work?
-            group.addEventListener('mousedown', function() {
+            icon.addEventListener("click", function() {
                 console.log(`Opening entity detail for ${entity.id}`);
                 showEntityDetailWindow(entity.id);
             });
 
             desktop.appendChild(group);
-            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown + mouseover handler`);
+            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown handler`);
 
             // TODO: Add drop-down menu items for entities
         });
