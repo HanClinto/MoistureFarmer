@@ -167,12 +167,15 @@ function updateSimulationDisplay() {
 
         // Add new icons for each entity, with a caption centered underneath like an icon's name in Windows 98
         Object.values(simulationData.world.entities).forEach(entity => {
+            // If there is a window attached to this entity, update it
+            updateEntityDetailWindow(entity.id);
+
             // Create a group entity to hold both the icon and caption
             const group = document.createElement('div');
             group.className = 'entity-icon';
             group.style.position = 'absolute';
             group.style.left = `${entity.location.x * 32}px`;
-            group.style.top = `832px`; // `${entity.location.y * 32}px`;
+            group.style.top = `${entity.location.y * 32}px`;
             group.setAttribute('data-entity-id', entity.id);
 
             // Create the icon image element
@@ -188,17 +191,16 @@ function updateSimulationDisplay() {
             group.appendChild(caption);
 
             // When mouse-down on the anything in the group, open the entity detail window
+            // TODO: Why doesn't this work?
             group.addEventListener('mousedown', function() {
                 console.log(`Opening entity detail for ${entity.id}`);
                 showEntityDetailWindow(entity.id);
             });
 
-            group.addEventListener('mouseover', function(event) {
-                console.log(`Mouse over entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
-            });
-
             desktop.appendChild(group);
             console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown + mouseover handler`);
+
+            // TODO: Add drop-down menu items for entities
         });
     }
 }
@@ -371,6 +373,20 @@ function showEntityDetailWindow(entityId) {
         bringableToFront(window);
     }
 
+    updateEntityDetailWindow(entityId);
+
+    // Show the window and bring it to the front
+    showWindow(window.id);
+    bringToFront(window);
+}
+
+function updateEntityDetailWindow(entityId) {
+    // Update the entity detail window for the given entity ID
+    let window = document.getElementById(`entity-detail-window-${entityId}`);
+    if (!window) {
+        return; // If the window doesn't exist, do nothing
+    }
+
     // Populate the entity details
     const entity = simulationDataDictionary[entityId];
     const detailBody = document.getElementById(`entity-detail-window-body-${entityId}`);
@@ -432,6 +448,8 @@ function showEntityDetailWindow(entityId) {
                         // Add a tooltip indicating no component is present
                         progressBar.title = 'No component present';
                     }
+                    progressDiv.title = progressBar.title;
+                    progressGroup.title = progressBar.title;
                     progressDiv.appendChild(progressBar);
                     progressGroup.appendChild(progressDiv);
                     detailBody.appendChild(progressGroup);
@@ -469,6 +487,8 @@ function showEntityDetailWindow(entityId) {
                         // Add a tooltip indicating no component is present
                         waterBar.title = 'No component present';
                     }
+                    progressDiv.title = waterBar.title;
+                    progressGroup.title = waterBar.title;
                     progressDiv.appendChild(waterBar);
                     progressGroup.appendChild(progressDiv);
                     detailBody.appendChild(progressGroup);
@@ -477,10 +497,6 @@ function showEntityDetailWindow(entityId) {
             }
         });
     }
-
-    // Show the window and bring it to the front
-    showWindow(window.id);
-    bringToFront(window);
 }
 
 function doFullscreen(enable) {

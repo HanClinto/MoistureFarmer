@@ -109,7 +109,7 @@ class GameObject(BaseModel):
         return {
             "id": self.id,
             "type": self.__class__.__name__,
-            "logs": [log.to_json() for log in self.get_logs()]
+            # "logs": [log.to_json() for log in self.get_logs()]
         }
 
 class Entity(GameObject):
