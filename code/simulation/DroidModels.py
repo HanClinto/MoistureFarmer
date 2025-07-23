@@ -26,8 +26,14 @@ class GonkDroid(Chassis):
     description: str = "A power droid designed to provide energy to other equipment. It has a limited battery capacity and can recharge itself at power stations."
 
     slots: Dict[str, ComponentSlot] = {
-        "agent": ComponentSlot(accepts=DroidAgentSimple, component=DroidAgentSimplePowerDroid()),
+        "agent": ComponentSlot(accepts=DroidAgentSimple),
         "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
         "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
     }
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Install default agent component after initialization
+        if not self.slots["agent"].component:
+            self.install_component("agent", DroidAgentSimplePowerDroid())
 
