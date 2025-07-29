@@ -181,13 +181,19 @@ class Chronometer(Component):
         Args:
             ticks (int): The number of ticks to sleep.
         """
+        print(f"Sleeping for '{ticks}' ticks.")
+        print(f' Ticks is of type {type(ticks)}')
         if ticks <= 0:
             raise ValueError("Ticks must be a positive integer.")
         self.info(f"Sleeping for {ticks} ticks.")
-        self.wake_time = Simulation.tick_count + ticks
+        self.wake_time = Simulation.get_instance().tick_count + ticks
 
-        return ToolCallResult()
-        return self.sleep_isdone
+        self.info(f"Will wake up at tick {self.wake_time}.")
+
+        return ToolCallResult(
+            state=ToolCallState.IN_PROCESS,
+            callback=self.sleep_isdone
+        )
 
     def sleep_isdone(self) -> ToolCallResult:
         """
@@ -195,6 +201,6 @@ class Chronometer(Component):
         Returns:
             ToolCallResult: The result of the tool call.
         """
-        if Simulation.tick_count >= self.wake_time:
-            return ToolCallResult(state=ToolCallState.SUCCESS)
+        if Simulation.get_instance().tick_count >= self.wake_time:
+            return ToolCallResult(state=ToolCallState.SUCCESS, message=f"Woke up from sleep at {self.wake_time} ticks.")
         return ToolCallResult(state=ToolCallState.IN_PROCESS)

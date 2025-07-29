@@ -1,3 +1,5 @@
+# Run tests without PydanticDeprecatedSince20 warnings
+export PYTHONWARNINGS="ignore::pydantic.errors.PydanticDeprecatedSince20"
 python -m pytest -rP tests/
 # NOTE: To run without output print spam, use:
 # python -m pytest tests/

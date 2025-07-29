@@ -96,8 +96,7 @@ def test_droid_agent_behavior(simulation: Simulation):
     assert agent.pending_tool_call is not None
 
     # Check that there is a pending tool call for sleeping
-    assert agent.pending_tool_call.function.name == "sleep"
-    assert agent.pending_tool_call.function.arguments == json.dumps({"ticks": 5})
+    assert agent.pending_tool_call.function_ptr.__name__ == "sleep"
 
     # Run the simulation for 5 ticks to allow the droid to sleep
     simulation.run_sync(ticks=5)

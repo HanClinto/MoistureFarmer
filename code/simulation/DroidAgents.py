@@ -1,3 +1,4 @@
+import json
 import random
 from typing import Callable, Dict, List, Optional
 
@@ -145,6 +146,7 @@ class DroidAgent(Component):
                             tool_call_id = tool_call["id"]
 
                             params = tool_call["function"]["arguments"]
+                            params = json.loads(params) if isinstance(params, str) else params  # Ensure params is a dict
                             self.info(f'Executing tool call: {tool_name} with params: {params}')
 
                             tools = self.chassis.get_available_tools()
@@ -153,14 +155,26 @@ class DroidAgent(Component):
                                 tool = tools[tool_name]
                                 # Execute the tool call and get the response
                                 try:
-                                    tool_response = tool.execute(params)
-                                    # If the tool_response is a function pointer, then we need to save it for later execution
+                                    tool_call_result = tool.execute(**params)
+                                    # If the tool_call_result is a function pointer, then we need to save it for later execution
                                     # This is useful for tools that are asynchronous or require further processing
-                                    if callable(tool_response) and hasattr(tool_response, '__call__'):
-                                        self.pending_tool_completion_callback = tool_response
+                                    if tool_call_result.state == ToolCallState.IN_PROCESS:
+                                        self.info(f'Tool call {tool_name} is in process, saving callback for later execution.')
+                                        # Save the tool call and its callback for later execution
                                         self.pending_tool_call = tool
+                                        self.pending_tool_completion_callback = tool_call_result.callback
                                         self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
                                         self.info(f'Tool call {tool_name} is executing and pending resolution.')
+                                    elif tool_call_result.state == ToolCallState.SUCCESS:
+                                        # If the tool call has completed, we can append the result to the agent context
+                                        self.agent_context.append_message("tool", f"{self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}")
+                                        self.info(f'Tool call {self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}')
+                                        self.pending_tool_call = None
+                                    elif tool_call_result.state == ToolCallState.FAILURE:
+                                        # If the tool call has failed, we can append the error message to the agent context
+                                        self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed: {tool_call_result.message}")
+                                        self.error(f'Tool call {self.pending_tool_call.function_ptr.__name__} failed: {tool_call_result.message}')
+                                        self.pending_tool_call = None
                                 except Exception as e:
                                     self.error(f'Error executing tool `{tool_name}`: {e}')
                                     self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
@@ -175,15 +189,15 @@ class DroidAgent(Component):
                 self.error(f'No pending tool completion callback for tool call `{self.pending_tool_call.function_ptr.__name__}`.')
             else:
                 tool_call_result:ToolCallResult = self.pending_tool_completion_callback()
-                if tool_call_result.state == ToolCallState.IN_PROGRESS:
+                if tool_call_result.state == ToolCallState.IN_PROCESS:
                     # If the tool call is still in progress, do nothing for this tick
                     self.info(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` is still in progress.')
-                elif tool_call_result.state == ToolCallState.COMPLETED:
+                elif tool_call_result.state == ToolCallState.SUCCESS:
                     # If the tool call has completed, we can append the result to the agent context
                     self.agent_context.append_message("tool", f"{self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}")
                     self.info(f'Tool call {self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}')
                     self.pending_tool_call = None
-                elif tool_call_result.state == ToolCallState.FAILED:
+                elif tool_call_result.state == ToolCallState.FAILURE:
                     # If the tool call has failed, we can append the error message to the agent context
                     self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed: {tool_call_result.message}")
                     self.error(f'Tool call {self.pending_tool_call.function_ptr.__name__} failed: {tool_call_result.message}')
