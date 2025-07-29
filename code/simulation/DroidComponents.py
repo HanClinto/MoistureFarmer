@@ -1,7 +1,7 @@
 from typing import Any, Callable, ClassVar, Dict, Optional, List, Type, Optional
 from pydantic import BaseModel
-from simulation.ToolCall import tool
-from simulation.World import World
+from simulation.ToolCall import ToolCallResult, ToolCallState, tool
+from simulation.World import World, Simulation
 from simulation.Entity import Location
 from simulation.Component import Chassis, ComponentSlot, Component, ToolCall, PowerPack, SmallPowerPack, ComputerProbe
 from random import randint
@@ -153,3 +153,34 @@ class AStarMotivator(Motivator):
         # A* pathfinding logic
         # TODO: Use the world's collision map to find a valid path
         return super().find_path(start, end)
+
+# Chronometer is a component that allows droids to be aware of time.
+#. For now, it only provides a single tool call to allow sleeping for a specified number of ticks.
+class Chronometer(Component):
+    name: str = "Chronometer"
+
+    wake_time: int = 0 # The tick at which the droid will wake up
+
+    @tool
+    def sleep(self, ticks: int) -> Callable[[], ToolCallResult]:
+        """
+        Sleep for a specified number of ticks.
+        Args:
+            ticks (int): The number of ticks to sleep.
+        """
+        if ticks <= 0:
+            raise ValueError("Ticks must be a positive integer.")
+        self.info(f"Sleeping for {ticks} ticks.")
+        self.wake_time = Simulation.tick_count + ticks
+
+        return self.sleep_isdone
+
+    def sleep_isdone(self) -> ToolCallResult:
+        """
+        Check if the sleep is done.
+        Returns:
+            ToolCallResult: The result of the tool call.
+        """
+        if Simulation.tick_count >= self.wake_time:
+            return ToolCallResult(state=ToolCallState.SUCCESS)
+        return ToolCallResult(state=ToolCallState.IN_PROCESS)

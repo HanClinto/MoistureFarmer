@@ -1,15 +1,14 @@
-import asyncio
 import random
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from simulation.Component import Component
+from simulation.Component import Component, Chassis
 from simulation.DroidComponents import Motivator
 from simulation.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
-from simulation.QueuedWebRequest import QueuedWebRequest
-from simulation.ToolCall import ToolCall
+from simulation.QueuedWebRequest import QueuedHttpRequest
+from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState
 from simulation.World import World
 
 class AgentContext(BaseModel):
@@ -42,13 +41,14 @@ class AgentContext(BaseModel):
             messages.append(dict(
                 role="system", 
                 content=self.prompt_system))
-            
+
         # Append the goal as a user message            
         messages.append(dict(
             role="user", 
             content=self.prompt_goal))
         
         # Append the recent messages to the context
+        # TODO: Limit the number of recent messages to avoid context overflow
         for message in self._recent_messages:
             messages.append(message)
 
@@ -85,36 +85,34 @@ class AgentContext(BaseModel):
             # Otherwise, append a regular message
             self._recent_messages.append(dict(role=role, content=content))
 
-        # TODO: Optionally limit the size of recent messages to avoid memory overflow
-        # TODO: Provide hooks here for context-engineering?
-        #if len(self._recent_messages) > 10: # TODO: Configurable threshold
-        #    self._recent_messages.pop(0)
-
-
 
 # A DroidAgent is a component that defines how a droid interacts with the world.
 #  Specifically, it is an agent that can make decisions based on the world state.
 #  Personalities can be simple / random, or can be controlled by more complex AI (such as an LLM)
 class DroidAgent(Component):
     name: str = "Droid Agent"
-    description: str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
 
-    prompt_goal: str
+    prompt_system: str = "You are a helpful droid. You will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
+    prompt_goal: str = ""
 
     is_active: bool = False # Whether the agent is currently active / awake (and running its agentic loop)
 
-    queued_web_request: Optional[QueuedWebRequest] = None  # A queued web request that the agent can use to communicate with an LLM or other service
+    queued_http_request: Optional[QueuedHttpRequest] = None  # A queued web request that the agent can use to communicate with an LLM or other service
     pending_tool_call: Optional[ToolCall] = None  # A tool call that has started, but not yet completed.
-    pending_tool_call_tick_count: int = 0  # A tick count for the pending tool call, used to track how long it has been pending, so we can abort it if it takes too long.
+    pending_tool_completion_callback: Optional[Callable[[], ToolCallResult]] = None  # A callback to call to check if the pending tool call has completed.
     pending_tool_call_id: Optional[str] = None  # The ID of the pending tool call, if any
 
     agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
-    def on_activate(self):
+    def activate(self):
         # Initialize the agent with the provider and system prompt
-
-        # Activate the agent
-        self.activate()
+        self.agent_context = AgentContext(
+            prompt_goal=self.prompt_goal,
+            prompt_system=self.prompt_system,
+            tools=self.chassis.get_available_tools()  # Get the tools available in the chassis
+        )
+        self.info(f"Agent context initialized with system prompt: {self.agent_context.prompt_system}")
+        self.is_active = True  # Set the agent to active state
 
     def tick(self):
         # A re-entrant ReAct agent "loop" that steps forward every tick
@@ -124,17 +122,17 @@ class DroidAgent(Component):
 
         world:World = self.chassis.world
 
-        if self.queued_web_request:
-            if self.queued_web_request.in_progress:
+        if self.queued_http_request:
+            if self.queued_http_request.in_progress:
                 # TODO: What's the best way to let the simulation know that the agent is thinking?
                 # HACK: For now, set a flag on the world manually
                 world.entity_thinking_count += 1
                 self.info(f'Agent is thinking... (World thinking count: {world.entity_thinking_count})')
             else:
                 # If the queued web request is done, we can process the response
-                resp = self.queued_web_request.response
+                resp = self.queued_http_request.response
                 self.info(f'Agent received response from web request: {resp}')
-                self.queued_web_request = None
+                self.queued_http_request = None
 
                 assert len(resp["choices"]) > 0, "No choices in response from LLM API"
                 # TODO: Turn the agent off and back on again to clear context and try again.
@@ -165,14 +163,13 @@ class DroidAgent(Component):
                             # Execute the tool call and get the response
                             try:
                                 tool_response = tool.execute(params)
-                                if tool_response:
-                                    self.agent_context.append_message("tool", f"{tool_name} executed successfully: {tool_response}")
-                                    self.info(f'Tool call {tool_name} executed successfully: {tool_response}', tool_call_id=tool_call_id, tool_name=tool_name)
-                                else:
+                                # If the tool_response is a function pointer, then we need to save it for later execution
+                                # This is useful for tools that are asynchronous or require further processing
+                                if callable(tool_response) and hasattr(tool_response, '__call__'):
+                                    self.pending_tool_completion_callback = tool_response
                                     self.pending_tool_call = tool
                                     self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
-                                    self.pending_tool_call_tick_count = 0  # Reset the tick count for the pending tool call
-                                    self.info(f'Tool call {tool_name} is executing and pending resolution. Count is {self.pending_tool_call_tick_count}')
+                                    self.info(f'Tool call {tool_name} is executing and pending resolution.')
                             except Exception as e:
                                 self.error(f'Error executing tool `{tool_name}`: {e}')
                                 self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
@@ -184,31 +181,38 @@ class DroidAgent(Component):
                     self.agent_context.append_message("assistant", content)
         elif self.pending_tool_call:
             # If there is a pending tool call, we need to check if it has completed
-            # TODO: Query another function that (optionally) lives alongside the tool calls and determines if it's still pending or if it's completed
+            # Attempt to get the tool call result from the pending tool call callback
+            if not self.pending_tool_completion_callback:
+                self.error(f'No pending tool completion callback for tool call `{self.pending_tool_call.function_ptr.__name__}`.')
+            else:
+                tool_call_result:ToolCallResult = self.pending_tool_completion_callback()
+                if tool_call_result.state == ToolCallState.IN_PROGRESS:
+                    # If the tool call is still in progress, do nothing for this tick
+                    self.info(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` is still in progress.')
+                elif tool_call_result.state == ToolCallState.COMPLETED:
+                    # If the tool call has completed, we can append the result to the agent context
+                    self.agent_context.append_message("tool", f"{self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}")
+                    self.info(f'Tool call {self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}')
+                    self.pending_tool_call = None
+                elif tool_call_result.state == ToolCallState.FAILED:
+                    # If the tool call has failed, we can append the error message to the agent context
+                    self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed: {tool_call_result.message}")
+                    self.error(f'Tool call {self.pending_tool_call.function_ptr.__name__} failed: {tool_call_result.message}')
+                    self.pending_tool_call = None
 
-            self.pending_tool_call_tick_count += 1
-            if self.pending_tool_call_tick_count >= GlobalConfig.tool_call_timeout_ticks:
-                # If the tool call has timed out, we need to abort it
-                self.error(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` timed out after {self.pending_tool_call_tick_count} ticks.')
-                self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` timed out after {self.pending_tool_call_tick_count} ticks.", tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
-                self.pending_tool_call = None
         else:
             # No queued web request, so we can proceed with the next step in the agentic loop.
             # Append the current world state + query to the agent context and send it to the LLM
-            self.agent_context.append_message("user", f"{world.get_state()}: What is your next action?")  # Current world state with prompt for next action
+            self.agent_context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
 
-            queued_web_request = QueuedWebRequest(
+            queued_web_request = QueuedHttpRequest(
                 url=GlobalConfig.llm_api_url,
                 data= self.agent_context.to_json(),
             )
             queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
-            self.queued_web_request = queued_web_request
+            self.queued_http_request = queued_web_request
 
         # If there is no queued web request, then we should kick off the next step in the agentic loop
-
-    def activate(self):
-        self.is_active = True
-        # Initialize the agent context with the system prompt, tools, and recent history
 
 
 class DroidAgentRandom(DroidAgent):
@@ -278,6 +282,4 @@ class DroidAgentSimple(DroidAgent):
     pass
 
 class DroidAgentSimplePowerDroid(DroidAgentSimple):
-    prompt_goal:str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
-
-
+    prompt_system:str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."

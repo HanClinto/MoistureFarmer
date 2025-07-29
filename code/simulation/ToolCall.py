@@ -1,7 +1,8 @@
 
 # Information needed to call a function as a tool
 #  This is used to define the tools that a Component provides to the agentic AI.
-from typing import Any, Callable, List
+from enum import Enum
+from typing import Any, Callable, List, Optional
 from pydantic import BaseModel
 from docstring_parser import parse
 
@@ -23,8 +24,24 @@ class ToolCallParameter(BaseModel):
     type: str  # Type of the parameter, e.g., "integer", "string", etc.
     required: bool = True  # Whether the parameter is required or optional
 
+class ToolCallState(Enum):
+    IN_PROCESS = "in_process"
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+class ToolCallResult(BaseModel):
+    # State is an enum that can be in_process, success, or failure
+    state: ToolCallState = ToolCallState.IN_PROCESS
+    message: Optional[str] = None # Optional message to provide additional context
+    data: Optional[Any] = None    # Optional data returned by the tool call
+
+    def __init__(self, state: ToolCallState, message: str = None, data: Any = None):
+        super().__init__(state=state, message=message, data=data)
+
 class ToolCall(BaseModel):
-    function_ptr: Callable[..., Any]
+    # Function pointer to the tool function.
+    #  Returns a pointer to a function that takes no parameters and returns a ToolCallResult.
+    function_ptr: Callable[..., Callable[[], ToolCallResult]]
     description: str
     parameters: List[ToolCallParameter]  # Parameter names and their descriptions
     # TODO: Add a way to check to see if the tool call has completed successfully (did we reach our destination? Did we charge our target?)

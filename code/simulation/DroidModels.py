@@ -29,6 +29,7 @@ class GonkDroid(Chassis):
         "agent": ComponentSlot(accepts=DroidAgentSimple),
         "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
         "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
+        "misc": ComponentSlot(accepts=Component),  # For any additional components
     }
     
     def __init__(self, **data):

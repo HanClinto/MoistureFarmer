@@ -5,7 +5,7 @@ from typing import Any, Optional
 from pydantic import BaseModel
 
 
-class QueuedWebRequest(BaseModel):
+class QueuedHttpRequest(BaseModel):
     in_progress: bool = False  # Whether the request is currently being sent
     response: Optional[Any] = None  # The response from the web request, if any
     _task: Optional[asyncio.Task] = None  # The task that is running the web request

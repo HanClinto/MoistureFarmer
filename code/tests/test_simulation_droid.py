@@ -1,7 +1,7 @@
 import pytest
 from simulation.Component import PowerPack
-from simulation.DroidAgents import DroidAgent
-from simulation.DroidComponents import Motivator
+from simulation.DroidAgents import DroidAgent, DroidAgentSimplePowerDroid
+from simulation.DroidComponents import Chronometer, Motivator
 from simulation.World import Simulation, World
 from simulation.DroidModels import GonkDroid
 from simulation.Entity import Location
@@ -51,8 +51,13 @@ def test_droid_movement_low_battery(simulation: Simulation):
 def test_droid_agent_behavior(simulation: Simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
     # Add an agent brain to the droid in the correct slot
-    agent = DroidAgent()
+    agent = DroidAgentSimplePowerDroid()
     droid.install_component("agent", agent)
+
+    # Add a chronometer to the droid to track time
+    chronometer = Chronometer()
+    droid.install_component("misc", chronometer)
+
     simulation.world.add_entity(droid)
 
     # Test the droid's behavior when it receives a command
