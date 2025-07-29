@@ -6,14 +6,15 @@ from pydantic import BaseModel
 
 
 class QueuedHttpRequest(BaseModel):
+    url: str  # The URL to send the request to
+    data: Optional[dict] = None  # The data to send in the request body
     in_progress: bool = False  # Whether the request is currently being sent
     response: Optional[Any] = None  # The response from the web request, if any
     _task: Optional[asyncio.Task] = None  # The task that is running the web request
     headers: Optional[dict] = None  # Optional headers for the request
 
     def __init__(self, url: str, data: Optional[dict] = None, headers: Optional[dict] = {'Content-Type': 'application/json'}):
-        self.url = url
-        self.data = data
+        super().__init__(url=url, data=data, headers=headers)
 
     def begin_send(self, timeout: Optional[float] = None):
         # Send the request to the URL.

@@ -34,14 +34,37 @@ class ToolCallResult(BaseModel):
     state: ToolCallState = ToolCallState.IN_PROCESS
     message: Optional[str] = None # Optional message to provide additional context
     data: Optional[Any] = None    # Optional data returned by the tool call
+    callback: Optional[Callable[[], "ToolCallResult"]] = None  # Optional callback to call when the tool call is complete
 
-    def __init__(self, state: ToolCallState, message: str = None, data: Any = None):
+    def __init__(self, state: ToolCallState, message: str = None, data: Any = None, callback: Callable[[], "ToolCallResult"] = None):
         super().__init__(state=state, message=message, data=data)
+        self.callback = callback
+        if callback and not callable(callback):
+            raise ValueError("Callback must be a callable function that returns a ToolCallResult.")
+        
+    def get_state(self) -> ToolCallState:
+        """
+        Get the current state of the tool call.
+        Returns:
+            ToolCallState: The current state of the tool call.
+        """
+        if self.callback:
+            # If there is a callback, we need to call it to get the current state
+            result = self.callback()
+            if isinstance(result, ToolCallResult):
+                self.state = result.state
+                self.message = result.message
+                self.data = result.data
+                if result.callback:
+                    self.callback = result.callback
+            else:
+                raise ValueError("Callback must return a ToolCallResult.")
+        return self.state
 
 class ToolCall(BaseModel):
     # Function pointer to the tool function.
     #  Returns a pointer to a function that takes no parameters and returns a ToolCallResult.
-    function_ptr: Callable[..., Callable[[], ToolCallResult]]
+    function_ptr: Callable[..., ToolCallResult]
     description: str
     parameters: List[ToolCallParameter]  # Parameter names and their descriptions
     # TODO: Add a way to check to see if the tool call has completed successfully (did we reach our destination? Did we charge our target?)
@@ -72,15 +95,14 @@ class ToolCall(BaseModel):
             }
         }
     
-    def __init__(self, function_ptr: Callable[..., Any]):
+    def __init__(self, function_ptr: Callable[..., ToolCallResult]):
         # Use docstring_parser to extract the function's docstring and parameters
         docstring = parse(function_ptr.__doc__)
-        self.function_ptr = function_ptr
         # Assert that we have a short description
         if not docstring.short_description:
             raise ValueError(f"Function {function_ptr.__name__} must have a docstring with a short description.")
-        self.description = docstring.short_description
-        self.parameters = []
+        description = docstring.short_description
+        parameters = []
         for param in docstring.params:
             # Create a ToolCallParameter for each parameter in the function's docstring
             if not param.description:
@@ -88,7 +110,7 @@ class ToolCall(BaseModel):
             if not param.type_name:
                 raise ValueError(f"Function {function_ptr.__name__} parameter '{param.arg_name}' must have a Pydantic type specified.")
 
-            self.parameters.append(
+            parameters.append(
                 ToolCallParameter(
                     name=param.arg_name,
                     description=param.description,
@@ -96,6 +118,9 @@ class ToolCall(BaseModel):
                     required=True  # Assume all parameters are required by default
                 )
             )
+
+        super().__init__(function_ptr=function_ptr, description=description, parameters=parameters)
+
         # If the function has a return type, add it to the parameters
         # TODO: Are there tool call formats that expect this? OpenAI does not.
         # if docstring.returns:

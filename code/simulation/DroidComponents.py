@@ -23,7 +23,7 @@ class Motivator(Component):
     #  If a type is provided, it will find the nearest entity of that type.
     #  If more than one entity matches and is equidistant, it will choose the first one found.
     @tool
-    def move_to_entity(self, identifier: Type[Component] | str):
+    def move_to_entity(self, identifier: Type[Component] | str) -> Callable[..., ToolCallResult]:
         """
         Move the chassis to the nearest entity of a specific type or by its ID.
 
@@ -51,8 +51,10 @@ class Motivator(Component):
         # Calculate the path to the destination
         self.path_to_destination = self.find_path(self.chassis.location, self.destination)
 
+        return ToolCallResult(state=ToolCallState.IN_PROCESS, callback=self.move_to_isdone)
+
     @tool
-    def move_to_location(self, x: int, y: int):
+    def move_to_location(self, x: int, y: int) -> Callable[..., ToolCallResult]:
         """
         Move the chassis to a specific location in the world.
         Args:
@@ -64,6 +66,17 @@ class Motivator(Component):
         self.destination = Location(x=x, y=y)
         # Calculate the path to the destination
         self.path_to_destination = self.find_path(self.chassis.location, self.destination)
+        return ToolCallResult(state=ToolCallState.IN_PROCESS, callback=self.move_to_isdone)
+
+    def move_to_isdone(self) -> ToolCallResult:
+        """
+        Check if the chassis has reached its destination.
+        Returns:
+            ToolCallResult: The result of the tool call.
+        """
+        if self.chassis.location == self.destination or self.destination is None:
+            return ToolCallResult(state=ToolCallState.SUCCESS)
+        return ToolCallResult(state=ToolCallState.IN_PROCESS)
 
     def find_path(self, start: Location, end: Location) -> List[Location]:
         # Overly simplistic pathfinding algorithm.
@@ -93,7 +106,7 @@ class Motivator(Component):
 
     def tick(self):
         self.info(f"Tick at location {self.chassis.location} with destination {self.destination}")
-        if self.chassis.location == self.destination:
+        if self.chassis.location == self.destination or self.destination is None:
             # We have arrived at our destination, so clear the destination
             self.destination = None
             self.current_cooldown = 0  # Reset cooldown after arriving
@@ -162,7 +175,7 @@ class Chronometer(Component):
     wake_time: int = 0 # The tick at which the droid will wake up
 
     @tool
-    def sleep(self, ticks: int) -> Callable[[], ToolCallResult]:
+    def sleep(self, ticks: int) -> ToolCallResult:
         """
         Sleep for a specified number of ticks.
         Args:
@@ -173,6 +186,7 @@ class Chronometer(Component):
         self.info(f"Sleeping for {ticks} ticks.")
         self.wake_time = Simulation.tick_count + ticks
 
+        return ToolCallResult()
         return self.sleep_isdone
 
     def sleep_isdone(self) -> ToolCallResult:

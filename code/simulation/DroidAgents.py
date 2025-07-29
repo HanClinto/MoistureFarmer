@@ -16,22 +16,11 @@ class AgentContext(BaseModel):
     A context for the agent that contains the system prompt, tools, recent history, and world state.
     This is used to provide the agent with the necessary information to make decisions.
     """
-    prompt_goal: str  # The goal of the agent, typically a prompt for the LLM
+    prompt_goal: Optional[str]  # The goal of the agent, typically a prompt for the LLM
     prompt_system: Optional[str] = None  # The system prompt for the agent stating general instructions
-    tools: List[ToolCall] = []  # List of tools available to the agent
+    tools: Dict[str, ToolCall] = {}  # List of tools available to the agent
 
     _recent_messages: List[Dict] = []  # Recent messages or history for the agent to consider
-
-    def __init__(self,
-                 prompt_goal: str,
-                 prompt_system: Optional[str] = None,
-                 # cache_prompt: bool = True, # TODO: Only used by llama.cpp
-                 tools: Optional[List[ToolCall]] = None):
-        super().__init__()
-        self.prompt_goal = prompt_goal
-        self.prompt_system = prompt_system
-        # self.cache_prompt = cache_prompt  # TODO: Only used by llama.cpp
-        self.tools = tools if tools is not None else []
 
     def to_json(self) -> Dict:
         messages:List[Dict] = []
@@ -138,47 +127,47 @@ class DroidAgent(Component):
                 # TODO: Turn the agent off and back on again to clear context and try again.
 
                 choice = resp["choices"][0]
-                content = choice["message"]["content"]
+                if "message" in choice and "content" in choice["message"]:
+                    content = choice["message"]["content"]
 
-                if content:
-                    self.info(f'Received response: {content}')
-                    self.agent_context.append_message("assistant", content)  # Append the response to the agent context
+                    if content:
+                        self.info(f'Received response: {content}')
+                        self.agent_context.append_message("assistant", content)  # Append the response to the agent context
 
-                if choice["finish_reason"] == "tool_calls":
-                    assert "tool_calls" in choice["message"], "No tool calls in response from LLM API"
-                    self.info(f'Response contained {len(choice["message"]["tool_calls"])} tool calls.')
+                if "finish_reason" in choice:
+                    if choice["finish_reason"] == "tool_calls":
+                        assert "tool_calls" in choice["message"], "No tool calls in response from LLM API"
+                        self.info(f'Response contained {len(choice["message"]["tool_calls"])} tool calls.')
 
-                    for tool_call in choice["message"]["tool_calls"]:
-                        # For each tool call, execute it, and save the response to the agent context
-                        tool_name = tool_call["function"]["name"]
-                        tool_call_id = tool_call["id"]
+                        for tool_call in choice["message"]["tool_calls"]:
+                            # For each tool call, execute it, and save the response to the agent context
+                            tool_name = tool_call["function"]["name"]
+                            tool_call_id = tool_call["id"]
 
-                        params = tool_call["function"]["arguments"]
-                        self.info(f'Executing tool call: {tool_name} with params: {params}')
+                            params = tool_call["function"]["arguments"]
+                            self.info(f'Executing tool call: {tool_name} with params: {params}')
 
-                        tools = self.chassis.get_available_tools()
+                            tools = self.chassis.get_available_tools()
 
-                        if tool_name in tools:
-                            tool = tools[tool_name]
-                            # Execute the tool call and get the response
-                            try:
-                                tool_response = tool.execute(params)
-                                # If the tool_response is a function pointer, then we need to save it for later execution
-                                # This is useful for tools that are asynchronous or require further processing
-                                if callable(tool_response) and hasattr(tool_response, '__call__'):
-                                    self.pending_tool_completion_callback = tool_response
-                                    self.pending_tool_call = tool
-                                    self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
-                                    self.info(f'Tool call {tool_name} is executing and pending resolution.')
-                            except Exception as e:
-                                self.error(f'Error executing tool `{tool_name}`: {e}')
-                                self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
-                        else:
-                            self.error(f'Tool call `{tool_name}` not found in available tools.')
-                            self.agent_context.append_message("error", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=tool_call_id, tool_name=tool_name)
-                else:
-                    # If the response does not contain tool calls, just append the content to the agent context
-                    self.agent_context.append_message("assistant", content)
+                            if tool_name in tools:
+                                tool = tools[tool_name]
+                                # Execute the tool call and get the response
+                                try:
+                                    tool_response = tool.execute(params)
+                                    # If the tool_response is a function pointer, then we need to save it for later execution
+                                    # This is useful for tools that are asynchronous or require further processing
+                                    if callable(tool_response) and hasattr(tool_response, '__call__'):
+                                        self.pending_tool_completion_callback = tool_response
+                                        self.pending_tool_call = tool
+                                        self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
+                                        self.info(f'Tool call {tool_name} is executing and pending resolution.')
+                                except Exception as e:
+                                    self.error(f'Error executing tool `{tool_name}`: {e}')
+                                    self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
+                            else:
+                                self.error(f'Tool call `{tool_name}` not found in available tools.')
+                                self.agent_context.append_message("error", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=tool_call_id, tool_name=tool_name)
+
         elif self.pending_tool_call:
             # If there is a pending tool call, we need to check if it has completed
             # Attempt to get the tool call result from the pending tool call callback
