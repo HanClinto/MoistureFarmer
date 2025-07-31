@@ -27,16 +27,18 @@ class AgentContext(BaseModel):
         messages:List[Dict] = []
 
         # If a system prompt is provided, append it as the first message
+        # NOTE: For newer models (o1 standard and forward), this should be "developer" role instead of "system"
         if self.prompt_system:
             messages.append(dict(
-                role="system", 
+                role="system",
                 content=self.prompt_system))
 
-        # Append the goal as a user message            
-        messages.append(dict(
-            role="user", 
-            content=self.prompt_goal))
-        
+        # If there is a goal, append it as a user message
+        if self.prompt_goal:
+            messages.append(dict(
+                role="user",
+                content=self.prompt_goal))
+
         # Append the recent messages to the context
         # TODO: Limit the number of recent messages to avoid context overflow
         for message in self._recent_messages:
@@ -63,17 +65,18 @@ class AgentContext(BaseModel):
             role (str): The role of the message sender (e.g., "user", "assistant", "system").
             content (str): The content of the message.
         """
-        if tool_call_id and tool_name:
-            # If a tool call ID and name are provided, append a tool message
-            self._recent_messages.append(dict(
-                role=role,
-                content=content,
-                tool_call_id=tool_call_id,
-                name=tool_name
-            ))
-        else:
-            # Otherwise, append a regular message
-            self._recent_messages.append(dict(role=role, content=content))
+        message = dict(role=role, content=content)
+        if tool_call_id:
+            message["tool_call_id"] = tool_call_id
+
+        # TODO: Is tool name needed? llama.cpp example has it, but OpenAI spec does not.
+        # llama.cpp example: https://gist.github.com/ochafik/9246d289b7d38d49e1ee2755698d6c79#file-agent-py-L199
+        # OpenAI spec: https://platform.openai.com/docs/api-reference/chat/create
+        # Note that the old "function" message had a "name" field (but not tool_call_id), whereas the new "tool" message has a "tool_call_id" field (but no "name" field).
+        if tool_name:
+            message["name"] = tool_name
+
+        self._recent_messages.append(message)
 
 
 # A DroidAgent is a component that defines how a droid interacts with the world.
@@ -94,8 +97,22 @@ class DroidAgent(Component):
 
     agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
-    def activate(self):
+    context_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
+
+    def activate(self, prompt:Optional[str] = None):
         # Initialize the agent with the provider and system prompt
+
+        if not prompt:
+            prompt = self.prompt_goal
+
+        self.prompt_goal = prompt
+        self.info(f"Activating agent with goal: {self.prompt_goal}")
+
+        # TODO: If the old context exists, then we should save it as a history item
+        #  and then create a new context with the new goal.
+        if self.agent_context:
+            self.context_history.append(self.agent_context)
+
         self.agent_context = AgentContext(
             prompt_goal=self.prompt_goal,
             prompt_system=self.prompt_system,
@@ -103,6 +120,8 @@ class DroidAgent(Component):
         )
         self.info(f"Agent context initialized with system prompt: {self.agent_context.prompt_system}")
         self.is_active = True  # Set the agent to active state
+
+
 
     def tick(self):
         # A re-entrant ReAct agent "loop" that steps forward every tick
@@ -231,16 +250,21 @@ class DroidAgent(Component):
         else:
             # No queued web request, so we can proceed with the next step in the agentic loop.
             # Append the current world state + query to the agent context and send it to the LLM
-            self.agent_context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
+            # NOTE: Should auto-continue be a checkbox that is configurable?
+            if (True):
+                self.info('No queued web request or pending tool call, waiting for next action.')
+                # TODO: Should we clear the context here? Deactivate ourselves?
+                self.is_active = False  # Deactivate the agent until it is reactivated
+            else:
+                # If there is no queued web request, then we should kick off the next step in the agentic loop
+                self.agent_context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
+                queued_web_request = QueuedHttpRequest(
+                    url=GlobalConfig.llm_api_url,
+                    data= self.agent_context.to_json(),
+                )
+                queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
+                self.queued_http_request = queued_web_request
 
-            queued_web_request = QueuedHttpRequest(
-                url=GlobalConfig.llm_api_url,
-                data= self.agent_context.to_json(),
-            )
-            queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
-            self.queued_http_request = queued_web_request
-
-        # If there is no queued web request, then we should kick off the next step in the agentic loop
 
 
 class DroidAgentRandom(DroidAgent):
