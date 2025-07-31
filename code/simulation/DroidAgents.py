@@ -47,7 +47,7 @@ class AgentContext(BaseModel):
 
         return dict(
                     messages=self.messages,
-                    model="gpt-3.5-turbo",  # TODO: Make this configurable
+                    model="gpt-3.5-turbo",  # TODO: Make this configurable, but doesn't matter for llama.cpp
                     tools=tools_as_json,
                     cache_prompt=True,      # TODO: Only used by llama.cpp
                     temperature=GlobalConfig.llm_temperature,
@@ -167,20 +167,35 @@ class DroidAgent(Component):
                                         self.info(f'Tool call {tool_name} is executing and pending resolution.')
                                     elif tool_call_result.state == ToolCallState.SUCCESS:
                                         # If the tool call has completed, we can append the result to the agent context
-                                        self.agent_context.append_message("tool", f"{self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}")
-                                        self.info(f'Tool call {self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}')
+                                        tool_message = f"{self.pending_tool_call.function_ptr.__name__} executed successfully:"
+                                        if tool_call_result.message:
+                                            tool_message += f": '{tool_call_result.message}'"
+                                        if tool_call_result.data:
+                                            tool_message += f" : {tool_call_result.data}"
+                                        self.agent_context.append_message("tool", tool_message)
+                                        self.info(tool_message)
                                         self.pending_tool_call = None
                                     elif tool_call_result.state == ToolCallState.FAILURE:
                                         # If the tool call has failed, we can append the error message to the agent context
-                                        self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed: {tool_call_result.message}")
-                                        self.error(f'Tool call {self.pending_tool_call.function_ptr.__name__} failed: {tool_call_result.message}')
+                                        tool_message = f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed"
+                                        if tool_call_result.message:
+                                            tool_message += f": {tool_call_result.message}"
+                                        if tool_call_result.data:
+                                            tool_message += f" : {tool_call_result.data}"
+                                        self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                                        self.error(tool_message)
                                         self.pending_tool_call = None
                                 except Exception as e:
+
                                     self.error(f'Error executing tool `{tool_name}`: {e}')
-                                    self.agent_context.append_message("error", f"Error executing tool `{tool_name}`: {e}", tool_call_id=tool_call_id, tool_name=tool_name)
+                                    self.agent_context.append_message("tool", f"Error executing tool `{tool_name}`: {e}", tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
                             else:
                                 self.error(f'Tool call `{tool_name}` not found in available tools.')
-                                self.agent_context.append_message("error", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=tool_call_id, tool_name=tool_name)
+                                self.agent_context.append_message("tool", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=self.pending_tool_call_id, tool_name=tool_name)
+                    else:
+                        self.warn('No tool calls in response, continuing with next step in agentic loop.')
+                else:
+                    self.warn('No finish reason in response, continuing with next step in agentic loop.')
 
         elif self.pending_tool_call:
             # If there is a pending tool call, we need to check if it has completed
@@ -191,16 +206,26 @@ class DroidAgent(Component):
                 tool_call_result:ToolCallResult = self.pending_tool_completion_callback()
                 if tool_call_result.state == ToolCallState.IN_PROCESS:
                     # If the tool call is still in progress, do nothing for this tick
-                    self.info(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` is still in progress.')
+                    self.info(f'Tool call `{self.pending_tool_call.function_ptr.__name__}` is still in progress...')
                 elif tool_call_result.state == ToolCallState.SUCCESS:
                     # If the tool call has completed, we can append the result to the agent context
-                    self.agent_context.append_message("tool", f"{self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}")
-                    self.info(f'Tool call {self.pending_tool_call.function_ptr.__name__} executed successfully: {tool_call_result.data}')
+                    tool_message = f"{self.pending_tool_call.function_ptr.__name__} executed successfully:"
+                    if tool_call_result.message:
+                        tool_message += f": '{tool_call_result.message}'"
+                    if tool_call_result.data:
+                        tool_message += f" : {tool_call_result.data}"
+                    self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                    self.info(tool_message)
                     self.pending_tool_call = None
                 elif tool_call_result.state == ToolCallState.FAILURE:
                     # If the tool call has failed, we can append the error message to the agent context
-                    self.agent_context.append_message("error", f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed: {tool_call_result.message}")
-                    self.error(f'Tool call {self.pending_tool_call.function_ptr.__name__} failed: {tool_call_result.message}')
+                    tool_message = f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed"
+                    if tool_call_result.message:
+                        tool_message += f": {tool_call_result.message}"
+                    if tool_call_result.data:
+                        tool_message += f" : {tool_call_result.data}"
+                    self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                    self.error(tool_message)
                     self.pending_tool_call = None
 
         else:

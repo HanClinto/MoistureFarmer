@@ -75,7 +75,7 @@ class Motivator(Component):
             ToolCallResult: The result of the tool call.
         """
         if self.chassis.location == self.destination or self.destination is None:
-            return ToolCallResult(state=ToolCallState.SUCCESS)
+            return ToolCallResult(state=ToolCallState.SUCCESS, message=f"Arrived at destination {self.chassis.location}.")
         return ToolCallResult(state=ToolCallState.IN_PROCESS)
 
     def find_path(self, start: Location, end: Location) -> List[Location]:
