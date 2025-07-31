@@ -97,7 +97,7 @@ class DroidAgent(Component):
 
     agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
-    context_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
+    session_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
 
     def activate(self, prompt:Optional[str] = None):
         # Initialize the agent with the provider and system prompt
@@ -111,7 +111,7 @@ class DroidAgent(Component):
         # TODO: If the old context exists, then we should save it as a history item
         #  and then create a new context with the new goal.
         if self.agent_context:
-            self.context_history.append(self.agent_context)
+            self.session_history.append(self.agent_context)
 
         self.agent_context = AgentContext(
             prompt_goal=self.prompt_goal,
@@ -120,8 +120,6 @@ class DroidAgent(Component):
         )
         self.info(f"Agent context initialized with system prompt: {self.agent_context.prompt_system}")
         self.is_active = True  # Set the agent to active state
-
-
 
     def tick(self):
         # A re-entrant ReAct agent "loop" that steps forward every tick
