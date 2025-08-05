@@ -2,6 +2,7 @@
 # Information needed to call a function as a tool
 #  This is used to define the tools that a Component provides to the agentic AI.
 from enum import Enum
+import inspect
 from typing import Any, Callable, List, Optional
 from pydantic import BaseModel
 from docstring_parser import parse
@@ -81,6 +82,8 @@ class ToolCall(BaseModel):
     #  https://platform.openai.com/docs/guides/function-calling?api-mode=responses&strict-mode=enabled#defining-functions
     #  https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models
     def to_openai_json(self) -> dict:
+        return self.function_to_schema(self.function_ptr)
+        """
         return {
             "type": "function",
             "function": {
@@ -88,11 +91,68 @@ class ToolCall(BaseModel):
                 "description": self.description,
                 "parameters": {
                     "type": "object",
-                    "properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
+                    #"properties": {param.name: {} for param in self.parameters},
+                    "properties": {param.name: {'type': param.type} for param in self.parameters},
+                    #"properties": {param.name: {"type": param.type, "description": param.description} for param in self.parameters},
                     "required": [param.name for param in self.parameters if param.required],
                     "additionalProperties": False
                 }
             }
+        }
+        """
+    
+    def function_to_schema(self, func) -> dict:
+        # https://github.com/openai/build-hours/blob/main/2-assistants/demo_util.py
+        # https://github.com/openai/openai-cookbook/blob/main/examples/Orchestrating_agents.ipynb
+        type_map = {
+            str: "string",
+            int: "integer",
+            float: "number",
+            bool: "boolean",
+            list: "array",
+            dict: "object",
+            type(None): "null",
+        }
+
+        try:
+            signature = inspect.signature(func)
+        except ValueError as e:
+            raise ValueError(
+                f"Failed to get signature for function {func.__name__}: {str(e)}"
+            ) from e
+
+        parameters = {}
+        for param in signature.parameters.values():
+            try:
+                param_type = type_map.get(param.annotation, "string")
+            except KeyError as e:
+                raise KeyError(
+                    f"Unknown type annotation {param.annotation} for parameter {param.name}: {str(e)}"
+                ) from e
+            if param.name != "self":
+                # parameters[param.name] = {"type": param_type, "description":""}
+                parameters[param.name] = {"type": param_type}
+
+        required = [
+            param.name
+            for param in signature.parameters.values()
+            if param.default == inspect.Parameter.empty and param.name != "self"
+        ]
+        # end for
+
+        return {
+            "type": "function",
+            "function": {
+                "name": func.__name__,
+                "strict": True,
+                "description": (func.__doc__ or "").strip(),
+                "parameters": {
+                    "properties": parameters,
+                    "required": required,
+                    "type": "object",
+                    "additionalProperties": False
+                },
+            },
         }
     
     def __init__(self, function_ptr: Callable[..., ToolCallResult]):

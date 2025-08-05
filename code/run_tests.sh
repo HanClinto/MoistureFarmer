@@ -5,3 +5,5 @@ python -m pytest -rP tests/
 # python -m pytest tests/
 # Run only test_gx1_vaporator_full_tank
 # python -m pytest -rP tests/test_simulation_vaporators_simple.py::test_gx1_vaporator_full_tank
+
+# python -m pytest -rP tests/test_simulation_droid.py::test_droid_agent_behavior

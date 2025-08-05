@@ -20,6 +20,16 @@ class QueuedAgentRequest(BaseModel):
         self.in_progress = True
         self.response = None  # Reset response before sending
 
+        # Check to see if there is an event loop running
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError as e:
+            if 'There is no current event loop in thread' in str(e):
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            else:
+                raise e
+
         # Create an asyncio task to send the request, with optional timeout
         if timeout:
             self._task = asyncio.create_task(self._send_request_async())

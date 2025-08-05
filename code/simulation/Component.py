@@ -43,11 +43,23 @@ class Component(GameObject):
         # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
         self.info(f"Component {self.id} installed in chassis {chassis.id}.")
 
-    def to_json(self):
+    def to_json(self, short: bool = False):
+        excludes_list = {'chassis', 'world', 'entity'} # Exclude back-references
+        if short:
+            excludes_list.add('path_to_destination')
+            excludes_list.add('prompt_system')
+            excludes_list.add('prompt_goal')
+            excludes_list.add('prompt_status')
+            excludes_list.add('queued_http_request')
+            excludes_list.add('pending_tool_call')
+            excludes_list.add('pending_tool_call_id')
+            excludes_list.add('pending_tool_completion_callback')
+            excludes_list.add('context')
+
         props = self.model_dump(
                 exclude_defaults=False,
                 exclude_none=False,
-                exclude={'chassis', 'world', 'entity'}  # Exclude back-references
+                exclude=excludes_list
             )
         props['type'] = self.__class__.__name__
         return props
@@ -70,7 +82,6 @@ class Component(GameObject):
 #  such as moving to a location, charging equipment, or recharging itself.
 
 class Chassis(Entity):
-    model: str
     slots: Dict[str, 'ComponentSlot']
     health: int = 100
 
@@ -152,15 +163,16 @@ class Chassis(Entity):
             if slot.component:
                 slot.component.tick()
 
-    def to_json(self):
-        data = super().to_json()
-        data["model"] = getattr(self, "model", None)
+    def to_json(self, short: bool = False):
+        data = {
+            **super().to_json(short),
+        }
         data["health"] = getattr(self, "health", None)
         # Serialize slots and their components
         data["slots"] = {
             slot_id: {
                 "accepts": slot.accepts.__name__,
-                "component": slot.component.to_json() if slot.component else None
+                "component": slot.component.to_json(short) if slot.component else None
             } for slot_id, slot in self.slots.items()
         }
         return data

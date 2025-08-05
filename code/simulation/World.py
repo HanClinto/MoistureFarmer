@@ -55,15 +55,13 @@ class World(BaseModel):
             # TODO: Raise this as an error that can be seen by any AI
             raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
         
-    def get_entities(self, identifier: Type[Entity] | str) -> List[Entity]:
-        if isinstance(identifier, str):
-            # Return a list of entities with the given ID
-            return [self.entities.get(identifier, None)]
-        elif isinstance(identifier, type) and issubclass(identifier, Entity):
-            # If a Type is provided, return all Entities found of that type
-            return [entity for entity in self.entities.values() if isinstance(entity, identifier)]
-        else:
-            raise TypeError("Identifier must be a Type of Entity or a string representing an entity ID.")
+    def get_entities(self, identifier: str) -> List[Entity]:
+        matching_entities = [
+            entity for entity in self.entities.values()
+            if entity.id == identifier or entity.__class__.__name__ == identifier
+            ]
+
+        return matching_entities
 
     def tick(self):
         # Call the tick method on all entities in the world
@@ -71,16 +69,22 @@ class World(BaseModel):
             entity.tick()
         # No broadcast here; handled by Simulation
 
-    def to_json(self):
-        return {
-            "entity_thinking_count": self.entity_thinking_count,
-            "entities": {eid: entity.to_json() for eid, entity in self.entities.items()},
+    def to_json(self, short: bool = False):
+        val = {
+            "entities": {eid: entity.to_json(short) for eid, entity in self.entities.items()},
         }
+
+        if not short:
+            val["entity_thinking_count"] = self.entity_thinking_count
+
+        return val
+    
+    def get_state_llm(self):
+        return self.to_json(short=True)
 
 # --- Simulation System ---
 
 # The Simulation is a high-level controller that manages the world and the simulation loop
-
 class Simulation(BaseModel):
     running: bool = False  # Flag to control the simulation loop
     paused: bool = False  # Flag to pause the simulation
@@ -136,15 +140,14 @@ class Simulation(BaseModel):
     
     def run_sync(self, ticks: Optional[int] = None):
         """Run the simulation synchronously for a specified number of ticks."""
+
         # Run the simulation loop in a blocking manner
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError as e:
-            if 'There is no current event loop in thread' in str(e):
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            else:
-                raise e
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         return loop.run_until_complete(self._do_run(ticks))
 
     def subscribe_on_tick(self, callback):
@@ -172,6 +175,10 @@ class Simulation(BaseModel):
             sleep_time = 0.1
 
             if not self.paused:
+                # Reset the thinking count at the start of each tick
+                self.world.entity_thinking_count = 0
+
+                # Advance the world by one tick
                 self.world.tick()
                 self.tick_count += 1
                 count += 1

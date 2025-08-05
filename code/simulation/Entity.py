@@ -105,7 +105,7 @@ class GameObject(BaseModel):
         """Return the log history for this object."""
         return self._log_history
 
-    def to_json(self):
+    def to_json(self, short: bool = False):
         return {
             "id": self.id,
             "type": self.__class__.__name__,
@@ -128,11 +128,18 @@ class Entity(GameObject):
         # Entities can override this method to implement their own behavior.
         self.info(f"Entity {self.id} at {self.location} ticked.")
 
-    def to_json(self):
-        return {
-            **super().to_json(),
-            "name": self.name,
-            "description": self.description,
-            "location": {"x": self.location.x, "y": self.location.y} if self.location else None,
-            # Optionally add more fields here
+    def to_json(self, short: bool = False):
+        val = {
+            **super().to_json(short),
+            "location": {"x": self.location.x, "y": self.location.y},
         }
+        if self.name:
+            val["name"] = self.name
+            
+        if not short:
+            if self.description:
+                val["description"] = self.description
+            if self.model:
+                val["model"] = self.model
+
+        return val

@@ -9,7 +9,7 @@ from simulation.DroidComponents import Motivator
 from simulation.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
 from simulation.QueuedWebRequest import QueuedHttpRequest
-from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState
+from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
 from simulation.World import World
 
 class ContextMessage(BaseModel):
@@ -55,10 +55,10 @@ class AgentContext(BaseModel):
             messages.insert(0, msg.to_json())
 
         # Serialize tools to JSON
-        tools_as_json = [tool.to_openai_json() for tool in self.tools]
+        tools_as_json = [tool_call.to_openai_json() for tool_name, tool_call in self.tools.items()]
 
         return dict(
-                    messages=self.messages,
+                    messages=messages,
                     model="gpt-3.5-turbo",  # TODO: Make this configurable, but doesn't matter for llama.cpp
                     tools=tools_as_json,
                     cache_prompt=True,      # TODO: Only used by llama.cpp
@@ -218,7 +218,7 @@ class DroidAgent(Component):
                                                            tool_call_id=self.pending_tool_call_id,
                                                            tool_name=self.pending_tool_call.function_ptr.__name__))
                                         self.info(tool_message)
-                                        self.pending_tool_call = None
+                                        self._send_current_context() # Send the updated context to the LLM or other service
                                     elif tool_call_result.state == ToolCallState.FAILURE:
                                         # If the tool call has failed, we can append the error message to the agent context
                                         tool_message = f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed"
@@ -233,7 +233,7 @@ class DroidAgent(Component):
                                                            tool_call_id=self.pending_tool_call_id,
                                                            tool_name=self.pending_tool_call.function_ptr.__name__))
                                         self.error(tool_message)
-                                        self.pending_tool_call = None
+                                        self._send_current_context() # Send the updated context to the LLM or other service
                                 except Exception as e:
                                     tool_message = f"Error executing tool `{tool_name}`: {e}"
                                     self.error(tool_message)
@@ -243,6 +243,7 @@ class DroidAgent(Component):
                                                        content=tool_message,
                                                        tool_call_id=self.pending_tool_call_id,
                                                        tool_name=self.pending_tool_call.function_ptr.__name__))
+                                    self._send_current_context() # Send the updated context to the LLM or other service
                             else:
                                 tool_message = f"Tool call `{tool_name}` not found in available tools."
                                 self.error(tool_message)
@@ -252,6 +253,8 @@ class DroidAgent(Component):
                                                    content=tool_message,
                                                    tool_call_id=self.pending_tool_call_id,
                                                    tool_name=tool_name))
+                                self._send_current_context() # Send the updated context to the LLM or other service
+                                
                     else:
                         self.warn('No tool calls in response, continuing with next step in agentic loop.')
                 else:
@@ -283,6 +286,8 @@ class DroidAgent(Component):
                     )
                     self.info(tool_message)
                     self.pending_tool_call = None
+                    self._send_current_context() # Send the updated context to the LLM or other service
+
                 elif tool_call_result.state == ToolCallState.FAILURE:
                     # If the tool call has failed, we can append the error message to the agent context
                     tool_message = f"Tool call `{self.pending_tool_call.function_ptr.__name__}` failed"
@@ -299,6 +304,7 @@ class DroidAgent(Component):
                     )
                     self.error(tool_message)
                     self.pending_tool_call = None
+                    self._send_current_context() # Send the updated context to the LLM or other service
 
         else:
             # No queued web request, so we can proceed with the next step in the agentic loop.

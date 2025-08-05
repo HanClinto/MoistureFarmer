@@ -23,16 +23,15 @@ class Motivator(Component):
     #  If a type is provided, it will find the nearest entity of that type.
     #  If more than one entity matches and is equidistant, it will choose the first one found.
     @tool
-    def move_to_entity(self, identifier: Type[Component] | str) -> Callable[..., ToolCallResult]:
+    def move_to_entity(self, identifier: str) -> Callable[..., ToolCallResult]:
         """
         Move the chassis to the nearest entity of a specific type or by its ID.
 
         Args:
-            world (World): The world in which the chassis is located.
-            identifier (Type[Component] | str): The type of entity or its ID to move to.
+            identifier (str): The type of entity or its ID to move to.
         """
 
-        world:World = self.chassis.world
+        world: World = self.chassis.world
 
         # Find the entity by ID and set the destination to its location
         entities = world.get_entities(identifier)
@@ -58,7 +57,6 @@ class Motivator(Component):
         """
         Move the chassis to a specific location in the world.
         Args:
-            world (World): The world in which the chassis is located.
             x (int): The x-coordinate of the destination.
             y (int): The y-coordinate of the destination.
         """
