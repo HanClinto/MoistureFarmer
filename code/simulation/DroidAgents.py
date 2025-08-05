@@ -12,37 +12,47 @@ from simulation.QueuedWebRequest import QueuedHttpRequest
 from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState
 from simulation.World import World
 
+class ContextMessage(BaseModel):
+    role:str = "user"
+    content:str = ""
+    tool_call_id:Optional[str] = None
+    # TODO: Is tool name needed? llama.cpp example has it, but OpenAI spec does not.
+    # llama.cpp example: https://gist.github.com/ochafik/9246d289b7d38d49e1ee2755698d6c79#file-agent-py-L199
+    # OpenAI spec: https://platform.openai.com/docs/api-reference/chat/create
+    # Note that the old "function" message had a "name" field (but not tool_call_id), whereas the new "tool" message has a "tool_call_id" field (but no "name" field).
+    tool_name:Optional[str] = None
+
+    key:Optional[str] = None
+
+    def to_json(self) -> Dict:
+        msg = {
+            "role": self.role,
+            "content": self.content
+        }
+
+        if (self.tool_call_id):
+            msg["tool_call_id"] = self.tool_call_id
+
+        if (self.tool_name):
+            msg["tool_name"] = self.tool_name
+
+        return msg
+
 class AgentContext(BaseModel):
     """
     A context for the agent that contains the system prompt, tools, recent history, and world state.
     This is used to provide the agent with the necessary information to make decisions.
     """
-    prompt_goal: Optional[str]  # The goal of the agent, typically a prompt for the LLM
-    prompt_system: Optional[str] = None  # The system prompt for the agent stating general instructions
     tools: Dict[str, ToolCall] = {}  # List of tools available to the agent
-
-    _recent_messages: List[Dict] = []  # Recent messages or history for the agent to consider
+    _messages: List[ContextMessage] = []  # Recent messages or history for the agent to consider
 
     def to_json(self) -> Dict:
         messages:List[Dict] = []
 
-        # If a system prompt is provided, append it as the first message
-        # NOTE: For newer models (o1 standard and forward), this should be "developer" role instead of "system"
-        if self.prompt_system:
-            messages.append(dict(
-                role="system",
-                content=self.prompt_system))
-
-        # If there is a goal, append it as a user message
-        if self.prompt_goal:
-            messages.append(dict(
-                role="user",
-                content=self.prompt_goal))
-
-        # Append the recent messages to the context
-        # TODO: Limit the number of recent messages to avoid context overflow
-        for message in self._recent_messages:
-            messages.append(message)
+        for msg in reversed(self._messages):
+            # TODO: Only insert if the msg key is below the limit for that message type.
+            # This will let us cull certain message types (such as world status updates) so that we don't flood the status with too many of them.
+            messages.insert(0, msg.to_json())
 
         # Serialize tools to JSON
         tools_as_json = [tool.to_openai_json() for tool in self.tools]
@@ -58,26 +68,13 @@ class AgentContext(BaseModel):
                     seed=GlobalConfig.llm_seed,
                 )
 
-    def append_message(self, role: str, content: str, tool_call_id: Optional[str] = None, tool_name: Optional[str] = None):
+    def append_message(self, message:ContextMessage):
         """
         Append a message to the recent messages in the agent context.
         Args:
-            role (str): The role of the message sender (e.g., "user", "assistant", "system").
-            content (str): The content of the message.
+            message (ContextMessage)): The message to append
         """
-        message = dict(role=role, content=content)
-        if tool_call_id:
-            message["tool_call_id"] = tool_call_id
-
-        # TODO: Is tool name needed? llama.cpp example has it, but OpenAI spec does not.
-        # llama.cpp example: https://gist.github.com/ochafik/9246d289b7d38d49e1ee2755698d6c79#file-agent-py-L199
-        # OpenAI spec: https://platform.openai.com/docs/api-reference/chat/create
-        # Note that the old "function" message had a "name" field (but not tool_call_id), whereas the new "tool" message has a "tool_call_id" field (but no "name" field).
-        if tool_name:
-            message["name"] = tool_name
-
-        self._recent_messages.append(message)
-
+        self._messages.append(message)
 
 # A DroidAgent is a component that defines how a droid interacts with the world.
 #  Specifically, it is an agent that can make decisions based on the world state.
@@ -87,6 +84,7 @@ class DroidAgent(Component):
 
     prompt_system: str = "You are a helpful droid. You will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
     prompt_goal: str = ""
+    prompt_status: str = "Current world state: {world_state}" # Appended before each action to provide context
 
     is_active: bool = False # Whether the agent is currently active / awake (and running its agentic loop)
 
@@ -95,31 +93,56 @@ class DroidAgent(Component):
     pending_tool_completion_callback: Optional[Callable[[], ToolCallResult]] = None  # A callback to call to check if the pending tool call has completed.
     pending_tool_call_id: Optional[str] = None  # The ID of the pending tool call, if any
 
-    agent_context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
+    context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
     session_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
 
     def activate(self, prompt:Optional[str] = None):
         # Initialize the agent with the provider and system prompt
 
-        if not prompt:
-            prompt = self.prompt_goal
-
         self.prompt_goal = prompt
         self.info(f"Activating agent with goal: {self.prompt_goal}")
 
         # TODO: If the old context exists, then we should save it as a history item
         #  and then create a new context with the new goal.
-        if self.agent_context:
-            self.session_history.append(self.agent_context)
+        if self.context:
+            self.session_history.append(self.context)
 
-        self.agent_context = AgentContext(
-            prompt_goal=self.prompt_goal,
-            prompt_system=self.prompt_system,
-            tools=self.chassis.get_available_tools()  # Get the tools available in the chassis
-        )
-        self.info(f"Agent context initialized with system prompt: {self.agent_context.prompt_system}")
+        self.context = AgentContext()
+
+        self.context.append_message(ContextMessage(role="system", content=self.prompt_system))
+        if self.prompt_goal:
+            self.context.append_message(ContextMessage(role="user", content=self.prompt_goal))
+
+        self.context.tools = self.chassis.get_available_tools()  # Get the tools available in the chassis
+
+        self.info(f"Agent context initialized with system prompt: {self.prompt_system}")
         self.is_active = True  # Set the agent to active state
+
+        self._send_current_context()  # Send the current context to the LLM or other service
+
+    def _send_current_context(self):
+        world:World = self.chassis.world
+
+        if self.prompt_status:
+            # Append the status message to the context
+            self.context.append_message(ContextMessage(role="user", key="current_world_state", content=self.prompt_status.format(world_state=world.get_state_llm())))
+
+        # Ensure that the previous web request (if any) is completed before sending a new one
+        if self.queued_http_request and self.queued_http_request.in_progress:
+            self.warn("Previous web request is still in progress. Waiting for it to complete before sending a new one.")
+            return
+        
+        # If there is no queued web request, then we should kick off the next step in the agentic loop
+        queued_web_request = QueuedHttpRequest(
+            url=GlobalConfig.llm_api_url,
+            data= self.context.to_json(),
+        )
+
+        queued_web_request.begin_send(timeout=25.0)  # Send the request with a timeout of X seconds. TODO: Make this configurable
+
+        self.queued_http_request = queued_web_request
+
 
     def tick(self):
         # A re-entrant ReAct agent "loop" that steps forward every tick
@@ -150,7 +173,7 @@ class DroidAgent(Component):
 
                     if content:
                         self.info(f'Received response: {content}')
-                        self.agent_context.append_message("assistant", content)  # Append the response to the agent context
+                        self.context.append_message("assistant", content)  # Append the response to the agent context
 
                 if "finish_reason" in choice:
                     if choice["finish_reason"] == "tool_calls":
@@ -176,12 +199,11 @@ class DroidAgent(Component):
                                     # If the tool_call_result is a function pointer, then we need to save it for later execution
                                     # This is useful for tools that are asynchronous or require further processing
                                     if tool_call_result.state == ToolCallState.IN_PROCESS:
-                                        self.info(f'Tool call {tool_name} is in process, saving callback for later execution.')
                                         # Save the tool call and its callback for later execution
                                         self.pending_tool_call = tool
                                         self.pending_tool_completion_callback = tool_call_result.callback
                                         self.pending_tool_call_id = tool_call_id  # Save the ID of the pending tool call so that its results can be added later
-                                        self.info(f'Tool call {tool_name} is executing and pending resolution.')
+                                        self.info(f'Tool call {tool_name} is in process, saving callback for later execution.')
                                     elif tool_call_result.state == ToolCallState.SUCCESS:
                                         # If the tool call has completed, we can append the result to the agent context
                                         tool_message = f"{self.pending_tool_call.function_ptr.__name__} executed successfully:"
@@ -189,7 +211,12 @@ class DroidAgent(Component):
                                             tool_message += f": '{tool_call_result.message}'"
                                         if tool_call_result.data:
                                             tool_message += f" : {tool_call_result.data}"
-                                        self.agent_context.append_message("tool", tool_message)
+                                        self.context.append_message(
+                                            ContextMessage(role="tool",
+                                                           key="tool_result",
+                                                           content=tool_message,
+                                                           tool_call_id=self.pending_tool_call_id,
+                                                           tool_name=self.pending_tool_call.function_ptr.__name__))
                                         self.info(tool_message)
                                         self.pending_tool_call = None
                                     elif tool_call_result.state == ToolCallState.FAILURE:
@@ -199,16 +226,32 @@ class DroidAgent(Component):
                                             tool_message += f": {tool_call_result.message}"
                                         if tool_call_result.data:
                                             tool_message += f" : {tool_call_result.data}"
-                                        self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                                        self.context.append_message(
+                                            ContextMessage(role="tool",
+                                                           key="tool_result",
+                                                           content=tool_message,
+                                                           tool_call_id=self.pending_tool_call_id,
+                                                           tool_name=self.pending_tool_call.function_ptr.__name__))
                                         self.error(tool_message)
                                         self.pending_tool_call = None
                                 except Exception as e:
-
-                                    self.error(f'Error executing tool `{tool_name}`: {e}')
-                                    self.agent_context.append_message("tool", f"Error executing tool `{tool_name}`: {e}", tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                                    tool_message = f"Error executing tool `{tool_name}`: {e}"
+                                    self.error(tool_message)
+                                    self.context.append_message(
+                                        ContextMessage(role="tool",
+                                                       key="tool_result",
+                                                       content=tool_message,
+                                                       tool_call_id=self.pending_tool_call_id,
+                                                       tool_name=self.pending_tool_call.function_ptr.__name__))
                             else:
-                                self.error(f'Tool call `{tool_name}` not found in available tools.')
-                                self.agent_context.append_message("tool", f"Tool call `{tool_name}` not found in available tools.", tool_call_id=self.pending_tool_call_id, tool_name=tool_name)
+                                tool_message = f"Tool call `{tool_name}` not found in available tools."
+                                self.error(tool_message)
+                                self.context.append_message(
+                                    ContextMessage(role="tool",
+                                                   key="tool_result",
+                                                   content=tool_message,
+                                                   tool_call_id=self.pending_tool_call_id,
+                                                   tool_name=tool_name))
                     else:
                         self.warn('No tool calls in response, continuing with next step in agentic loop.')
                 else:
@@ -231,7 +274,13 @@ class DroidAgent(Component):
                         tool_message += f": '{tool_call_result.message}'"
                     if tool_call_result.data:
                         tool_message += f" : {tool_call_result.data}"
-                    self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                    self.context.append_message(
+                        ContextMessage(role="tool",
+                                       key="tool_result",
+                                       content=tool_message,
+                                       tool_call_id=self.pending_tool_call_id,
+                                       tool_name=self.pending_tool_call.function_ptr.__name__)
+                    )
                     self.info(tool_message)
                     self.pending_tool_call = None
                 elif tool_call_result.state == ToolCallState.FAILURE:
@@ -241,7 +290,13 @@ class DroidAgent(Component):
                         tool_message += f": {tool_call_result.message}"
                     if tool_call_result.data:
                         tool_message += f" : {tool_call_result.data}"
-                    self.agent_context.append_message("tool", tool_message, tool_call_id=self.pending_tool_call_id, tool_name=self.pending_tool_call.function_ptr.__name__)
+                    self.context.append_message(
+                        ContextMessage(role="tool",
+                                       key="tool_result",
+                                       content=tool_message,
+                                       tool_call_id=self.pending_tool_call_id,
+                                       tool_name=self.pending_tool_call.function_ptr.__name__)
+                    )
                     self.error(tool_message)
                     self.pending_tool_call = None
 
@@ -255,10 +310,10 @@ class DroidAgent(Component):
                 self.is_active = False  # Deactivate the agent until it is reactivated
             else:
                 # If there is no queued web request, then we should kick off the next step in the agentic loop
-                self.agent_context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
+                self.context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
                 queued_web_request = QueuedHttpRequest(
                     url=GlobalConfig.llm_api_url,
-                    data= self.agent_context.to_json(),
+                    data= self.context.to_json(),
                 )
                 queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
                 self.queued_http_request = queued_web_request
