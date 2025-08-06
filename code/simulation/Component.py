@@ -55,10 +55,13 @@ class Component(GameObject):
             excludes_list.add('pending_tool_call_id')
             excludes_list.add('pending_tool_completion_callback')
             excludes_list.add('context')
+            excludes_list.add('current_cooldown')
+            excludes_list.add('cooldown_delay')
+            excludes_list.add('session_history')
 
         props = self.model_dump(
                 exclude_defaults=False,
-                exclude_none=False,
+                exclude_none=short, # Exclude None if producting a short version
                 exclude=excludes_list
             )
         props['type'] = self.__class__.__name__
