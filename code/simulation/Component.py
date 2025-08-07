@@ -1,6 +1,6 @@
 from datetime import datetime
 import inspect
-from typing import ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
+from typing import TypeVar, overload, Union, ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject, LogMessage
 from simulation.World import World
@@ -110,6 +110,14 @@ class Chassis(Entity):
         slot.component = component
         # Raise an on_installed event for the component so that it can initialize itself (if needed)
         component.on_installed(self)
+
+
+    T = TypeVar('T', bound='Component')
+
+    @overload
+    def get_component(self, identifier: Type[T]) -> Optional[T]: ...
+    @overload
+    def get_component(self, identifier: str) -> Optional[Component]: ...
 
     # get_component accepts a Type or string parameter.
     #  If a Type is provided, it will return the first component of that type found in the slots.

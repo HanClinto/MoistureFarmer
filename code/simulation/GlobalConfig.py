@@ -23,6 +23,7 @@ class GlobalConfig(BaseModel):
     llm_top_p: ClassVar[float] = 1.0  # Top-p sampling for LLM responses (0.0 = no sampling, 1.0 = full sampling)
     llm_top_k: ClassVar[int] = 50  # Top-k sampling for LLM responses (0 = no top-k)
     llm_seed: ClassVar[int] = 42  # Seed for LLM random number generation
+    llm_context_limit: ClassVar[int] = 32768  # Context limit for LLM (number of tokens)
 
     # Color codes for terminal output
     colors: ClassVar[Colors] = Colors()
