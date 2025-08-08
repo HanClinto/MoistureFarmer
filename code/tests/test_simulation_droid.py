@@ -113,11 +113,10 @@ def test_droid_agent_behavior_chronometer(simulation: Simulation):
 def test_droid_agent_behavior(simulation: Simulation):
     droid = GonkDroid(location=Location(x=0, y=0))
     # Add an agent brain to the droid in the correct slot
-    agent = droid.slots["agent"].component
- 
+    agent = droid.get_component(DroidAgent)
     simulation.world.add_entity(droid)
 
-    agent.activate("Go to location (10, -10)") # Activate the agent to start processing
+    agent.activate("Go to location (5, -5)") # Activate the agent to start processing
 
     # Assert that there is a queued HTTP request
     assert agent.queued_http_request is not None
@@ -126,7 +125,7 @@ def test_droid_agent_behavior(simulation: Simulation):
     simulation.run_sync(ticks=50)
 
     # Assert that the droid has moved to the destination
-    assert droid.location.x == 10
-    assert droid.location.y == -10
+    assert droid.location.x == 5
+    assert droid.location.y == -5
 
 
