@@ -1,0 +1,22 @@
+# Git and VCS
+.git
+.gitignore
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Node/build artifacts (if any)
+node_modules/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
