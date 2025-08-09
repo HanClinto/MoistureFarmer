@@ -4,6 +4,16 @@ simulationDataDictionary = {};
 // Simple in-memory chat state per droid
 const droidChats = {}; // { [entityId]: { messages: Array<{role:string,text:string}>, pending: boolean } }
 
+// Debug logger to prevent noisy console overhead in hot paths
+if (typeof window.DEBUG_LOG === 'undefined') {
+    window.DEBUG_LOG = false;
+}
+function debugLog() {
+    if (window.DEBUG_LOG) {
+        try { console.log.apply(console, arguments); } catch (e) {}
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Loop through all elements and find those with the 'draggable' class
     const draggableElements = document.querySelectorAll('.draggable');
@@ -29,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch('/simulation')
         .then(response => response.json())
         .then(data => {
-            console.log('Initial simulation state:', data);
+            debugLog('Initial simulation state:', data);
             simulationData = data;
             updateSimulationDisplay(data);
         })
@@ -63,11 +73,8 @@ function initializeSSE() {
     
     eventSource.onmessage = function(event) {
         try {
-            console.log('On tick: Received SSE data ' + event.data.length + ' bytes');
-            // Unset event.data for debugging
-            console.log('SSE event data:', event.data);
-            
-            simulationData = JSON.parse(event.data); // event.data;
+            debugLog('On tick: Received SSE data ' + event.data.length + ' bytes');
+            simulationData = JSON.parse(event.data);
             updateSimulationDisplay();
         } catch (error) {
             console.error('Error parsing SSE data:', error);
@@ -76,7 +83,7 @@ function initializeSSE() {
     
     eventSource.onerror = function(event) {
         console.error('SSE connection error:', event);
-        console.log('SSE readyState:', eventSource.readyState);
+    debugLog('SSE readyState:', eventSource.readyState);
         
         // Firefox specific: Check readyState and attempt reconnection if needed
         if (eventSource.readyState === EventSource.CLOSED) {
@@ -88,7 +95,7 @@ function initializeSSE() {
     };
     
     eventSource.onopen = function(event) {
-        console.log('SSE connection opened');
+    debugLog('SSE connection opened');
     };
     
     // Store reference globally for debugging
@@ -167,7 +174,7 @@ function updateSimulationDisplay() {
         const existingIcons = entitiesContainer.querySelectorAll('.entity-icon');
         existingIcons.forEach(icon => icon.remove());
 
-        console.log(simulationData.world.entities);
+    debugLog('Entities snapshot', simulationData.world && simulationData.world.entities);
 
         // simulationData.world.entities is a dictionary of entities where the key is the entity ID
 
@@ -199,13 +206,13 @@ function updateSimulationDisplay() {
             // When mouse-down on the anything in the group, open the entity detail window
             // TODO: Why doesn't this work?
             icon.addEventListener("click", function() {
-                console.log(`Opening entity detail for ${entity.id}`);
+                debugLog(`Opening entity detail for ${entity.id}`);
                 showEntityDetailWindow(entity.id);
                 window.selectedEntityId = entity.id; // Update selection
             });
 
             entitiesContainer.appendChild(group);
-            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown handler`);
+            debugLog(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
 
             // TODO: Add drop-down menu items for entities
         });
@@ -929,6 +936,14 @@ if (typeof window.selectedEntityId === 'undefined') {
   window.selectedEntityId = null;
 }
 
+// Internal guards to prevent duplicate bindings / heavy writes
+if (typeof window._worldInteractionBound === 'undefined') {
+    window._worldInteractionBound = false;
+}
+if (typeof window._saveViewStateTimer === 'undefined') {
+    window._saveViewStateTimer = null;
+}
+
 function createWorldControlsWindow() {
   if (document.getElementById('world-controls-window')) return;
   const win = document.createElement('div');
@@ -1066,6 +1081,8 @@ function clearEntitySelection() {
 function setupWorldLayerInteraction() {
   const worldLayer = document.getElementById('world-layer');
   if (!worldLayer) return;
+    // Idempotency: don't attach multiple listeners across ticks
+    if (window._worldInteractionBound || worldLayer.dataset.listenersAttached === '1') return;
   
   worldLayer.addEventListener('mousedown', (e) => {
     // Only handle if clicking on the world layer itself (not on entities)
@@ -1114,6 +1131,10 @@ function setupWorldLayerInteraction() {
   }, { passive: false });
   
   worldLayer.style.cursor = 'grab';
+
+    // Mark as bound so we don't re-bind every frame
+    worldLayer.dataset.listenersAttached = '1';
+    window._worldInteractionBound = true;
 }
 
 // NEW: World tilemap rendering function (replaces old window-based version)
@@ -1133,7 +1154,8 @@ function renderWorldTilemap(tm) {
     canvas.height = viewHeight;
   }
   
-  const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
+    ctx.reset();
   ctx.save();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -1172,12 +1194,23 @@ function renderWorldTilemap(tm) {
 
 // Camera state persistence
 function saveTimapViewState() {
-  const state = {
-    scale: tilemapView.scale,
-    offsetX: tilemapView.offsetX,
-    offsetY: tilemapView.offsetY
-  };
-  localStorage.setItem('moistureFarmer_tilemapView', JSON.stringify(state));
+    // Debounce to avoid frequent blocking localStorage writes during pan/zoom
+    if (window._saveViewStateTimer) {
+        clearTimeout(window._saveViewStateTimer);
+    }
+    window._saveViewStateTimer = setTimeout(() => {
+        const state = {
+            scale: tilemapView.scale,
+            offsetX: tilemapView.offsetX,
+            offsetY: tilemapView.offsetY
+        };
+        try {
+            localStorage.setItem('moistureFarmer_tilemapView', JSON.stringify(state));
+        } catch (e) {
+            // Ignore quota or security errors
+        }
+        window._saveViewStateTimer = null;
+    }, 120);
 }
 
 function loadTimapViewState() {
