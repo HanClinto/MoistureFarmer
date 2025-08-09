@@ -1,1 +1,1 @@
-llama-server --jinja -fa -hf bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M
+~/Downloads/llama-b5711-bin-win-cuda-12.4-x64/llama-server --jinja -fa -hf bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M

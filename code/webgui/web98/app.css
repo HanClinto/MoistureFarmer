@@ -4,10 +4,44 @@ body {
   /* background-color: #00ADAC; /* Teal desktop color */
 }
 
+/* NEW: World layer and canvas styling for full-viewport background */
+body#desktop { 
+  position: relative; 
+  overflow: hidden; 
+}
+
+#world-layer { 
+  position: absolute; 
+  inset: 0; 
+  z-index: 0; 
+}
+
+#world-canvas { 
+  position: absolute; 
+  left: 0; 
+  top: 0; 
+  image-rendering: pixelated; 
+}
+
+#world-entities { 
+  position: absolute; 
+  left: 0; 
+  top: 0; 
+  transform-origin: 0 0; 
+  pointer-events: none; 
+}
+
+#world-controls-window { 
+  z-index: 20; 
+  width: 160px; 
+  height: 120px; 
+}
+
 /* Window layout improvements to allow status-bars to stick to the bottom */
 .window {
   display: flex;
   flex-direction: column;
+  z-index: 10; /* Ensure windows are above world layer */
 }
 
 .window.hidden {
@@ -54,7 +88,7 @@ button.simulation-delay-button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  pointer-events: auto; /* Changed from none to auto to enable clicking */
 }
 
 .entity-icon-sprite {
