@@ -1,1 +1,1 @@
-uvicorn webgui.server:app --reload
+/c/Python313/Scripts/uvicorn.exe webgui.server:app --reload

@@ -155,10 +155,10 @@ function updateSimulationDisplay() {
     // Each icon should use the class 'entity-icon' and have a data-entity-id attribute set to the entity's ID
     // Each icon should have a caption that is the entity.name or entity.id if name is not set
 
-    const desktop = document.getElementById('desktop');
-    if (desktop) {
+    const entitiesContainer = document.getElementById('world-entities');
+    if (entitiesContainer) {
         // Clear existing icons
-        const existingIcons = desktop.querySelectorAll('.entity-icon');
+        const existingIcons = entitiesContainer.querySelectorAll('.entity-icon');
         existingIcons.forEach(icon => icon.remove());
 
         console.log(simulationData.world.entities);
@@ -195,9 +195,10 @@ function updateSimulationDisplay() {
             icon.addEventListener("click", function() {
                 console.log(`Opening entity detail for ${entity.id}`);
                 showEntityDetailWindow(entity.id);
+                window.selectedEntityId = entity.id; // Update selection
             });
 
-            desktop.appendChild(group);
+            entitiesContainer.appendChild(group);
             console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown handler`);
 
             // TODO: Add drop-down menu items for entities
@@ -690,3 +691,336 @@ function saveScenarioFile() {
         alert('Error saving scenario: ' + error);
     });
 }
+
+// Insert tilemap view state and rendering utilities near top-level (after global vars)
+if (typeof window.tilemapView === 'undefined') {
+  window.tilemapView = {
+    scale: 1,
+    minScale: 0.1,
+    maxScale: 1.0,  // Never upscale beyond 100%
+    offsetX: 0,
+    offsetY: 0,
+    isPanning: false,
+    panStart: {x: 0, y: 0},
+    viewStart: {x: 0, y: 0},
+    panThreshold: 4,  // pixels
+    dragDistance: 0
+  };
+}
+
+// NEW: Selection state
+if (typeof window.selectedEntityId === 'undefined') {
+  window.selectedEntityId = null;
+}
+
+function createWorldControlsWindow() {
+  if (document.getElementById('world-controls-window')) return;
+  const win = document.createElement('div');
+  win.id = 'world-controls-window';
+  win.className = 'window draggable';
+  win.style = 'position:absolute; left:20px; top:20px; width:160px; height:120px;';
+  win.innerHTML = `
+    <div class="title-bar">
+      <div class="title-bar-text">World View</div>
+      <div class="title-bar-controls">
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body" style="padding:4px; display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; gap:2px;">
+        <button id="world-zoom-out" style="flex:1;">-</button>
+        <button id="world-zoom-reset" style="flex:1;">Fit</button>
+        <button id="world-zoom-in" style="flex:1;">+</button>
+      </div>
+      <div style="display:flex; gap:2px;">
+        <button id="world-pan-reset" style="flex:1;">Center</button>
+      </div>
+    </div>`;
+  document.body.appendChild(win);
+  
+  // Wire close button
+  const closeBtn = win.querySelector('.title-bar-controls button[aria-label="Close"]');
+  if (closeBtn) closeBtn.addEventListener('click', ()=>win.classList.add('hidden'));
+  
+  // Make it draggable
+  try { draggableElement(win); } catch(e) {}
+  try { bringableToFront(win); } catch(e) {}
+  
+  // Wire controls
+  document.getElementById('world-zoom-in').addEventListener('click', ()=> adjustWorldZoom(1.1));
+  document.getElementById('world-zoom-out').addEventListener('click', ()=> adjustWorldZoom(1/1.1));
+  document.getElementById('world-zoom-reset').addEventListener('click', ()=> fitWorldToViewport());
+  document.getElementById('world-pan-reset').addEventListener('click', ()=> centerWorldView());
+}
+
+function adjustWorldZoom(mult) {
+  const canvas = document.getElementById('world-canvas');
+  if (!canvas) return;
+  zoomWorldAtPoint(canvas.width/2, canvas.height/2, mult);
+}
+
+function zoomWorldAtPoint(px, py, mult) {
+  const prevScale = tilemapView.scale;
+  let newScale = prevScale * mult;
+  newScale = Math.max(tilemapView.minScale, Math.min(tilemapView.maxScale, newScale));
+  const scaleChange = newScale / prevScale;
+  
+  // Adjust offsets so (px,py) stays put
+  tilemapView.offsetX = px - scaleChange * (px - tilemapView.offsetX);
+  tilemapView.offsetY = py - scaleChange * (py - tilemapView.offsetY);
+  tilemapView.scale = newScale;
+  
+  updateWorldView();
+}
+
+function fitWorldToViewport() {
+  const canvas = document.getElementById('world-canvas');
+  if (!canvas || !simulationData.world || !simulationData.world.tilemap) return;
+  
+  const tm = simulationData.world.tilemap;
+  const worldWidth = tm.width * 32;
+  const worldHeight = tm.height * 32;
+  const viewWidth = canvas.width;
+  const viewHeight = canvas.height;
+  
+  // Calculate scale to fit world in viewport, but never exceed 1.0
+  const scaleX = viewWidth / worldWidth;
+  const scaleY = viewHeight / worldHeight;
+  tilemapView.scale = Math.min(1.0, Math.min(scaleX, scaleY));
+  
+  // Center the world
+  tilemapView.offsetX = (viewWidth - worldWidth * tilemapView.scale) / 2;
+  tilemapView.offsetY = (viewHeight - worldHeight * tilemapView.scale) / 2;
+  
+  updateWorldView();
+}
+
+function centerWorldView() {
+  const canvas = document.getElementById('world-canvas');
+  if (!canvas || !simulationData.world || !simulationData.world.tilemap) return;
+  
+  const tm = simulationData.world.tilemap;
+  const worldWidth = tm.width * 32;
+  const worldHeight = tm.height * 32;
+  const viewWidth = canvas.width;
+  const viewHeight = canvas.height;
+  
+  // Center without changing scale
+  tilemapView.offsetX = (viewWidth - worldWidth * tilemapView.scale) / 2;
+  tilemapView.offsetY = (viewHeight - worldHeight * tilemapView.scale) / 2;
+  
+  updateWorldView();
+}
+
+// Helper function to update both canvas and entities
+function updateWorldView() {
+  if (simulationData.world && simulationData.world.tilemap) {
+    renderWorldTilemap(simulationData.world.tilemap);
+    updateWorldEntitiesTransform();
+    saveTimapViewState(); // Save state whenever view changes
+  }
+}
+
+// Viewport culling for large tilemaps
+function getVisibleTileBounds(tilemapView, canvasWidth, canvasHeight, tileSize) {
+  const scale = tilemapView.scale;
+  const startX = Math.max(0, Math.floor(-tilemapView.offsetX / (tileSize * scale)));
+  const startY = Math.max(0, Math.floor(-tilemapView.offsetY / (tileSize * scale)));
+  const endX = Math.ceil((canvasWidth - tilemapView.offsetX) / (tileSize * scale));
+  const endY = Math.ceil((canvasHeight - tilemapView.offsetY) / (tileSize * scale));
+  return { startX, startY, endX, endY };
+}
+
+// Transform entities to match world view
+function updateWorldEntitiesTransform() {
+  const entitiesContainer = document.getElementById('world-entities');
+  if (!entitiesContainer) return;
+  
+  const transform = `translate(${tilemapView.offsetX}px, ${tilemapView.offsetY}px) scale(${tilemapView.scale})`;
+  entitiesContainer.style.transform = transform;
+}
+
+// Clear entity selection
+function clearEntitySelection() {
+  window.selectedEntityId = null;
+  // You can add visual feedback here later
+}
+
+// Setup world layer interaction
+function setupWorldLayerInteraction() {
+  const worldLayer = document.getElementById('world-layer');
+  if (!worldLayer) return;
+  
+  worldLayer.addEventListener('mousedown', (e) => {
+    // Only handle if clicking on the world layer itself (not on entities)
+    if (e.target !== worldLayer && !e.target.closest('#world-canvas')) return;
+    
+    tilemapView.isPanning = true;
+    tilemapView.panStart = {x: e.clientX, y: e.clientY};
+    tilemapView.viewStart = {x: tilemapView.offsetX, y: tilemapView.offsetY};
+    tilemapView.dragDistance = 0;
+    
+    worldLayer.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  
+  window.addEventListener('mouseup', () => {
+    if (tilemapView.isPanning) {
+      // If movement was less than threshold, treat as click
+      if (tilemapView.dragDistance < tilemapView.panThreshold) {
+        clearEntitySelection();
+      }
+      tilemapView.isPanning = false;
+      const worldLayer = document.getElementById('world-layer');
+      if (worldLayer) worldLayer.style.cursor = 'grab';
+    }
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!tilemapView.isPanning) return;
+    
+    const dx = e.clientX - tilemapView.panStart.x;
+    const dy = e.clientY - tilemapView.panStart.y;
+    
+    tilemapView.dragDistance = Math.sqrt(dx * dx + dy * dy);
+    
+    tilemapView.offsetX = tilemapView.viewStart.x + dx;
+    tilemapView.offsetY = tilemapView.viewStart.y + dy;
+    
+    updateWorldView();
+  });
+  
+  // Wheel zoom on world layer
+  worldLayer.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
+    zoomWorldAtPoint(e.clientX, e.clientY, factor);
+  }, { passive: false });
+  
+  worldLayer.style.cursor = 'grab';
+}
+
+// NEW: World tilemap rendering function (replaces old window-based version)
+function renderWorldTilemap(tm) {
+  if (!tm) return;
+  
+  // Ensure we have the world canvas
+  const canvas = document.getElementById('world-canvas');
+  if (!canvas) return;
+  
+  // Set canvas size to viewport
+  const viewWidth = window.innerWidth;
+  const viewHeight = window.innerHeight;
+  
+  if (canvas.width !== viewWidth || canvas.height !== viewHeight) {
+    canvas.width = viewWidth;
+    canvas.height = viewHeight;
+  }
+  
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply transform
+  ctx.translate(tilemapView.offsetX, tilemapView.offsetY);
+  ctx.scale(tilemapView.scale, tilemapView.scale);
+  
+  const tileSize = 32;
+  const colors = {0:'#C2A060', 1:'#555555', 2:'#88CCFF'};
+  
+  // Use viewport culling for large maps
+  const shouldCull = tm.width * tm.height > 65536; // 256x256 threshold
+  
+  let startX = 0, startY = 0, endX = tm.width, endY = tm.height;
+  
+  if (shouldCull) {
+    const bounds = getVisibleTileBounds(tilemapView, canvas.width, canvas.height, tileSize);
+    startX = Math.max(0, bounds.startX);
+    startY = Math.max(0, bounds.startY);
+    endX = Math.min(tm.width, bounds.endX);
+    endY = Math.min(tm.height, bounds.endY);
+  }
+  
+  // Render visible tiles
+  for (let y = startY; y < endY && y < tm.tiles.length; y++) {
+    const row = tm.tiles[y];
+    for (let x = startX; x < endX && x < row.length; x++) {
+      const id = row[x];
+      ctx.fillStyle = colors[id] || '#FF00FF';
+      ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+    }
+  }
+  
+  ctx.restore();
+}
+
+// Camera state persistence
+function saveTimapViewState() {
+  const state = {
+    scale: tilemapView.scale,
+    offsetX: tilemapView.offsetX,
+    offsetY: tilemapView.offsetY
+  };
+  localStorage.setItem('moistureFarmer_tilemapView', JSON.stringify(state));
+}
+
+function loadTimapViewState() {
+  try {
+    const saved = localStorage.getItem('moistureFarmer_tilemapView');
+    if (saved) {
+      const state = JSON.parse(saved);
+      tilemapView.scale = state.scale || 1;
+      tilemapView.offsetX = state.offsetX || 0;
+      tilemapView.offsetY = state.offsetY || 0;
+      return true;
+    }
+  } catch (e) {
+    console.warn('Failed to load tilemap view state:', e);
+  }
+  return false;
+}
+
+// Calculate initial view - fit viewport but never exceed 100% scale
+function calculateInitialView() {
+  // Try to load saved state first
+  if (loadTimapViewState()) {
+    updateWorldView();
+    return;
+  }
+  
+  // Otherwise, fit to viewport
+  fitWorldToViewport();
+  
+  // Save the initial state
+  saveTimapViewState();
+}
+
+// Hook into existing updateSimulationDisplay to also render tilemap
+const _origUpdateSimulationDisplay = updateSimulationDisplay;
+updateSimulationDisplay = function() {
+  _origUpdateSimulationDisplay();
+  try {
+    // Initialize world view components if needed
+    createWorldControlsWindow();
+    setupWorldLayerInteraction();
+    
+    if (simulationData.world && simulationData.world.tilemap) {
+      // Use new world rendering instead of old tilemap window
+      renderWorldTilemap(simulationData.world.tilemap);
+      updateWorldEntitiesTransform();
+      
+      // Initialize view if this is the first render
+      if (!window.worldViewInitialized) {
+        calculateInitialView();
+        window.worldViewInitialized = true;
+      }
+    }
+  } catch (e) { console.error('World render error', e); }
+};
+
+// Handle viewport resize for world canvas
+window.addEventListener('resize', () => {
+  if (simulationData.world && simulationData.world.tilemap) {
+    renderWorldTilemap(simulationData.world.tilemap);
+  }
+});
