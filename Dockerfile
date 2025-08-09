@@ -26,4 +26,5 @@ EXPOSE 8000
 
 # Default command to run the FastAPI app
 # Bind to 0.0.0.0 so it's accessible outside the container
-CMD ["uvicorn", "webgui.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Use Gunicorn with Uvicorn workers; in dev you can add --reload, but keep image command simple
+CMD ["gunicorn","webgui.server:app","-k","uvicorn.workers.UvicornWorker","--bind","0.0.0.0:8000","--workers","1","--timeout","10","--graceful-timeout","5","--chdir","/app","--preload","--reload","--reload-engine","poll"]
