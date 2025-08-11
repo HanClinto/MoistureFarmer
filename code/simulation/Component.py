@@ -84,6 +84,7 @@ class Component(GameObject):
 #  the agentic AI as functions that can be called in the form of tools,
 #  such as moving to a location, charging equipment, or recharging itself.
 
+T = TypeVar('T', bound='Component')
 class Chassis(Entity):
     slots: Dict[str, 'ComponentSlot']
     health: int = 100
@@ -110,9 +111,6 @@ class Chassis(Entity):
         slot.component = component
         # Raise an on_installed event for the component so that it can initialize itself (if needed)
         component.on_installed(self)
-
-
-    T = TypeVar('T', bound='Component')
 
     @overload
     def get_component(self, identifier: Type[T]) -> Optional[T]: ...
