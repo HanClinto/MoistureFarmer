@@ -112,7 +112,8 @@ class Chassis(Entity):
         component.on_installed(self)
 
 
-    T = TypeVar('T', bound='Component')
+    # Generic helper TypeVar for get_component overloads; mark as ClassVar so Pydantic doesn't treat as field
+    T: ClassVar = TypeVar('T', bound='Component')
 
     @overload
     def get_component(self, identifier: Type[T]) -> Optional[T]: ...
