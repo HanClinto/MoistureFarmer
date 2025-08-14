@@ -60,7 +60,7 @@
       </div>
     </div>
   </div>
-  <div id="simulation-control-window" class="window" style="position: absolute; width: 640px; left:50%; transform: translateX(-50%); top: 20px">
+  <div id="simulation-control-window" class="window no-select draggable" style="position: absolute; width: 640px; top: 20px; left: 50%;">
     <div class="title-bar">
       <div class="title-bar-text">
         Moisture Farmer v0.98
@@ -143,5 +143,23 @@
     </div>
   </div>
 </body>
+
+<script>
+// Initialize draggable & optional centering for simulation-control-window
+window.addEventListener('DOMContentLoaded', function() {
+  const win = document.getElementById('simulation-control-window');
+  if (win) {
+    // Center horizontally once, then convert percentage left to pixel value for smooth dragging
+    const rect = win.getBoundingClientRect();
+    const desiredLeft = (window.innerWidth - rect.width) / 2;
+    win.style.left = desiredLeft + 'px';
+    // Remove any transform if present (was used for centering before)
+    win.style.transform = '';
+    // Hook existing utilities if defined
+    if (typeof draggableElement === 'function') draggableElement(win);
+    if (typeof bringableToFront === 'function') bringableToFront(win);
+  }
+});
+</script>
 
 </html>

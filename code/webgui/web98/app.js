@@ -949,7 +949,7 @@ function createWorldControlsWindow() {
   const win = document.createElement('div');
   win.id = 'world-controls-window';
   win.className = 'window draggable';
-  win.style = 'position:absolute; left:20px; top:20px; width:160px; height:120px;';
+    win.style = 'position:absolute; left:20px; top:20px; width:auto; height:auto;';
   win.innerHTML = `
     <div class="title-bar">
       <div class="title-bar-text">World View</div>
@@ -957,17 +957,22 @@ function createWorldControlsWindow() {
         <button aria-label="Close"></button>
       </div>
     </div>
-    <div class="window-body" style="padding:4px; display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; gap:2px;">
-        <button id="world-zoom-out" style="flex:1;">-</button>
-        <button id="world-zoom-reset" style="flex:1;">Fit</button>
-        <button id="world-zoom-in" style="flex:1;">+</button>
-      </div>
-      <div style="display:flex; gap:2px;">
-        <button id="world-pan-reset" style="flex:1;">Center</button>
-      </div>
-    </div>`;
-  document.body.appendChild(win);
+        <div class="window-body" style="padding:4px; display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; gap:2px;">
+                <button id="world-zoom-out" class="btn-compact">-</button>
+                <button id="world-zoom-reset" class="btn-compact">Fit</button>
+                <button id="world-zoom-in" class="btn-compact">+</button>
+                <button id="world-pan-reset" class="btn-compact">Center</button>
+            </div>
+        </div>`;
+    document.body.appendChild(win);
+    // Position bottom-left after rendering so we know its height
+    requestAnimationFrame(()=> {
+        try {
+            win.style.left = '8px';
+            win.style.top = (window.innerHeight - win.offsetHeight - 8) + 'px';
+        } catch(e) {}
+    });
   
   // Wire close button
   const closeBtn = win.querySelector('.title-bar-controls button[aria-label="Close"]');
@@ -1124,11 +1129,22 @@ function setupWorldLayerInteraction() {
   });
   
   // Wheel zoom on world layer
-  worldLayer.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
-    zoomWorldAtPoint(e.clientX, e.clientY, factor);
-  }, { passive: false });
+    worldLayer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        // Detect macOS (includes Intel & Apple Silicon variants)
+        const isMac = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent) || (navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+        // Base per-notch zoom factor
+        const baseZoomIn = 1.1;
+        const baseZoomOut = 1 / baseZoomIn;
+        let factor = e.deltaY < 0 ? baseZoomIn : baseZoomOut;
+        if (isMac) {
+            // Make it about 3x less sensitive: take the cubic root of the factor to reduce magnitude
+            // rootFactor ~ 1.032 vs 1.1 (since 1.032^3 ≈ 1.10)
+            const reduce = (f) => Math.pow(f, 1/3);
+            factor = e.deltaY < 0 ? reduce(baseZoomIn) : 1 / reduce(baseZoomIn);
+        }
+        zoomWorldAtPoint(e.clientX, e.clientY, factor);
+    }, { passive: false });
   
   worldLayer.style.cursor = 'grab';
 
