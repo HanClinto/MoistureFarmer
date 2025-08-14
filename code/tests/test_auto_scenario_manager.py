@@ -96,12 +96,13 @@ def test_auto_scenario_round_trip():
         raise e
         
     finally:
-        test_round_trip_path = Path("./test_round_trip.json")
-        if test_round_trip_path.exists():
-            test_round_trip_path.unlink()
+        # Write artifact into dedicated output directory
+        output_dir = Path(__file__).parent / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        test_round_trip_path = output_dir / "test_round_trip.json"
         test_round_trip_path.write_text(Path(temp_path).read_text())
 
-        # Cleanup
+        # Cleanup temp file
         if os.path.exists(temp_path):
             os.unlink(temp_path)
 
@@ -146,11 +147,10 @@ def test_auto_scenario_minimal_json():
         raise e
 
     finally:
-        test_minimal_path = Path("./test_minimal.json")
-        if test_minimal_path.exists():
-            test_minimal_path.unlink()
+        output_dir = Path(__file__).parent / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        test_minimal_path = output_dir / "test_minimal.json"
         test_minimal_path.write_text(Path(temp_path).read_text())
-
 
         if os.path.exists(temp_path):
             os.unlink(temp_path)
@@ -195,11 +195,10 @@ def test_auto_scenario_with_new_entity_type():
         raise e
         
     finally:
-        test_new_type_path = Path("./test_new_type.json")
-        if test_new_type_path.exists():
-            test_new_type_path.unlink()
+        output_dir = Path(__file__).parent / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        test_new_type_path = output_dir / "test_new_type.json"
         test_new_type_path.write_text(Path(temp_path).read_text())
-
 
         if os.path.exists(temp_path):
             os.unlink(temp_path)
