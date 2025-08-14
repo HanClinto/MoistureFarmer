@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Type
 from pydantic import BaseModel
 
 from simulation.Entity import Entity
+from simulation.Tilemap import Tilemap
 
 # --- World System ---
 class World(BaseModel):
@@ -13,8 +14,8 @@ class World(BaseModel):
 
     # HACK: Should eventually maybe think of a better way to handle this.
     entity_thinking_count: int = 0  # Count of how many entities are currently thinking
-    # Internal cache for mock tilemap (not a pydantic field for persistence normally)
-    _tilemap_cache: dict | None = None
+    # Extracted tilemap object (mock implementation)
+    tilemap: Optional[Tilemap] = None
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -71,61 +72,19 @@ class World(BaseModel):
             entity.tick()
         # No broadcast here; handled by Simulation
         # Mutate one random interior tile each tick for demo dynamics
-        self._maybe_mutate_tilemap()
-
-    # --- Mock Tilemap Support ---
-    def _init_mock_tilemap(self):
-        if self._tilemap_cache is not None:
-            return
-        width = 128
-        height = 128
-        # Border = 1 (rock), interior = 0 (sand), center = 2 (pad)
-        tiles = []
-        for y in range(height):
-            row = []
-            for x in range(width):
-                if x == 0 or y == 0 or x == width - 1 or y == height - 1:
-                    row.append(1)
-                else:
-                    row.append(0)
-            tiles.append(row)
-        center = (width // 2, height // 2)
-        tiles[center[1]][center[0]] = 2
-        self._tilemap_cache = {
-            "width": width,
-            "height": height,
-            "tiles": tiles,
-            "legend": {"0": "sand", "1": "rock", "2": "pad"},
-            "last_mutation": None,
-        }
-
-    def _maybe_mutate_tilemap(self):
-        import random
-        self._init_mock_tilemap()
-        tm = self._tilemap_cache
-        if not tm:
-            return
-        w = tm["width"]
-        h = tm["height"]
-        # Choose random interior coordinate
-        if w <= 2 or h <= 2:
-            return
-        x = random.randint(1, w - 2)
-        y = random.randint(1, h - 2)
-        # Random tile id from allowed set (could bias toward sand)
-        new_val = random.choice([0, 0, 0, 1, 2])
-        tm["tiles"][y][x] = new_val
-        tm["last_mutation"] = {"x": x, "y": y, "value": new_val}
+        if self.tilemap is None:
+            self.tilemap = Tilemap.from_default()
+        self.tilemap.maybe_mutate()
 
     def to_json(self, short: bool = False):
         val = {
             "entities": {eid: entity.to_json(short) for eid, entity in self.entities.items()},
         }
         # Ensure tilemap present
-        self._init_mock_tilemap()
-        if self._tilemap_cache:
-            # Provide shallow copy without internal mutability references exposure (tiles reused okay for now)
-            val["tilemap"] = self._tilemap_cache
+        if self.tilemap is None:
+            self.tilemap = Tilemap.from_default()
+        if self.tilemap:
+            val["tilemap"] = self.tilemap.to_json()
 
         if not short:
             val["entity_thinking_count"] = self.entity_thinking_count
