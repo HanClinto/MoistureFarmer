@@ -4,6 +4,49 @@ simulationDataDictionary = {};
 // Simple in-memory chat state per droid
 const droidChats = {}; // { [entityId]: { messages: Array<{role:string,text:string}>, pending: boolean } }
 
+// --- Movement tween configuration & state (web98 client only) ---
+// Duration in ms for an entity to visually move between tile centers.
+if (typeof window.MOVE_TWEEN_MS === 'undefined') window.MOVE_TWEEN_MS = 100;
+// Internal dictionary: entityId -> tween state {prevX, prevY, targetX, targetY, moveStart}
+if (typeof window._entityTweenState === 'undefined') window._entityTweenState = {};
+// Render loop guard
+if (typeof window._entityTweenAnimRunning === 'undefined') window._entityTweenAnimRunning = false;
+
+function _ensureTweenLoop() {
+    if (window._entityTweenAnimRunning) return;
+    window._entityTweenAnimRunning = true;
+    const step = (now) => {
+        try { _updateEntityTweenPositions(now); } catch(e) { /* swallow to keep loop alive */ }
+        requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+function _updateEntityTweenPositions(nowTs) {
+    const state = window._entityTweenState;
+    const tileSize = 32;
+    for (const id in state) {
+        const s = state[id];
+        if (!s) continue;
+        const dur = window.MOVE_TWEEN_MS || 100;
+        const t = Math.min(1, (nowTs - s.moveStart) / dur);
+        // Interpolated pixel position
+        const ix = s.prevX + (s.targetX - s.prevX) * t;
+        const iy = s.prevY + (s.targetY - s.prevY) * t;
+        s.interpX = ix; // store for potential chaining mid-move
+        s.interpY = iy;
+        s.progress = t;
+        if (window.DEBUG_LOG_TWEEN && (t === 1 || t === 0)) {
+            console.log('[tween]', id, 'progress', t.toFixed(2), 'pos', ix, iy);
+        }
+    }
+    // After updating interpolation, request a re-render of the world tilemap if it exists
+    if (simulationData.world && simulationData.world.tilemap) {
+        // We call renderWorldTilemap which will in turn draw entities using tweened positions if available.
+        try { renderWorldTilemap(simulationData.world.tilemap); } catch(e) {}
+    }
+}
+
 // Debug logger to prevent noisy console overhead in hot paths
 if (typeof window.DEBUG_LOG === 'undefined') {
     window.DEBUG_LOG = false;
@@ -170,52 +213,56 @@ function updateSimulationDisplay() {
 
     const entitiesContainer = document.getElementById('world-entities');
     if (entitiesContainer) {
-        // Clear existing icons
+        // Clear existing icons (DOM icons not currently used for movement due to canvas-based rendering, but keep logic if needed later)
         const existingIcons = entitiesContainer.querySelectorAll('.entity-icon');
         existingIcons.forEach(icon => icon.remove());
 
-    debugLog('Entities snapshot', simulationData.world && simulationData.world.entities);
+        debugLog('Entities snapshot', simulationData.world && simulationData.world.entities);
 
-        // simulationData.world.entities is a dictionary of entities where the key is the entity ID
-
-        // Add new icons for each entity, with a caption centered underneath like an icon's name in Windows 98
+        // Maintain tween targets for canvas rendering
+        const tweenState = window._entityTweenState;
         Object.values(simulationData.world.entities).forEach(entity => {
-            // If there is a window attached to this entity, update it
             updateEntityDetailWindow(entity.id);
-
-            // Create a group entity to hold both the icon and caption
-            const group = document.createElement('div');
-            group.className = 'entity-icon';
-            group.style.position = 'absolute';
-            group.style.left = `${entity.location.x * 32}px`;
-            group.style.top = `${entity.location.y * 32}px`;
-            group.setAttribute('data-entity-id', entity.id);
-
-            // Create the icon image element
-            const icon = document.createElement('img');
-            icon.src = `/resources/sprites/${entity.model}.png`; // Use the model name for the sprite
-            icon.className = 'entity-icon-sprite';
-            group.appendChild(icon);
-
-            // Create the caption element
-            const caption = document.createElement('div');
-            caption.className = 'entity-icon-caption';
-            caption.textContent = entity.name || entity.id; // Use name if available, otherwise use ID
-            group.appendChild(caption);
-
-            // When mouse-down on the anything in the group, open the entity detail window
-            // TODO: Why doesn't this work?
-            icon.addEventListener("click", function() {
-                debugLog(`Opening entity detail for ${entity.id}`);
-                showEntityDetailWindow(entity.id);
-                window.selectedEntityId = entity.id; // Update selection
-            });
-
-            entitiesContainer.appendChild(group);
-            debugLog(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
-
-            // TODO: Add drop-down menu items for entities
+            const tileSize = 32;
+            const targetX = entity.location.x * tileSize;
+            const targetY = entity.location.y * tileSize;
+            let st = tweenState[entity.id];
+            const now = performance.now();
+            if (!st) {
+                // First time: no tween, start at target
+                st = tweenState[entity.id] = { prevX: targetX, prevY: targetY, targetX, targetY, moveStart: now, interpX: targetX, interpY: targetY, progress: 1 };
+            } else {
+                // Determine if teleport (delta > 1 tile)
+                const dxTiles = Math.abs((targetX - st.targetX) / tileSize);
+                const dyTiles = Math.abs((targetY - st.targetY) / tileSize);
+                const teleport = dxTiles > 1 || dyTiles > 1;
+                // Capture in-flight position for smooth chaining
+                if (st.progress !== 1) {
+                    const dur = window.MOVE_TWEEN_MS || 100;
+                    const t = Math.min(1, (now - st.moveStart) / dur);
+                    const curX = st.prevX + (st.targetX - st.prevX) * t;
+                    const curY = st.prevY + (st.targetY - st.prevY) * t;
+                    st.prevX = curX;
+                    st.prevY = curY;
+                } else {
+                    // Previous tween completed, start from last target
+                    st.prevX = st.targetX;
+                    st.prevY = st.targetY;
+                }
+                st.targetX = targetX;
+                st.targetY = targetY;
+                st.moveStart = now;
+                st.progress = teleport ? 1 : 0;
+                if (teleport) {
+                    st.prevX = targetX;
+                    st.prevY = targetY;
+                    st.interpX = targetX;
+                    st.interpY = targetY;
+                }
+            }
         });
+        // Start animation loop once we have entities
+        _ensureTweenLoop();
     }
 
     // Keep any open chat windows in sync (enable/disable send button based on agent activity)
@@ -1226,11 +1273,17 @@ function renderWorldTilemap(tm) {
             }
 
             const entities = Object.values(simulationData.world.entities);
+            const tweenState = window._entityTweenState || {};
             for (const ent of entities) {
                 if (!ent || !ent.location) continue;
-                const ex = ent.location.x * tileSize;
-                const ey = ent.location.y * tileSize;
-                // Slight inset for visual separation from tile borders
+                const st = tweenState[ent.id];
+                let ex = ent.location.x * tileSize;
+                let ey = ent.location.y * tileSize;
+                if (st) {
+                    // Use interpolated position if tween in progress
+                    ex = (typeof st.interpX === 'number') ? st.interpX : ex;
+                    ey = (typeof st.interpY === 'number') ? st.interpY : ey;
+                }
                 const inset = 2;
                 const size = tileSize - inset * 2;
                 ctx.save();

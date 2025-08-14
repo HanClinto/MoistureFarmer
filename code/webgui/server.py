@@ -186,13 +186,16 @@ def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     # Place walkers near center after tilemap init in first tick; so subscribe a one-shot to add them once tilemap exists
     from simulation.Entity import Location
     def add_walkers_once(sim):
+        """One-shot callback to add initial random walkers once the tilemap exists."""
         if sim.world.tilemap is None:
             return  # wait until tilemap created on first tick
         tm = sim.world.tilemap
         cx, cy = tm.width // 2, tm.height // 2
-        for i in range(3):
+        # Spawn a handful of walkers near center (spread diagonally for now)
+        for i in range(25):
             walker = RandomWalker(id=f"walker_{i}", location=Location(x=cx + i, y=cy + i))
             sim.world.add_entity(walker)
+        # Unsubscribe so this only happens once
         sim.unsubscribe_on_tick(add_walkers_once)
     simulation.subscribe_on_tick(add_walkers_once)
 
