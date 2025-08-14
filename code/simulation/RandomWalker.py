@@ -56,8 +56,3 @@ class RandomWalker(TileMapEntity):
                 continue
             break
 
-# Ensure pydantic resolves any forward refs after World definition imported elsewhere
-try:
-    RandomWalker.model_rebuild()
-except Exception:
-    pass
