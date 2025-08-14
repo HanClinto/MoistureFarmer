@@ -10,9 +10,11 @@ from pathlib import Path
 
 from simulation.DroidAgents import DroidAgent
 from simulation.World import Simulation
+from simulation.RandomWalker import RandomWalker  # NEW
 
 app = FastAPI()
 subscribers = set()
+movement_subscribers = set()
 
 # Serve static files (web assets and sprites)
 web31_root = Path(__file__).parent / 'web31'
@@ -28,22 +30,18 @@ app.mount('/resources', StaticFiles(directory=resources_root), name='resources')
 async def redirect_root():
     return HTMLResponse(status_code=302, headers={"Location": "/web98/index.html"})
 
-@app.get("/events")
-async def sse(request: Request):
-    print(f'*** New SSE connection from {request.client.host} ***')
+def _generic_sse_endpoint(subscriber_set, request: Request):
     async def event_generator():
         queue = asyncio.Queue()
-        subscribers.add(queue)
+        subscriber_set.add(queue)
         try:
             while True:
                 if await request.is_disconnected():
                     break
-                data = await queue.get()
-                yield f"data: {data}\n\n"
+                event = await queue.get()  # Expect already formatted string with event & data lines
+                yield event
         finally:
-            subscribers.remove(queue)
-    
-    # Firefox-compatible headers for SSE
+            subscriber_set.remove(queue)
     headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
@@ -51,12 +49,18 @@ async def sse(request: Request):
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Headers": "Cache-Control",
     }
-    
-    return StreamingResponse(
-        event_generator(), 
-        media_type="text/event-stream",
-        headers=headers
-    )
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)
+
+@app.get("/events")
+async def sse(request: Request):
+    # Legacy combined stream of full simulation state each tick (no explicit event name)
+    print(f'*** New SSE (state) connection from {request.client.host} ***')
+    return _generic_sse_endpoint(subscribers, request)
+
+@app.get("/movement_events")
+async def movement_sse(request: Request):
+    print(f'*** New SSE (movement) connection from {request.client.host} ***')
+    return _generic_sse_endpoint(movement_subscribers, request)
 
 @app.post("/simulation/simulation_delay/{simulation_delay}")
 def set_simulation_delay(simulation_delay: float):
@@ -149,21 +153,22 @@ async def droid_chat(droid_id: str, request: Request):
     return {"status": "success", "message": f"Droid {droid_id} is processing the message: {str(agent.last_message())}"}
 
 def broadcast_simulation_state(simulation: Simulation):
-    """Broadcast the current simulation state to all subscribers."""
-    # Serialize the simulation state to JSON
-    print(f'*** Broadcasting simulation state to {len(subscribers)} subscribers ***')
-
-    print()
-    simulation_json = simulation.to_json()
-    #print(f' Debug simulation state: {simulation_json}')
-    simulation_json_dumps = json.dumps(simulation_json, ensure_ascii=False, default=str)
-    
-    #print(f' Debug simulation state JSON: {simulation_json_dumps}')
-    #print(f' Debug simulation state: {simulation.to_json()}')
-    sim_state = simulation_json_dumps
-    #sim_state = simulation.to_json()
+    sim_state = json.dumps(simulation.to_json(), ensure_ascii=False, default=str)
+    # Format per SSE spec (data: lines + blank line). We leave event name blank for legacy endpoint.
+    payload = f"data: {sim_state}\n\n"
     for queue in list(subscribers):
-        queue.put_nowait(sim_state)
+        queue.put_nowait(payload)
+
+def broadcast_movement_journal(simulation: Simulation):
+    if not simulation.world.last_movement_journal:
+        return
+    movement_payload = json.dumps({
+        "tick": simulation.tick_count,
+        "movements": simulation.world.last_movement_journal,
+    })
+    event_block = f"event: movements\ndata: {movement_payload}\n\n"
+    for queue in list(movement_subscribers):
+        queue.put_nowait(event_block)
 
 # --- Simulation integration ---
 simulation:Simulation = None
@@ -173,6 +178,23 @@ def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     simulation = Simulation()
     simulation.simulation_delay = 2.0  # Set a default simulation delay
     simulation.simulation_delay_max = 10.0  # Set a maximum simulation delay
+
+    # Spawn a few random walkers if tilemap available (will lazy init on first tick otherwise)
+    world = simulation.world
+    if world.tilemap is None:
+        world.tilemap = world.tilemap or None  # will be created in first tick; we can still place walkers at default interior
+    # Place walkers near center after tilemap init in first tick; so subscribe a one-shot to add them once tilemap exists
+    from simulation.Entity import Location
+    def add_walkers_once(sim):
+        if sim.world.tilemap is None:
+            return  # wait until tilemap created on first tick
+        tm = sim.world.tilemap
+        cx, cy = tm.width // 2, tm.height // 2
+        for i in range(3):
+            walker = RandomWalker(id=f"walker_{i}", location=Location(x=cx + i, y=cy + i))
+            sim.world.add_entity(walker)
+        sim.unsubscribe_on_tick(add_walkers_once)
+    simulation.subscribe_on_tick(add_walkers_once)
 
     attach_to_simulation(simulation)
 
@@ -184,6 +206,7 @@ def initialize_simulation() -> tuple[Simulation, threading.Thread]:
 def attach_to_simulation(sim: Simulation):
     def on_tick(simulation):
         broadcast_simulation_state(simulation)
+        broadcast_movement_journal(simulation)
     sim.subscribe_on_tick(on_tick)
 
 @app.on_event("startup")
