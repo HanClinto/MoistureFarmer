@@ -200,3 +200,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Test output artifacts (not source)
+code/tests/output/
+code/tests/output/*.json
