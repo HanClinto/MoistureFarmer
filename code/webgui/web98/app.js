@@ -1204,6 +1204,49 @@ function renderWorldTilemap(tm) {
       ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
     }
   }
+
+    // --- Entity rendering (simple colored rectangles) ---
+    try {
+        if (simulationData.world && simulationData.world.entities) {
+            // Lazy-init color cache & generator
+            if (!window._entityColorCache) window._entityColorCache = {};
+            if (!window._entityColorFor) {
+                window._entityColorFor = function(id) {
+                    if (window._entityColorCache[id]) return window._entityColorCache[id];
+                    // Deterministic hash -> hue
+                    let h = 0;
+                        for (let i = 0; i < id.length; i++) {
+                            h = (h * 131 + id.charCodeAt(i)) >>> 0; // simple rolling hash
+                        }
+                    const hue = h % 360;
+                    const color = `hsl(${hue}deg 65% 55%)`;
+                    window._entityColorCache[id] = color;
+                    return color;
+                };
+            }
+
+            const entities = Object.values(simulationData.world.entities);
+            for (const ent of entities) {
+                if (!ent || !ent.location) continue;
+                const ex = ent.location.x * tileSize;
+                const ey = ent.location.y * tileSize;
+                // Slight inset for visual separation from tile borders
+                const inset = 2;
+                const size = tileSize - inset * 2;
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000';
+                ctx.fillStyle = window._entityColorFor(ent.id || 'unknown');
+                ctx.beginPath();
+                ctx.rect(ex + inset, ey + inset, size, size);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    } catch (e) {
+        console.warn('Entity render error', e);
+    }
   
   ctx.restore();
 }
