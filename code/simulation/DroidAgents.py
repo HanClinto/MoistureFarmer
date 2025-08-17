@@ -95,6 +95,12 @@ class DroidAgent(Component):
 
     context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
 
+    # HACK: Should probably be properties of the AgentContext, but for now we keep them here so that we can pass them down to the front-end without passing the entire context object.
+    last_total_tokens: int = 0  # Total tokens used in the most recent LLM call
+    last_completion_tokens: int = 0
+    last_prompt_tokens: int = 0
+    tokens_max: int = GlobalConfig.llm_context_limit  # Maximum number of tokens allowed in the context
+
     session_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
 
     def activate(self, prompt:Optional[str] = None):
@@ -167,13 +173,18 @@ class DroidAgent(Component):
                 assert len(resp["choices"]) > 0, "No choices in response from LLM API"
                 # TODO: Turn the agent off and back on again to clear context and try again.
 
+                # Update context lengths
+                self.last_completion_tokens = resp["usage"]["completion_tokens"]
+                self.last_prompt_tokens = resp["usage"]["prompt_tokens"]
+                self.last_total_tokens = resp["usage"]["total_tokens"]
+
                 choice = resp["choices"][0]
                 if "message" in choice and "content" in choice["message"]:
                     content = choice["message"]["content"]
 
                     if content:
                         self.info(f'Received response: {content}')
-                        self.context.append_message("assistant", content)  # Append the response to the agent context
+                        self.context.append_message(ContextMessage(role="assistant", content=content))  # Append the response to the agent context
 
                 if "finish_reason" in choice:
                     if choice["finish_reason"] == "tool_calls":
@@ -286,6 +297,7 @@ class DroidAgent(Component):
                     )
                     self.info(tool_message)
                     self.pending_tool_call = None
+                    self.pending_tool_call_id = None
                     self._send_current_context() # Send the updated context to the LLM or other service
 
                 elif tool_call_result.state == ToolCallState.FAILURE:
@@ -304,6 +316,7 @@ class DroidAgent(Component):
                     )
                     self.error(tool_message)
                     self.pending_tool_call = None
+                    self.pending_tool_call_id = None
                     self._send_current_context() # Send the updated context to the LLM or other service
 
         else:
@@ -316,7 +329,7 @@ class DroidAgent(Component):
                 self.is_active = False  # Deactivate the agent until it is reactivated
             else:
                 # If there is no queued web request, then we should kick off the next step in the agentic loop
-                self.context.append_message("user", f"{world.get_state_llm()}: What is your next action?")  # Current world state with prompt for next action
+                self.context.append_message(ContextMessage(role="user", content=f"{world.get_state_llm()}: What is your next action?"))  # Current world state with prompt for next action
                 queued_web_request = QueuedHttpRequest(
                     url=GlobalConfig.llm_api_url,
                     data= self.context.to_json(),
@@ -393,4 +406,4 @@ class DroidAgentSimple(DroidAgent):
     pass
 
 class DroidAgentSimplePowerDroid(DroidAgentSimple):
-    prompt_system:str = "You are an {model} {subtype}. Your name is '{name}'. Your ID is '{object_id}'. You use tools and functions to accomplish your daily tasks. Don't overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."
+    prompt_system:str = "You are an {model} {subtype}. Your name is {name}. Your ID is {object_id}. You use tools and functions to accomplish your daily tasks. Do not overthink things. Your purpose is to charge the batteries of equipment on the farm and ensure they are all supplied with power. You can recharge your own batteries at power stations to ensure you can carry enough power to charge the equipment. When everything is fully charged, and your own batteries are recharged, you can switch yourself off at the power station. You can move to specific locations or objects on the farm. You are a helpful and efficient droid, and you will do your best to complete your tasks. You will use the tools provided to you to accomplish your tasks. If you cannot complete a task, you will inform the user of the reason why. You will not make assumptions about the state of the farm or the equipment, and you will only use the information provided to you in this conversation."

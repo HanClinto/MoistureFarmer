@@ -103,7 +103,7 @@ class Motivator(Component):
         return path
 
     def tick(self):
-        self.info(f"Tick at location {self.chassis.location} with destination {self.destination}")
+        #self.info(f"Tick at location {self.chassis.location} with destination {self.destination}")
         if self.chassis.location == self.destination or self.destination is None:
             # We have arrived at our destination, so clear the destination
             self.destination = None
@@ -115,7 +115,7 @@ class Motivator(Component):
         if self.current_cooldown > 0:
             # We are currently cooling down, so do nothing for this tick
             self.current_cooldown -= 1
-            self.info(f"Cooling down, {self.current_cooldown} ticks remaining.")
+            #self.info(f"Cooling down, {self.current_cooldown} ticks remaining.")
             return
 
         power:PowerPack = self.chassis.get_component(PowerPack)

@@ -1,1 +1,1 @@
-uvicorn webgui.server:app --reload
+MF_DEFAULT_SCENARIO="$(dirname "$0")/example_scenario.json" uvicorn webgui.server:app --reload

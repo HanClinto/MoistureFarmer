@@ -111,6 +111,12 @@ class GameObject(BaseModel):
             "type": self.__class__.__name__,
             # "logs": [log.to_json() for log in self.get_logs()]
         }
+    
+    def last_message(self) -> Optional[LogMessage]:
+        """Return the last log message, or None if there are no logs."""
+        if self._log_history and len(self._log_history) > 0:
+            return self._log_history[-1]
+        return None
 
 class Entity(GameObject):
     location: Location = Location(x=0, y=0)  # Default location

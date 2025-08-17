@@ -1,6 +1,9 @@
 simulationData = {};
 simulationDataDictionary = {};
 
+// Simple in-memory chat state per droid
+const droidChats = {}; // { [entityId]: { messages: Array<{role:string,text:string}>, pending: boolean } }
+
 document.addEventListener('DOMContentLoaded', function () {
     // Loop through all elements and find those with the 'draggable' class
     const draggableElements = document.querySelectorAll('.draggable');
@@ -61,7 +64,10 @@ function initializeSSE() {
     eventSource.onmessage = function(event) {
         try {
             console.log('On tick: Received SSE data ' + event.data.length + ' bytes');
-            simulationData = JSON.parse(event.data);
+            // Unset event.data for debugging
+            console.log('SSE event data:', event.data);
+            
+            simulationData = JSON.parse(event.data); // event.data;
             updateSimulationDisplay();
         } catch (error) {
             console.error('Error parsing SSE data:', error);
@@ -198,12 +204,160 @@ function updateSimulationDisplay() {
             });
 
             desktop.appendChild(group);
-            console.log(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown handler`);
+            console.log(`Yay! Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y}) with mousedown handler`);
 
             // TODO: Add drop-down menu items for entities
         });
     }
+
+    // Keep any open chat windows in sync (enable/disable send button based on agent activity)
+    Object.keys(droidChats).forEach(entityId => {
+        updateDroidChatWindow(entityId, /*syncOnly*/ true);
+    });
 }
+
+// --- Droid Chat ---
+function isDroidAgentActive(entityId) {
+    try {
+        const entity = simulationData.world?.entities?.[entityId];
+        const agent = entity?.slots?.agent?.component;
+        return !!agent?.is_active;
+    } catch (e) { return false; }
+}
+
+function openDroidChatWindow(entityId) {
+    ensureDroidChatWindow(entityId);
+    const win = document.getElementById(`droid-chat-window-${entityId}`);
+    if (win) { showWindow(win.id); bringToFront(win); }
+}
+
+function ensureDroidChatWindow(entityId) {
+    if (!droidChats[entityId]) {
+        droidChats[entityId] = { messages: [], pending: false };
+    }
+
+    let win = document.getElementById(`droid-chat-window-${entityId}`);
+    if (win) return; // already exists
+
+    win = document.createElement('div');
+    win.id = `droid-chat-window-${entityId}`;
+    win.className = 'window droid-chat-window draggable resizeable';
+    win.style.width = '360px';
+    win.style.height = '300px';
+    win.innerHTML = `
+        <div class="title-bar">
+            <div class="title-bar-text">Droid Chat - ${entityId}</div>
+            <div class="title-bar-controls">
+                <button aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="window-body chat-body">
+            <div id="droid-chat-log-${entityId}" class="chat-log"></div>
+        </div>
+        <div class="status-bar chat-input-bar">
+            <div class="status-bar-field chat-input-wrapper">
+                <input id="droid-chat-input-${entityId}" class="chat-input" type="text" placeholder="Type a message..." />
+            </div>
+            <div class="status-bar-field chat-send-wrapper">
+                <button id="droid-chat-send-${entityId}" class="chat-send">Send</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(win);
+
+    // Wire behaviors
+    const closeButton = win.querySelector('.title-bar-controls button[aria-label="Close"]');
+    if (closeButton) closeButton.addEventListener('click', () => win.classList.add('hidden'));
+    resizeableElement(win); draggableElement(win); bringableToFront(win);
+
+    const input = document.getElementById(`droid-chat-input-${entityId}`);
+    const sendBtn = document.getElementById(`droid-chat-send-${entityId}`);
+
+    const doSend = () => {
+        const text = input.value.trim();
+        if (!text) return;
+        if (isDroidAgentActive(entityId)) return; // guard
+
+        // Append <user> message locally
+        addChatMessage(entityId, 'user', text);
+        input.value = '';
+
+        // Mark pending and disable send
+        droidChats[entityId].pending = true;
+        updateDroidChatWindow(entityId, /*syncOnly*/ true);
+
+        fetch(`/droid/chat/${entityId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        })
+        .then(r => r.json())
+        .then(resp => {
+            if (resp.error) {
+                addChatMessage(entityId, 'system', `Error: ${resp.error}`);
+                droidChats[entityId].pending = false;
+                updateDroidChatWindow(entityId, /*syncOnly*/ true);
+            } else {
+                addChatMessage(entityId, 'system', 'Message sent. Droid is processing...');
+            }
+        })
+        .catch(err => {
+            addChatMessage(entityId, 'system', `Error: ${err}`);
+            droidChats[entityId].pending = false;
+            updateDroidChatWindow(entityId, /*syncOnly*/ true);
+        });
+    };
+
+    sendBtn.addEventListener('click', doSend);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            doSend();
+        }
+    });
+
+    // Initial sync
+    updateDroidChatWindow(entityId, /*syncOnly*/ true);
+}
+
+function addChatMessage(entityId, role, text) {
+    if (!droidChats[entityId]) droidChats[entityId] = { messages: [], pending: false };
+    droidChats[entityId].messages.push({ role, text });
+    updateDroidChatWindow(entityId);
+}
+
+function updateDroidChatWindow(entityId, syncOnly = false) {
+    const logEl = document.getElementById(`droid-chat-log-${entityId}`);
+    const sendBtn = document.getElementById(`droid-chat-send-${entityId}`);
+    const input = document.getElementById(`droid-chat-input-${entityId}`);
+    if (!sendBtn || !input) return;
+
+    const active = isDroidAgentActive(entityId);
+    // Disable send when active
+    sendBtn.disabled = active;
+    input.disabled = active;
+
+    // When we detect agent finished after a pending send, add a simple done line
+    if (!active && droidChats[entityId]?.pending) {
+        droidChats[entityId].pending = false;
+        // addChatMessage(entityId, 'droid', 'Task complete. What is your next command?');
+    }
+
+    if (syncOnly || !logEl) return;
+
+    // Render messages
+    logEl.innerHTML = '';
+    (droidChats[entityId]?.messages || []).forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `chat-line chat-${msg.role}`;
+        const prefix = msg.role === 'tool' ? '<tool>' : msg.role === 'droid' ? '<droid>' : msg.role === 'user' ? '<user>' : '<system>';
+        div.textContent = `${prefix} ${msg.text}`;
+        logEl.appendChild(div);
+    });
+    // Auto-scroll
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
 
 function updateJsonTreeviewHtmlIncrementally(containerElement, json, title, id_path, depth = 0) {
     // Get or create the root container
@@ -335,6 +489,7 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
     return html;
 }
 
+
 function showEntityDetailWindow(entityId) {
     // Create or focus the entity detail window for the given entity ID
     let window = document.getElementById(`entity-detail-window-${entityId}`);
@@ -380,6 +535,7 @@ function showEntityDetailWindow(entityId) {
     bringToFront(window);
 }
 
+// Extend entity detail window to offer a Chat menu item/button
 function updateEntityDetailWindow(entityId) {
     // Update the entity detail window for the given entity ID
     let window = document.getElementById(`entity-detail-window-${entityId}`);
@@ -408,8 +564,69 @@ function updateEntityDetailWindow(entityId) {
     if (entity.slots) {
         Object.keys(entity.slots).forEach(slotName => {
             const slot = entity.slots[slotName];
+            console.log(`Entity ${entityId} Slot ${slotName} accepts ${slot.accepts}:`, slot);
             // Create a specialized view for each slot based on what it can accept
             switch (slot.accepts) {
+                case 'DroidAgentSimple':
+                    // Add a progress bar to display the agent context usage vs. capacity
+                    progressGroup = document.createElement('fieldset');
+                    progressGroup.style.width = 'calc(100% - 24px)';
+                    progressGroupLabel = document.createElement('legend');
+                    progressGroupLabel.textContent = `Agent - ${slotName}`;
+                    progressGroup.appendChild(progressGroupLabel);
+
+                    progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-indicator segmented';
+                    progressDiv.style.width = '100%'; // Ensure it takes full width
+                    const contextBar = document.createElement('span');
+                    contextBar.className = 'progress-indicator-bar';
+                    contextBar['data-key'] = `${entityId}.${slotName}`;
+                    if (slot.component) {
+                        contextBar['data-context_size'] = slot.component.last_total_tokens;
+                        contextBar['data-context_size_max'] = slot.component.tokens_max;
+
+                        var pct = (slot.component.last_total_tokens / slot.component.tokens_max) * 100;
+                        contextBar.title = `Context Size: ${slot.component.last_total_tokens}, Max: ${slot.component.tokens_max} (${pct.toFixed(2)}%)`;
+                        // Remove the disabled class if it exists
+                        contextBar.classList.remove('disabled');
+                        // Set the width based on the context size percentage
+                        const contextPercentage = (slot.component.last_total_tokens / slot.component.tokens_max) * 100;
+                        contextBar.style.width = `${contextPercentage}%`;
+                    }
+                    else {
+                        // Otherwise, set it to 0% width and grey it out as disabled
+                        contextBar.style.width = '0%';
+                        contextBar.classList.add('disabled');
+                        // contextBar.textContent = `${slotName}: 0/0`;
+                        // Add a tooltip indicating no component is present
+                        contextBar.title = 'No component present';
+                    }
+                    progressDiv.title = contextBar.title;
+                    progressGroup.title = contextBar.title;
+                    progressDiv.appendChild(contextBar);
+                    progressGroup.appendChild(progressDiv);
+                    detailBody.appendChild(progressGroup);
+
+                    // Add a button to open up a window and chat with the droid agent
+                    const chatGroup = document.createElement('fieldset');
+                    chatGroup.style.width = 'calc(100% - 24px)';
+                    const legend = document.createElement('legend');
+                    legend.textContent = 'Agent';
+                    chatGroup.appendChild(legend);
+
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Open Chat';
+                    btn.addEventListener('click', () => openDroidChatWindow(entityId));
+                    chatGroup.appendChild(btn);
+
+                    const isActive = !!entity.slots.agent.component?.is_active;
+                    const status = document.createElement('span');
+                    status.style.marginLeft = '8px';
+                    status.textContent = isActive ? '(Busy)' : '(Idle)';
+                    chatGroup.appendChild(status);
+
+                    detailBody.appendChild(chatGroup);
+                    break;
                 case 'PowerPack':
                     // Add a progress bar to display the power pack charge and capacity
                     // <div class="progress-indicator segmented">
@@ -430,9 +647,7 @@ function updateEntityDetailWindow(entityId) {
                     if (slot.component) {
                         progressBar['data-charge'] = slot.component.charge;
                         progressBar['data-charge_max'] = slot.component.charge_max;
-                        progressBar['data-capacity'] = slot.component.capacity;
-                        progressBar['data-capacity_max'] = slot.component.capacity_max;
-                        // progressBar.textContent = `${slotName}: ${slot.component.charge}/${slot.component.charge_max}`;
+                        var pct = (slot.component.charge / slot.component.charge_max) * 100;
                         // Add a tooltip with the charge and capacity
                         progressBar.title = `Charge: ${slot.component.charge}, Capacity: ${slot.component.charge_max}`;
                         // Remove the disabled class if it exists
@@ -497,6 +712,7 @@ function updateEntityDetailWindow(entityId) {
             }
         });
     }
+
 }
 
 function doFullscreen(enable) {
@@ -563,7 +779,7 @@ function setSimulationDelay(simulation_delay) {
         },
     })
     .then(response => response.json())
-    .then(data => {
+    .then((data) => {
         console.log('Simulation delay set:', data);
     })
     .catch(error => {

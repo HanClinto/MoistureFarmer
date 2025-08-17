@@ -1,12 +1,14 @@
 import threading 
 import asyncio
 import json
+import os
 from simulation.AutoScenarioManager import AutoScenarioManager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+from simulation.DroidAgents import DroidAgent
 from simulation.World import Simulation
 
 app = FastAPI()
@@ -114,9 +116,52 @@ async def load_scenario(request: Request):
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}
+    
+@app.post("/droid/chat/{droid_id}")
+async def droid_chat(droid_id: str, request: Request):
+    """Handle chat messages for a specific droid."""
+    if not simulation:
+        return {"error": "No simulation loaded"}
+    body = await request.json()
+    message = body.get("message", "")
+    print(f'*** Droid {droid_id} sent message: {message} ***')
+    # Here you would add logic to process the droid's message
+    droid = simulation.world.get_entity(droid_id)
+    if not droid:
+        return {"error": f"Droid with ID {droid_id} not found"}
+    
+    # Get the agent component of the droid
+    agent = droid.get_component(DroidAgent)
+
+    if not agent:
+        return {"error": f"Droid {droid_id} does not have an agent component"}
+    
+    # If the agent is already active and processing, for now we will just return an error
+    if agent.is_active:
+        return {"error": f"Droid {droid_id} is already processing a request"}
+    
+    # Activate the agent with the message
+    agent.activate(message)
+
+    # Immediately broadcast the updated simulation so clients can reflect busy state
+    broadcast_simulation_state(simulation)
+
+    return {"status": "success", "message": f"Droid {droid_id} is processing the message: {str(agent.last_message())}"}
 
 def broadcast_simulation_state(simulation: Simulation):
-    sim_state = json.dumps(simulation.to_json())
+    """Broadcast the current simulation state to all subscribers."""
+    # Serialize the simulation state to JSON
+    print(f'*** Broadcasting simulation state to {len(subscribers)} subscribers ***')
+
+    print()
+    simulation_json = simulation.to_json()
+    #print(f' Debug simulation state: {simulation_json}')
+    simulation_json_dumps = json.dumps(simulation_json, ensure_ascii=False, default=str)
+    
+    #print(f' Debug simulation state JSON: {simulation_json_dumps}')
+    #print(f' Debug simulation state: {simulation.to_json()}')
+    sim_state = simulation_json_dumps
+    #sim_state = simulation.to_json()
     for queue in list(subscribers):
         queue.put_nowait(sim_state)
 
@@ -145,6 +190,16 @@ def attach_to_simulation(sim: Simulation):
 async def startup_event():
     global simulation, simulation_thread
     simulation, simulation_thread = initialize_simulation()
+
+    # Optionally load a default scenario from environment variable
+    scenario_path = os.environ.get("MF_DEFAULT_SCENARIO")
+    if scenario_path:
+        try:
+            AutoScenarioManager.load_simulation_from_json(scenario_path)
+            broadcast_simulation_state(simulation)
+            print(f"[INFO] Loaded default scenario: {scenario_path}")
+        except Exception as e:
+            print(f"[WARN] Failed to load default scenario '{scenario_path}': {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
