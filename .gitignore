@@ -204,3 +204,4 @@ cython_debug/
 # Test output artifacts (not source)
 code/tests/output/
 code/tests/output/*.json
+queued_web_request.json
