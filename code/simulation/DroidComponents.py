@@ -25,7 +25,7 @@ class Motivator(Component):
     @tool
     def move_to_entity(self, identifier: str) -> Callable[..., ToolCallResult]:
         """
-        Move the chassis to the nearest entity of a specific type or by its ID.
+        Move to the nearest entity of a specific type or by its ID.
 
         Args:
             identifier (str): The type of entity or its ID to move to.
@@ -55,7 +55,7 @@ class Motivator(Component):
     @tool
     def move_to_location(self, x: int, y: int) -> Callable[..., ToolCallResult]:
         """
-        Move the chassis to a specific location in the world.
+        Move to a specific location in the world.
         Args:
             x (int): The x-coordinate of the destination.
             y (int): The y-coordinate of the destination.
