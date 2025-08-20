@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import re
 from typing import Callable, Dict, List, Optional
@@ -11,7 +12,7 @@ from simulation.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
 from simulation.QueuedWebRequest import QueuedHttpRequest
 from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
-from simulation.World import World
+from simulation.World import World, Simulation
 
 class ContextMessage(BaseModel):
     role:str = "user"
@@ -142,18 +143,21 @@ class DroidAgent(Component):
             return
         
         # If there is no queued web request, then we should kick off the next step in the agentic loop
-        queued_web_request = QueuedHttpRequest(
+        queued_http_request = QueuedHttpRequest(
             url=GlobalConfig.llm_api_url,
             data= self.context.to_json(),
         )
 
         # Save the web request to a file so that we can see what was sent
-        with open("queued_web_request.json", "w") as f:
-            json.dump(queued_web_request.data, f, indent=2)
+        if GlobalConfig.llm_dump_http_requests:
+            os.makedirs("logs", exist_ok=True)
+            filename = f"queued_http_request_{self.chassis.id}_{Simulation.get_instance().tick_count}_out.json"
+            with open(f"logs/{filename}", "w") as f:
+                json.dump(queued_http_request.data, f, indent=2)
 
-        queued_web_request.begin_send() #timeout=GlobalConfig.llm_timeout_seconds)
+        queued_http_request.begin_send() #timeout=GlobalConfig.llm_timeout_seconds)
 
-        self.queued_http_request = queued_web_request
+        self.queued_http_request = queued_http_request
 
 
     def tick(self):
@@ -175,6 +179,13 @@ class DroidAgent(Component):
                 resp = self.queued_http_request.response
                 self.info(f'Agent received response from web request: {resp}')
                 self.queued_http_request = None
+
+                # Save the response to a file so that we can see what was received
+                if GlobalConfig.llm_dump_http_requests:
+                    os.makedirs("logs", exist_ok=True)
+                    filename = f"queued_http_request_{self.chassis.id}_{Simulation.get_instance().tick_count}_in.json"
+                    with open(f"logs/{filename}", "w") as f:
+                        json.dump(resp, f, indent=2)
 
                 # Gracefully handle error responses that lack 'choices'
                 if not isinstance(resp, dict) or 'choices' not in resp:
