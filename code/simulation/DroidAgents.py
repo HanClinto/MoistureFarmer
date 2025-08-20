@@ -147,7 +147,11 @@ class DroidAgent(Component):
             data= self.context.to_json(),
         )
 
-        queued_web_request.begin_send(timeout=25.0)  # Send the request with a timeout of X seconds. TODO: Make this configurable
+        # Save the web request to a file so that we can see what was sent
+        with open("queued_web_request.json", "w") as f:
+            json.dump(queued_web_request.data, f, indent=2)
+
+        queued_web_request.begin_send() #timeout=GlobalConfig.llm_timeout_seconds)
 
         self.queued_http_request = queued_web_request
 
@@ -345,7 +349,7 @@ class DroidAgent(Component):
                     url=GlobalConfig.llm_api_url,
                     data= self.context.to_json(),
                 )
-                queued_web_request.begin_send(timeout=5.0)  # Send the request with a timeout of 5 seconds
+                queued_web_request.begin_send() #timeout=GlobalConfig.llm_timeout_seconds)
                 self.queued_http_request = queued_web_request
 
     def _attempt_parse_and_execute_goal(self) -> bool:
