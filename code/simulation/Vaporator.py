@@ -9,7 +9,7 @@ class CondenserUnit(Component):
     water_per_charge: int = 1 # Amount of water condensed per unit of charge
 
     def tick(self):
-        self.info(f"Tick: {self.water_per_charge} water per charge")
+        # self.info(f"Tick: {self.water_per_charge} water per charge")
 
         if not self.chassis:
             raise ValueError("CondenserUnit must be installed in a chassis to function.")
@@ -27,11 +27,11 @@ class CondenserUnit(Component):
             return
 
         if tank.fill >= tank.capacity:
-            self.warn("Water tank is full. CondenserUnit cannot condense more water.")
+            #self.warn("Water tank is full. CondenserUnit cannot condense more water.")
             # TODO: Post an error message to world and/or chassis system?
             return
         if power.charge <= 0:
-            self.warn("Power pack is empty. CondenserUnit cannot condense water.")
+            #self.warn("Power pack is empty. CondenserUnit cannot condense water.")
             # TODO: Post an error message to world and/or chassis system?
             return
             

@@ -18,12 +18,14 @@ class GlobalConfig(BaseModel):
 
     # LLM settings
     llm_model: ClassVar[str] = "gpt-3.5-turbo"  # Default LLM model to use
-    llm_api_url: ClassVar[str] = "http://127.0.0.1:5000/v1/chat/completions"  # URL for the LLM API
+    llm_api_url: ClassVar[str] = "http://127.0.0.1:8080/v1/chat/completions"  # URL for the LLM API
     llm_temperature: ClassVar[float] = 0.7  # Temperature for LLM responses (0.0 = deterministic, 1.0 = more random)
     llm_top_p: ClassVar[float] = 1.0  # Top-p sampling for LLM responses (0.0 = no sampling, 1.0 = full sampling)
     llm_top_k: ClassVar[int] = 50  # Top-k sampling for LLM responses (0 = no top-k)
     llm_seed: ClassVar[int] = 42  # Seed for LLM random number generation
     llm_context_limit: ClassVar[int] = 32768  # Context limit for LLM (number of tokens)
+
+    llm_timeout_seconds: ClassVar[float] = 240.0  # Default timeout for LLM requests in seconds
 
     # Color codes for terminal output
     colors: ClassVar[Colors] = Colors()

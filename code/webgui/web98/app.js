@@ -1,6 +1,43 @@
 simulationData = {};
 simulationDataDictionary = {};
+// Simple in-memory chat state per droid
+const droidChats = {}; // { [entityId]: { messages: Array<{role:string,text:string}>, pending: boolean } }
 
+// Movement tween configuration & state
+if (typeof window.MOVE_TWEEN_MS === 'undefined') window.MOVE_TWEEN_MS = 100; // ms between tile centers
+if (typeof window._entityTweenState === 'undefined') window._entityTweenState = {}; // id -> tween state
+if (typeof window._entityTweenAnimRunning === 'undefined') window._entityTweenAnimRunning = false;
+
+function _ensureTweenLoop() {
+    if (window._entityTweenAnimRunning) return;
+    window._entityTweenAnimRunning = true;
+    const step = (now) => {
+        try { _updateEntityTweenPositions(now); } catch(e) { /* keep loop alive */ }
+        requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+function _updateEntityTweenPositions(nowTs) {
+    const state = window._entityTweenState;
+    for (const id in state) {
+        const s = state[id];
+        if (!s) continue;
+        const dur = window.MOVE_TWEEN_MS || 100;
+        const t = Math.min(1, (nowTs - s.moveStart) / dur);
+        const ix = s.prevX + (s.targetX - s.prevX) * t;
+        const iy = s.prevY + (s.targetY - s.prevY) * t;
+        s.interpX = ix;
+        s.interpY = iy;
+        s.progress = t;
+        if (window.DEBUG_LOG_TWEEN && (t === 1 || t === 0)) {
+            console.log('[tween]', id, 'progress', t.toFixed(2), 'pos', ix, iy);
+        }
+    }
+    if (simulationData.world && simulationData.world.tilemap) {
+        try { renderWorldTilemap(simulationData.world.tilemap); } catch(e) {}
+    }
+}
 // Debug logger to prevent noisy console overhead in hot paths
 if (typeof window.DEBUG_LOG === 'undefined') {
     window.DEBUG_LOG = false;
@@ -167,54 +204,206 @@ function updateSimulationDisplay() {
 
     const entitiesContainer = document.getElementById('world-entities');
     if (entitiesContainer) {
-        // Clear existing icons
+        // Clear existing icons (canvas rendering used now)
         const existingIcons = entitiesContainer.querySelectorAll('.entity-icon');
         existingIcons.forEach(icon => icon.remove());
+        debugLog('Entities snapshot', simulationData.world && simulationData.world.entities);
 
-    debugLog('Entities snapshot', simulationData.world && simulationData.world.entities);
-
-        // simulationData.world.entities is a dictionary of entities where the key is the entity ID
-
-        // Add new icons for each entity, with a caption centered underneath like an icon's name in Windows 98
+        // Maintain tween targets for canvas rendering
+        const tweenState = window._entityTweenState;
         Object.values(simulationData.world.entities).forEach(entity => {
-            // If there is a window attached to this entity, update it
             updateEntityDetailWindow(entity.id);
-
-            // Create a group entity to hold both the icon and caption
-            const group = document.createElement('div');
-            group.className = 'entity-icon';
-            group.style.position = 'absolute';
-            group.style.left = `${entity.location.x * 32}px`;
-            group.style.top = `${entity.location.y * 32}px`;
-            group.setAttribute('data-entity-id', entity.id);
-
-            // Create the icon image element
-            const icon = document.createElement('img');
-            icon.src = `/resources/sprites/${entity.model}.png`; // Use the model name for the sprite
-            icon.className = 'entity-icon-sprite';
-            group.appendChild(icon);
-
-            // Create the caption element
-            const caption = document.createElement('div');
-            caption.className = 'entity-icon-caption';
-            caption.textContent = entity.name || entity.id; // Use name if available, otherwise use ID
-            group.appendChild(caption);
-
-            // When mouse-down on the anything in the group, open the entity detail window
-            // TODO: Why doesn't this work?
-            icon.addEventListener("click", function() {
-                debugLog(`Opening entity detail for ${entity.id}`);
-                showEntityDetailWindow(entity.id);
-                window.selectedEntityId = entity.id; // Update selection
-            });
-
-            entitiesContainer.appendChild(group);
-            debugLog(`Added icon for entity ${entity.id} at (${entity.location.x}, ${entity.location.y})`);
-
-            // TODO: Add drop-down menu items for entities
+            const tileSize = 32;
+            const targetX = entity.location.x * tileSize;
+            const targetY = entity.location.y * tileSize;
+            let st = tweenState[entity.id];
+            const now = performance.now();
+            if (!st) {
+                // First time: no tween, start at target
+                st = tweenState[entity.id] = { prevX: targetX, prevY: targetY, targetX, targetY, moveStart: now, interpX: targetX, interpY: targetY, progress: 1 };
+            } else {
+                // Determine if teleport (delta > 1 tile)
+                const dxTiles = Math.abs((targetX - st.targetX) / tileSize);
+                const dyTiles = Math.abs((targetY - st.targetY) / tileSize);
+                const teleport = dxTiles > 1 || dyTiles > 1;
+                // Capture in-flight position for smooth chaining
+                if (st.progress !== 1) {
+                    const dur = window.MOVE_TWEEN_MS || 100;
+                    const t = Math.min(1, (now - st.moveStart) / dur);
+                    const curX = st.prevX + (st.targetX - st.prevX) * t;
+                    const curY = st.prevY + (st.targetY - st.prevY) * t;
+                    st.prevX = curX;
+                    st.prevY = curY;
+                } else {
+                    // Previous tween completed, start from last target
+                    st.prevX = st.targetX;
+                    st.prevY = st.targetY;
+                }
+                st.targetX = targetX;
+                st.targetY = targetY;
+                st.moveStart = now;
+                st.progress = teleport ? 1 : 0;
+                if (teleport) {
+                    st.prevX = targetX;
+                    st.prevY = targetY;
+                    st.interpX = targetX;
+                    st.interpY = targetY;
+                }
+            }
+            // DOM sprite icons removed in favor of canvas rendering
         });
+        // Start animation loop once we have entities
+        _ensureTweenLoop();
     }
+
+    // Keep any open chat windows in sync (enable/disable send button based on agent activity)
+    Object.keys(droidChats).forEach(entityId => {
+        updateDroidChatWindow(entityId, /*syncOnly*/ true);
+    });
 }
+
+// --- Droid Chat ---
+function isDroidAgentActive(entityId) {
+    try {
+        const entity = simulationData.world?.entities?.[entityId];
+        const agent = entity?.slots?.agent?.component;
+        return !!agent?.is_active;
+    } catch (e) { return false; }
+}
+
+function openDroidChatWindow(entityId) {
+    ensureDroidChatWindow(entityId);
+    const win = document.getElementById(`droid-chat-window-${entityId}`);
+    if (win) { showWindow(win.id); bringToFront(win); }
+}
+
+function ensureDroidChatWindow(entityId) {
+    if (!droidChats[entityId]) {
+        droidChats[entityId] = { messages: [], pending: false };
+    }
+
+    let win = document.getElementById(`droid-chat-window-${entityId}`);
+    if (win) return; // already exists
+
+    win = document.createElement('div');
+    win.id = `droid-chat-window-${entityId}`;
+    win.className = 'window droid-chat-window draggable resizeable';
+    win.style.width = '360px';
+    win.style.height = '300px';
+    win.innerHTML = `
+        <div class="title-bar">
+            <div class="title-bar-text">Droid Chat - ${entityId}</div>
+            <div class="title-bar-controls">
+                <button aria-label="Close"></button>
+            </div>
+        </div>
+        <div class="window-body chat-body">
+            <div id="droid-chat-log-${entityId}" class="chat-log"></div>
+        </div>
+        <div class="status-bar chat-input-bar">
+            <div class="status-bar-field chat-input-wrapper">
+                <input id="droid-chat-input-${entityId}" class="chat-input" type="text" placeholder="Type a message..." />
+            </div>
+            <div class="status-bar-field chat-send-wrapper">
+                <button id="droid-chat-send-${entityId}" class="chat-send">Send</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(win);
+
+    // Wire behaviors
+    const closeButton = win.querySelector('.title-bar-controls button[aria-label="Close"]');
+    if (closeButton) closeButton.addEventListener('click', () => win.classList.add('hidden'));
+    resizeableElement(win); draggableElement(win); bringableToFront(win);
+
+    const input = document.getElementById(`droid-chat-input-${entityId}`);
+    const sendBtn = document.getElementById(`droid-chat-send-${entityId}`);
+
+    const doSend = () => {
+        const text = input.value.trim();
+        if (!text) return;
+        if (isDroidAgentActive(entityId)) return; // guard
+
+        // Append <user> message locally
+        addChatMessage(entityId, 'user', text);
+        input.value = '';
+
+        // Mark pending and disable send
+        droidChats[entityId].pending = true;
+        updateDroidChatWindow(entityId, /*syncOnly*/ true);
+
+        fetch(`/droid/chat/${entityId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        })
+        .then(r => r.json())
+        .then(resp => {
+            if (resp.error) {
+                addChatMessage(entityId, 'system', `Error: ${resp.error}`);
+                droidChats[entityId].pending = false;
+                updateDroidChatWindow(entityId, /*syncOnly*/ true);
+            } else {
+                addChatMessage(entityId, 'system', 'Message sent. Droid is processing...');
+            }
+        })
+        .catch(err => {
+            addChatMessage(entityId, 'system', `Error: ${err}`);
+            droidChats[entityId].pending = false;
+            updateDroidChatWindow(entityId, /*syncOnly*/ true);
+        });
+    };
+
+    sendBtn.addEventListener('click', doSend);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            doSend();
+        }
+    });
+
+    // Initial sync
+    updateDroidChatWindow(entityId, /*syncOnly*/ true);
+}
+
+function addChatMessage(entityId, role, text) {
+    if (!droidChats[entityId]) droidChats[entityId] = { messages: [], pending: false };
+    droidChats[entityId].messages.push({ role, text });
+    updateDroidChatWindow(entityId);
+}
+
+function updateDroidChatWindow(entityId, syncOnly = false) {
+    const logEl = document.getElementById(`droid-chat-log-${entityId}`);
+    const sendBtn = document.getElementById(`droid-chat-send-${entityId}`);
+    const input = document.getElementById(`droid-chat-input-${entityId}`);
+    if (!sendBtn || !input) return;
+
+    const active = isDroidAgentActive(entityId);
+    // Disable send when active
+    sendBtn.disabled = active;
+    input.disabled = active;
+
+    // When we detect agent finished after a pending send, add a simple done line
+    if (!active && droidChats[entityId]?.pending) {
+        droidChats[entityId].pending = false;
+        // addChatMessage(entityId, 'droid', 'Task complete. What is your next command?');
+    }
+
+    if (syncOnly || !logEl) return;
+
+    // Render messages
+    logEl.innerHTML = '';
+    (droidChats[entityId]?.messages || []).forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `chat-line chat-${msg.role}`;
+        const prefix = msg.role === 'tool' ? '<tool>' : msg.role === 'droid' ? '<droid>' : msg.role === 'user' ? '<user>' : '<system>';
+        div.textContent = `${prefix} ${msg.text}`;
+        logEl.appendChild(div);
+    });
+    // Auto-scroll
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
 
 function updateJsonTreeviewHtmlIncrementally(containerElement, json, title, id_path, depth = 0) {
     // Get or create the root container
@@ -346,6 +535,7 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
     return html;
 }
 
+
 function showEntityDetailWindow(entityId) {
     // Create or focus the entity detail window for the given entity ID
     let window = document.getElementById(`entity-detail-window-${entityId}`);
@@ -391,6 +581,7 @@ function showEntityDetailWindow(entityId) {
     bringToFront(window);
 }
 
+// Extend entity detail window to offer a Chat menu item/button
 function updateEntityDetailWindow(entityId) {
     // Update the entity detail window for the given entity ID
     let window = document.getElementById(`entity-detail-window-${entityId}`);
@@ -419,8 +610,69 @@ function updateEntityDetailWindow(entityId) {
     if (entity.slots) {
         Object.keys(entity.slots).forEach(slotName => {
             const slot = entity.slots[slotName];
+            console.log(`Entity ${entityId} Slot ${slotName} accepts ${slot.accepts}:`, slot);
             // Create a specialized view for each slot based on what it can accept
             switch (slot.accepts) {
+                case 'DroidAgentSimple':
+                    // Add a progress bar to display the agent context usage vs. capacity
+                    progressGroup = document.createElement('fieldset');
+                    progressGroup.style.width = 'calc(100% - 24px)';
+                    progressGroupLabel = document.createElement('legend');
+                    progressGroupLabel.textContent = `Agent - ${slotName}`;
+                    progressGroup.appendChild(progressGroupLabel);
+
+                    progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-indicator segmented';
+                    progressDiv.style.width = '100%'; // Ensure it takes full width
+                    const contextBar = document.createElement('span');
+                    contextBar.className = 'progress-indicator-bar';
+                    contextBar['data-key'] = `${entityId}.${slotName}`;
+                    if (slot.component) {
+                        contextBar['data-context_size'] = slot.component.last_total_tokens;
+                        contextBar['data-context_size_max'] = slot.component.tokens_max;
+
+                        var pct = (slot.component.last_total_tokens / slot.component.tokens_max) * 100;
+                        contextBar.title = `Context Size: ${slot.component.last_total_tokens}, Max: ${slot.component.tokens_max} (${pct.toFixed(2)}%)`;
+                        // Remove the disabled class if it exists
+                        contextBar.classList.remove('disabled');
+                        // Set the width based on the context size percentage
+                        const contextPercentage = (slot.component.last_total_tokens / slot.component.tokens_max) * 100;
+                        contextBar.style.width = `${contextPercentage}%`;
+                    }
+                    else {
+                        // Otherwise, set it to 0% width and grey it out as disabled
+                        contextBar.style.width = '0%';
+                        contextBar.classList.add('disabled');
+                        // contextBar.textContent = `${slotName}: 0/0`;
+                        // Add a tooltip indicating no component is present
+                        contextBar.title = 'No component present';
+                    }
+                    progressDiv.title = contextBar.title;
+                    progressGroup.title = contextBar.title;
+                    progressDiv.appendChild(contextBar);
+                    progressGroup.appendChild(progressDiv);
+                    detailBody.appendChild(progressGroup);
+
+                    // Add a button to open up a window and chat with the droid agent
+                    const chatGroup = document.createElement('fieldset');
+                    chatGroup.style.width = 'calc(100% - 24px)';
+                    const legend = document.createElement('legend');
+                    legend.textContent = 'Agent';
+                    chatGroup.appendChild(legend);
+
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Open Chat';
+                    btn.addEventListener('click', () => openDroidChatWindow(entityId));
+                    chatGroup.appendChild(btn);
+
+                    const isActive = !!entity.slots.agent.component?.is_active;
+                    const status = document.createElement('span');
+                    status.style.marginLeft = '8px';
+                    status.textContent = isActive ? '(Busy)' : '(Idle)';
+                    chatGroup.appendChild(status);
+
+                    detailBody.appendChild(chatGroup);
+                    break;
                 case 'PowerPack':
                     // Add a progress bar to display the power pack charge and capacity
                     // <div class="progress-indicator segmented">
@@ -441,9 +693,7 @@ function updateEntityDetailWindow(entityId) {
                     if (slot.component) {
                         progressBar['data-charge'] = slot.component.charge;
                         progressBar['data-charge_max'] = slot.component.charge_max;
-                        progressBar['data-capacity'] = slot.component.capacity;
-                        progressBar['data-capacity_max'] = slot.component.capacity_max;
-                        // progressBar.textContent = `${slotName}: ${slot.component.charge}/${slot.component.charge_max}`;
+                        var pct = (slot.component.charge / slot.component.charge_max) * 100;
                         // Add a tooltip with the charge and capacity
                         progressBar.title = `Charge: ${slot.component.charge}, Capacity: ${slot.component.charge_max}`;
                         // Remove the disabled class if it exists
@@ -508,6 +758,7 @@ function updateEntityDetailWindow(entityId) {
             }
         });
     }
+
 }
 
 function doFullscreen(enable) {
@@ -574,7 +825,7 @@ function setSimulationDelay(simulation_delay) {
         },
     })
     .then(response => response.json())
-    .then(data => {
+    .then((data) => {
         console.log('Simulation delay set:', data);
     })
     .catch(error => {
@@ -735,8 +986,8 @@ function createWorldControlsWindow() {
   if (document.getElementById('world-controls-window')) return;
   const win = document.createElement('div');
   win.id = 'world-controls-window';
-  win.className = 'window draggable';
-  win.style = 'position:absolute; left:20px; top:20px; width:160px; height:120px;';
+    win.className = 'window draggable';
+    win.style = 'position:absolute; left:20px; top:20px; width:auto; height:auto;';
   win.innerHTML = `
     <div class="title-bar">
       <div class="title-bar-text">World View</div>
@@ -744,17 +995,22 @@ function createWorldControlsWindow() {
         <button aria-label="Close"></button>
       </div>
     </div>
-    <div class="window-body" style="padding:4px; display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; gap:2px;">
-        <button id="world-zoom-out" style="flex:1;">-</button>
-        <button id="world-zoom-reset" style="flex:1;">Fit</button>
-        <button id="world-zoom-in" style="flex:1;">+</button>
-      </div>
-      <div style="display:flex; gap:2px;">
-        <button id="world-pan-reset" style="flex:1;">Center</button>
-      </div>
-    </div>`;
-  document.body.appendChild(win);
+        <div class="window-body" style="padding:4px; display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; gap:2px;">
+                <button id="world-zoom-out" class="btn-compact">-</button>
+                <button id="world-zoom-reset" class="btn-compact">Fit</button>
+                <button id="world-zoom-in" class="btn-compact">+</button>
+                <button id="world-pan-reset" class="btn-compact">Center</button>
+            </div>
+        </div>`;
+    document.body.appendChild(win);
+    // Position bottom-left after rendering so we know its height
+    requestAnimationFrame(()=> {
+        try {
+            win.style.left = '8px';
+            win.style.top = (window.innerHeight - win.offsetHeight - 8) + 'px';
+        } catch(e) {}
+    });
   
   // Wire close button
   const closeBtn = win.querySelector('.title-bar-controls button[aria-label="Close"]');
@@ -910,12 +1166,23 @@ function setupWorldLayerInteraction() {
     updateWorldView();
   });
   
-  // Wheel zoom on world layer
-  worldLayer.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
-    zoomWorldAtPoint(e.clientX, e.clientY, factor);
-  }, { passive: false });
+    // Wheel zoom on world layer (with macOS sensitivity adjustment)
+    worldLayer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        // Detect macOS (includes Intel & Apple Silicon variants)
+        const isMac = /Macintosh|MacIntel|MacPPC|Mac68K|Mac OS X/i.test(navigator.userAgent) || (navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+        // Base per-notch zoom factor
+        const baseZoomIn = 1.1;
+        const baseZoomOut = 1 / baseZoomIn;
+        let factor = e.deltaY < 0 ? baseZoomIn : baseZoomOut;
+        if (isMac) {
+            // Make it about 3x less sensitive: take the cubic root of the factor to reduce magnitude
+            // rootFactor ~ 1.032 vs 1.1 (since 1.032^3 ≈ 1.10)
+            const reduce = (f) => Math.pow(f, 1/3);
+            factor = e.deltaY < 0 ? reduce(baseZoomIn) : 1 / reduce(baseZoomIn);
+        }
+        zoomWorldAtPoint(e.clientX, e.clientY, factor);
+    }, { passive: false });
   
   worldLayer.style.cursor = 'grab';
 
@@ -974,61 +1241,105 @@ function renderWorldTilemap(tm) {
       ctx.fillStyle = colors[id] || '#FF00FF';
       ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
     }
-  }
+    }
+
+    // --- Entity rendering (simple colored rectangles) ---
+    try {
+        if (simulationData.world && simulationData.world.entities) {
+            // Lazy-init color cache & generator
+            if (!window._entityColorCache) window._entityColorCache = {};
+            if (!window._entityColorFor) {
+                window._entityColorFor = function(id) {
+                    if (window._entityColorCache[id]) return window._entityColorCache[id];
+                    // Deterministic hash -> hue
+                    let h = 0;
+                        for (let i = 0; i < id.length; i++) {
+                            h = (h * 131 + id.charCodeAt(i)) >>> 0; // simple rolling hash
+                        }
+                    const hue = h % 360;
+                    const color = `hsl(${hue}deg 65% 55%)`;
+                    window._entityColorCache[id] = color;
+                    return color;
+                };
+            }
+
+            const entities = Object.values(simulationData.world.entities);
+            const tweenState = window._entityTweenState || {};
+            for (const ent of entities) {
+                if (!ent || !ent.location) continue;
+                const st = tweenState[ent.id];
+                let ex = ent.location.x * tileSize;
+                let ey = ent.location.y * tileSize;
+                if (st) {
+                    // Use interpolated position if tween in progress
+                    ex = (typeof st.interpX === 'number') ? st.interpX : ex;
+                    ey = (typeof st.interpY === 'number') ? st.interpY : ey;
+                }
+                const inset = 2;
+                const size = tileSize - inset * 2;
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000';
+                ctx.fillStyle = window._entityColorFor(ent.id || 'unknown');
+                ctx.beginPath();
+                ctx.rect(ex + inset, ey + inset, size, size);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    } catch (e) {
+        console.warn('Entity render error', e);
+    }
   
   ctx.restore();
 }
 
 // Camera state persistence
 function saveTimapViewState() {
-    // Debounce to avoid frequent blocking localStorage writes during pan/zoom
-    if (window._saveViewStateTimer) {
-        clearTimeout(window._saveViewStateTimer);
-    }
-    window._saveViewStateTimer = setTimeout(() => {
-        const state = {
-            scale: tilemapView.scale,
-            offsetX: tilemapView.offsetX,
-            offsetY: tilemapView.offsetY
-        };
-        try {
-            localStorage.setItem('moistureFarmer_tilemapView', JSON.stringify(state));
-        } catch (e) {
-            // Ignore quota or security errors
+        // Debounce to avoid frequent blocking localStorage writes during pan/zoom
+        if (window._saveViewStateTimer) {
+                clearTimeout(window._saveViewStateTimer);
         }
-        window._saveViewStateTimer = null;
-    }, 120);
+        window._saveViewStateTimer = setTimeout(() => {
+                const state = {
+                        scale: tilemapView.scale,
+                        offsetX: tilemapView.offsetX,
+                        offsetY: tilemapView.offsetY
+                };
+                try {
+                        localStorage.setItem('moistureFarmer_tilemapView', JSON.stringify(state));
+                } catch (e) {
+                        // Ignore quota or security errors
+                }
+                window._saveViewStateTimer = null;
+        }, 120);
 }
 
 function loadTimapViewState() {
-  try {
-    const saved = localStorage.getItem('moistureFarmer_tilemapView');
-    if (saved) {
-      const state = JSON.parse(saved);
-      tilemapView.scale = state.scale || 1;
-      tilemapView.offsetX = state.offsetX || 0;
-      tilemapView.offsetY = state.offsetY || 0;
-      return true;
+    try {
+        const saved = localStorage.getItem('moistureFarmer_tilemapView');
+        if (saved) {
+            const state = JSON.parse(saved);
+            tilemapView.scale = state.scale || 1;
+            tilemapView.offsetX = state.offsetX || 0;
+            tilemapView.offsetY = state.offsetY || 0;
+            return true;
+        }
+    } catch (e) {
+        console.warn('Failed to load tilemap view state:', e);
     }
-  } catch (e) {
-    console.warn('Failed to load tilemap view state:', e);
-  }
-  return false;
+    return false;
 }
 
 // Calculate initial view - fit viewport but never exceed 100% scale
 function calculateInitialView() {
-  // Try to load saved state first
-  if (loadTimapViewState()) {
-    updateWorldView();
-    return;
-  }
-  
-  // Otherwise, fit to viewport
-  fitWorldToViewport();
-  
-  // Save the initial state
-  saveTimapViewState();
+    // Try to load saved state first
+    if (loadTimapViewState()) {
+        updateWorldView();
+        return;
+    }
+    saveTimapViewState();
 }
 
 // Hook into existing updateSimulationDisplay to also render tilemap

@@ -9,7 +9,32 @@ body#desktop {
   position: relative; 
   overflow: hidden; 
 }
+/* Utility: disable text selection (for window chrome/title areas etc.) */
+.no-select, .no-select * {
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+/Edge */
+  user-select: none;         /* Standard */
+  -webkit-touch-callout: none; /* iOS Safari long-press */
+  -webkit-user-drag: none;
+}
 
+/* Always prevent selecting title bar text (window chrome) */
+.title-bar, .title-bar * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Compact buttons for small symbol/short-label controls */
+.btn-compact {
+  min-width: auto !important; /* override 98.css default 75px */
+  padding: 0 4px; /* tighter horizontal padding */
+  min-height: 20px; /* align with menu bar height */
+  line-height: 14px;
+  flex: 0 0 auto;
+}
 #world-layer { 
   position: absolute; 
   inset: 0; 
@@ -109,4 +134,41 @@ button.simulation-delay-button {
   flex-direction: column;
   align-items: center;
 }
+
+/* Droid Chat styles */
+.droid-chat-window .chat-body {
+  padding: 0;
+}
+.droid-chat-window .chat-log {
+  font-family: "Pixelated MS Sans Serif", Arial, monospace;
+  -webkit-font-smoothing: none;
+  font-size: 12px;
+  line-height: 1.3;
+  background: #ffffff;
+  border: 2px solid #808080;
+  margin: 8px;
+  height: 100%;
+  width: calc(100% - 16px);
+  overflow: auto;
+  padding: 6px;
+}
+.droid-chat-window .chat-input-bar {
+  display: flex;
+}
+.droid-chat-window .chat-input-wrapper {
+  flex: 1;
+}
+.droid-chat-window .chat-send-wrapper {
+  display: flex;
+  align-items: center;
+}
+.droid-chat-window .chat-input {
+  width: 100%;
+}
+.chat-line { white-space: pre-wrap; }
+.chat-user::before { content: ""; }
+.chat-droid::before { content: ""; }
+.chat-tool::before { content: ""; }
+.chat-system { color: #444; }
+/* Example prefixes are included in text; styles can add colors */
 

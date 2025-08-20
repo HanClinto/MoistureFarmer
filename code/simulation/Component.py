@@ -44,17 +44,21 @@ class Component(GameObject):
         self.info(f"Component {self.id} installed in chassis {chassis.id}.")
 
     def to_json(self, short: bool = False):
-        excludes_list = {'chassis', 'world', 'entity'} # Exclude back-references
+        excludes_list = {'chassis',
+                         'world',
+                         'entity',
+                         'pending_tool_call',
+                         'pending_tool_completion_callback',
+                         'context',
+                         'function_ptr',
+                         } # Exclude back-references
         if short:
             excludes_list.add('path_to_destination')
             excludes_list.add('prompt_system')
             excludes_list.add('prompt_goal')
             excludes_list.add('prompt_status')
             excludes_list.add('queued_http_request')
-            excludes_list.add('pending_tool_call')
             excludes_list.add('pending_tool_call_id')
-            excludes_list.add('pending_tool_completion_callback')
-            excludes_list.add('context')
             excludes_list.add('current_cooldown')
             excludes_list.add('cooldown_delay')
             excludes_list.add('session_history')
@@ -111,8 +115,8 @@ class Chassis(Entity):
         # Raise an on_installed event for the component so that it can initialize itself (if needed)
         component.on_installed(self)
 
-
-    T = TypeVar('T', bound='Component')
+    # Generic helper TypeVar for get_component overloads; mark as ClassVar so Pydantic doesn't treat as field
+    T: ClassVar = TypeVar('T', bound='Component')
 
     @overload
     def get_component(self, identifier: Type[T]) -> Optional[T]: ...
