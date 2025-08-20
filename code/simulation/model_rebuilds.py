@@ -14,27 +14,15 @@ def rebuild_models(verbose: bool = False) -> List[str]:
         except Exception as e:
             if verbose:
                 print(f"[rebuild_models] Skipped {name}: {e}")
-    # Core base/graph dependent ordering: Entity -> TileMapEntity -> World -> RandomWalker (others can be added)
+    # Core base/graph dependent ordering: Entity -> World (others can be added)
     from simulation.Entity import Entity
     try_rebuild('Entity', Entity.model_rebuild)
-    try:
-        from simulation.TileMapEntity import TileMapEntity
-        try_rebuild('TileMapEntity', TileMapEntity.model_rebuild)
-    except Exception as e:
-        if verbose:
-            print(f"[rebuild_models] TileMapEntity import failed: {e}")
     try:
         from simulation.World import World
         try_rebuild('World', World.model_rebuild)
     except Exception as e:
         if verbose:
             print(f"[rebuild_models] World import failed: {e}")
-    try:
-        from simulation.RandomWalker import RandomWalker
-        try_rebuild('RandomWalker', RandomWalker.model_rebuild)
-    except Exception as e:
-        if verbose:
-            print(f"[rebuild_models] RandomWalker import failed: {e}")
     return rebuilt
 
 # Allow direct execution for diagnostics

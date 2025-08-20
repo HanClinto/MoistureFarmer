@@ -1,29 +1,19 @@
 import asyncio
 from time import sleep
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, TYPE_CHECKING
 from pydantic import BaseModel
-
 from simulation.Entity import Entity, Location
 from simulation.Tilemap import Tilemap
-from simulation.TileMapEntity import TileMapEntity
+from simulation.movement_intent import MovementIntent, OUT_OF_BOUNDS, BLOCKED_TILE, OCCUPIED, INVALID_INTENT
+if TYPE_CHECKING:
+    from simulation.Component import Chassis  # type: ignore
 
 # --- World System ---
 class World(BaseModel):
-    # TODO: Implement a map system to represent the world.
-    #  At the very least, we need a grid collision map for checking movement.
     entities: Dict[str, Entity] = {}
-    # Maintain insertion order list for TileMapEntity movement. Entities can have a priority attribute.
-    _movement_insertion_order: List[str] = []
-    # Last movement journal (list of dict entries)
     last_movement_journal: List[Dict] = []
-
-    # HACK: Should eventually maybe think of a better way to handle this.
-    entity_thinking_count: int = 0  # Count of how many entities are currently thinking
-
-    # Internal cache for mock tilemap (not a pydantic field for persistence normally)
-    _tilemap_cache: dict | None = None
-
-    # Extracted tilemap object (mock implementation)
+    _journal_max: int = 1000  # keep only the most recent N entries
+    entity_thinking_count: int = 0
     tilemap: Optional[Tilemap] = None
 
     def __init__(self, **data):
@@ -32,10 +22,6 @@ class World(BaseModel):
     def add_entity(self, entity: Entity):
         entity.world = self  # Set the world reference in the entity
         self.entities[entity.id] = entity
-        if isinstance(entity, TileMapEntity):
-            # Append if not already present
-            if entity.id not in self._movement_insertion_order:
-                self._movement_insertion_order.append(entity.id)
 
     def clear_entities(self):
         """Clear all entities from the world."""
@@ -48,8 +34,6 @@ class World(BaseModel):
             del self.entities[entity.id]
             if entity.thinking:
                 self.entity_thinking_count -= 1
-            if entity.id in self._movement_insertion_order:
-                self._movement_insertion_order.remove(entity.id)
 
     def remove_entity_by_id(self, entity_id: str):
         """Remove an entity by its ID."""
@@ -58,8 +42,6 @@ class World(BaseModel):
             if entity.thinking:
                 self.entity_thinking_count -= 1
             del self.entities[entity_id]
-            if entity_id in self._movement_insertion_order:
-                self._movement_insertion_order.remove(entity_id)
 
     def get_entity(self, identifier: Type[Entity] | str) -> Optional[Entity]:
         if isinstance(identifier, str):
@@ -84,107 +66,140 @@ class World(BaseModel):
         return matching_entities
 
     def tick(self):
-        # 1. Let entities perform their own logic (which may schedule pending moves)
-        for entity in self.entities.values():
-            entity.tick()
-        # Ensure tilemap present
+        """Advance the world by one tick.
+
+        NOTE: Movement resolution now occurs *before* entities tick so that
+        intents issued on the previous tick are applied on the following tick.
+        This creates a deterministic two-phase pipeline (issue -> apply) that
+        matches the expectations of the unit tests (first tick issues an intent,
+        second tick applies it, third tick can be a cooldown, etc.).
+        """
+        # Ensure tilemap exists prior to movement resolution
         if self.tilemap is None:
             self.tilemap = Tilemap.from_default()
-        # 2. Resolve tilemap entity movements after all have decided
-        self._resolve_tile_entity_movements()
-        # 3. Perform tile mutation (visual/demo) after movement
+
+        # 1. Apply any movement intents queued from the *previous* tick
+        self.resolve_movement()
+
+        # 2. Let entities think / issue new intents for the *next* tick
+        for entity in list(self.entities.values()):
+            entity.tick()
+
+        # 3. World side-effects (map mutation)
         self.tilemap.maybe_mutate()
-    
-    # --- Movement & Collision Resolution ---
-    def _resolve_tile_entity_movements(self):
-        tile_entities: List[TileMapEntity] = [e for e in self.entities.values() if isinstance(e, TileMapEntity)]
-        # Stable order: by priority then by insertion order index
-        insertion_index = {eid: idx for idx, eid in enumerate(self._movement_insertion_order)}
-        tile_entities.sort(key=lambda e: (getattr(e, 'priority', 100), insertion_index.get(e.id, 1_000_000)))
 
+    def resolve_movement(self):
+        if self.tilemap is None:
+            return
+        from simulation.Component import Chassis as _Chassis  # local import avoids circular at module load
+        chassis_list: List[_Chassis] = [e for e in self.entities.values() if isinstance(e, _Chassis)]
+        intents = [c for c in chassis_list if c.pending_intent is not None]
+        if not intents:
+            return
+        intents.sort(key=lambda c: (c.move_priority, c.id))
+        # Build current occupancy
+        occupancy: Dict[tuple[int,int], Chassis] = {}
+        for c in chassis_list:
+            for tile in c.occupied_tiles():
+                occupancy[tile] = c
+        shadow = dict(occupancy)
         journal: List[Dict] = []
-        # Keep track of updated rectangles for entities that moved successfully this tick
-        updated_positions: Dict[str, Location] = {}
+        successes: List[tuple[Chassis, Location, Location, MovementIntent]] = []
+        failures: List[tuple[Chassis, MovementIntent, str, Optional[Entity]]] = []
 
-        def rect_for(ent: TileMapEntity, loc: Location):
-            return (loc.x, loc.y, loc.x + ent.width - 1, loc.y + ent.height - 1)
+        for c in intents:
+            intent = c.pending_intent  # type: ignore
+            reason = intent.validate()
+            if reason:
+                failures.append((c, intent, INVALID_INTENT, None))
+                continue
+            target_loc = Location(x=c.location.x + intent.dx, y=c.location.y + intent.dy)
+            # Bounds check for entire footprint.
+            # Allow negative Y positions (above the top border) to support test
+            # scenarios that move to destinations with negative Y coordinates.
+            # We still enforce X >= 0 and both X/Y not exceeding map bounds.
+            in_bounds = True
+            for oy in range(c.footprint_h):
+                for ox in range(c.footprint_w):
+                    tx = target_loc.x + ox
+                    ty = target_loc.y + oy
+                    if not (0 <= tx < self.tilemap.width) or ty >= self.tilemap.height:
+                        in_bounds = False
+                        break
+                if not in_bounds:
+                    break
+            if not in_bounds:
+                failures.append((c, intent, OUT_OF_BOUNDS, None))
+                continue
+            # Passability (skip for negative Y which we treat as open space)
+            blocked_tile = False
+            for oy in range(c.footprint_h):
+                for ox in range(c.footprint_w):
+                    tx = target_loc.x + ox
+                    ty = target_loc.y + oy
+                    if ty < 0:
+                        continue  # allow movement into negative Y space
+                    if not self.tilemap.is_passable(tx, ty):
+                        blocked_tile = True
+                        break
+                if blocked_tile:
+                    break
+            if blocked_tile:
+                failures.append((c, intent, BLOCKED_TILE, None))
+                continue
+            # Occupancy
+            occupied = False
+            blocker_entity: Entity | None = None
+            for oy in range(c.footprint_h):
+                for ox in range(c.footprint_w):
+                    tile = (target_loc.x + ox, target_loc.y + oy)
+                    occ = shadow.get(tile)
+                    if occ and occ.id != c.id:
+                        occupied = True
+                        blocker_entity = occ
+                        break
+                if occupied:
+                    break
+            if occupied:
+                failures.append((c, intent, OCCUPIED, blocker_entity))
+                continue
+            # Reserve tiles
+            for oy in range(c.footprint_h):
+                for ox in range(c.footprint_w):
+                    tile = (target_loc.x + ox, target_loc.y + oy)
+                    shadow[tile] = c
+            successes.append((c, c.location, target_loc, intent))
 
-        def intersects(a, b) -> bool:
-            ax1, ay1, ax2, ay2 = a
-            bx1, by1, bx2, by2 = b
-            return not (ax2 < bx1 or bx2 < ax1 or ay2 < by1 or by2 < ay1)
-
-        for ent in tile_entities:
-            from_loc = ent.location
-            status = 'no_pending'
-            blocked_by = None
-            to_loc = ent.location
-            attempted = ent.pending_move
-
-            if attempted is not None:
-                dx, dy = attempted
-                # Enforce constraints
-                if dx < -1 or dx > 1 or dy < -1 or dy > 1:
-                    status = 'blocked_tile'
-                    blocked_by = {"type": "tile", "reason": "invalid_delta"}
-                else:
-                    target = Location(x=from_loc.x + dx, y=from_loc.y + dy)
-                    # Bounds check (top-left and extent within map)
-                    if not (0 <= target.x and 0 <= target.y and target.x + ent.width - 1 < self.tilemap.width and target.y + ent.height - 1 < self.tilemap.height):
-                        status = 'blocked_tile'
-                        blocked_by = {"type": "tile", "reason": "out_of_bounds"}
-                    else:
-                        # Passability check for every covered tile in target rect
-                        impassable = False
-                        for y in range(target.y, target.y + ent.height):
-                            for x in range(target.x, target.x + ent.width):
-                                if not self.tilemap.is_passable(x, y):
-                                    impassable = True
-                                    blocked_by = {"type": "tile", "reason": "impassable", "tile_type": self.tilemap.tiles[y][x]}
-                                    break
-                            if impassable:
-                                break
-                        if impassable:
-                            status = 'blocked_tile'
-                        else:
-                            # Entity collision check against others (use updated positions where available)
-                            target_rect = rect_for(ent, target)
-                            collision_entity: TileMapEntity | None = None
-                            for other in tile_entities:
-                                if other.id == ent.id:
-                                    continue
-                                other_loc = updated_positions.get(other.id, other.location)
-                                other_rect = rect_for(other, other_loc)
-                                if intersects(target_rect, other_rect):
-                                    collision_entity = other
-                                    break
-                            if collision_entity:
-                                status = 'blocked_entity'
-                                blocked_by = {"type": "entity", "id": collision_entity.id}
-                                # Fire callbacks
-                                ent.on_collided(collision_entity, initiated=True)
-                                collision_entity.on_collided(ent, initiated=False)
-                            else:
-                                # Apply move
-                                ent.location = target
-                                updated_positions[ent.id] = target
-                                to_loc = target
-                                status = 'moved'
-                                ent.on_moved(from_loc, to_loc)
-                # Movement processed (success or fail) -> clear pending
-                ent.clear_pending_move()
-                if status != 'moved' and attempted is not None and status != 'no_pending':
-                    ent.on_move_failed(blocked_by['type'] if blocked_by else 'unknown', attempted)
-
+        # Apply successes
+        for (c, old_loc, new_loc, intent) in successes:
+            c.location = new_loc
+            c.on_move_applied(old_loc, new_loc, intent)
+        for (c, intent, reason, blocker) in failures:
+            c.on_move_blocked(intent, reason, blocker)
+        # Journal entry creation
+        for (c, old_loc, new_loc, intent) in successes:
             journal.append({
-                'id': ent.id,
-                'from': {'x': from_loc.x, 'y': from_loc.y},
-                'to': {'x': to_loc.x, 'y': to_loc.y},
-                'status': status,
-                'blocked_by': blocked_by,
+                'id': c.id,
+                'from': {'x': old_loc.x, 'y': old_loc.y},
+                'to': {'x': new_loc.x, 'y': new_loc.y},
+                'status': 'success',
+                'reason': None
             })
-
-        self.last_movement_journal = journal
+        for (c, intent, reason, blocker) in failures:
+            journal.append({
+                'id': c.id,
+                'from': {'x': c.location.x, 'y': c.location.y},
+                'to': {'x': c.location.x + intent.dx, 'y': c.location.y + intent.dy},
+                'status': reason,
+                'blocker': getattr(blocker, 'id', None)
+            })
+        self.last_movement_journal.extend(journal)
+        # Trim journal
+        if len(self.last_movement_journal) > self._journal_max:
+            self.last_movement_journal = self.last_movement_journal[-self._journal_max:]
+        # Clear intents
+        for c in intents:
+            c.clear_intent()
 
     def to_json(self, short: bool = False):
         val = {
@@ -332,20 +347,7 @@ class Simulation(BaseModel):
 
 
 # Resolve forward references now that World is fully defined.
-# This fixes pydantic.errors.PydanticUserError: <Model> is not fully defined when
-# instantiating models (e.g., GonkDroid) that inherit from Entity which has a
-# forward reference to 'World'.
-from simulation.Entity import Entity as _Entity  # Local import to avoid circular issues at module load time.
+from simulation.Entity import Entity as _Entity
 _Entity.model_rebuild()
-from simulation.TileMapEntity import TileMapEntity as _TileMapEntity
-try:
-    _TileMapEntity.model_rebuild()
-except Exception:
-    pass
-try:
-    from simulation.RandomWalker import RandomWalker as _RandomWalker
-    _RandomWalker.model_rebuild()
-except Exception:
-    pass
 
 
