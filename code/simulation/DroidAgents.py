@@ -186,12 +186,15 @@ class DroidAgent(Component):
                     return
 
                 assert len(resp["choices"]) > 0, "No choices in response from LLM API"
-                # TODO: Turn the agent off and back on again to clear context and try again.
+                # TODO: If failed to get a choice, turn the agent off and back on again to clear context and try again.
 
                 # Update context lengths
-                self.last_completion_tokens = resp["usage"]["completion_tokens"]
-                self.last_prompt_tokens = resp["usage"]["prompt_tokens"]
-                self.last_total_tokens = resp["usage"]["total_tokens"]
+                if "usage" in resp:
+                    self.last_completion_tokens = resp["usage"]["completion_tokens"]
+                    self.last_prompt_tokens = resp["usage"]["prompt_tokens"]
+                    self.last_total_tokens = resp["usage"]["total_tokens"]
+                else:
+                    self.warn('Response did not contain usage information.')
 
                 choice = resp["choices"][0]
                 if "message" in choice and "content" in choice["message"]:

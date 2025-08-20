@@ -187,10 +187,11 @@ class World(BaseModel):
             "entities": {eid: entity.to_json(short) for eid, entity in self.entities.items()},
         }
         # Ensure tilemap present
-        if self.tilemap is None:
-            self.tilemap = Tilemap.from_default()
-        if self.tilemap:
-            val["tilemap"] = self.tilemap.to_json()
+        if not short:
+            if self.tilemap is None:
+                self.tilemap = Tilemap.from_default()
+            if self.tilemap:
+                val["tilemap"] = self.tilemap.to_json()
 
         if not short:
             val["entity_thinking_count"] = self.entity_thinking_count
