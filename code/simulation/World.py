@@ -1,8 +1,11 @@
 import asyncio
+import json
+import os
 from time import sleep
 from typing import Dict, List, Optional, Type
 from pydantic import BaseModel
 
+from simulation.GlobalConfig import GlobalConfig
 from simulation.Entity import Entity, Location
 from simulation.Tilemap import Tilemap
 from simulation.TileMapEntity import TileMapEntity
@@ -310,6 +313,35 @@ class Simulation(BaseModel):
                         print(f"[WARN] on_tick subscriber error: {e}")
 
                 self.dispatch_on_tick()
+
+                if GlobalConfig.simulation_dump_state:
+                    state_full = self.to_json()
+                    state_short = self.world.to_json(short=True)
+
+                    os.makedirs("logs", exist_ok=True)
+                    filename_full = f"sim_state_{Simulation.get_instance().tick_count}.json"
+                    filename_short = f"world_state_{Simulation.get_instance().tick_count}.json"
+
+                    short_state_changed = True
+
+                    filename_short_prev = f"world_state_{Simulation.get_instance().tick_count - 1}.json"
+                    # Check if the previous file exists
+                    if os.path.exists(f"logs/{filename_short_prev}"):
+                        # Check if it has the same contents as the current state
+                        with open(f"logs/{filename_short_prev}", "r") as f:
+                            state_short_prev = json.load(f)
+
+                        if state_short_prev == state_short:
+                            short_state_changed = False
+
+                    # Only write the new state if it has changed
+                    if short_state_changed:
+                        with open(f"logs/{filename_full}", "w") as f:
+                            json.dump(state_full, f, indent=2)
+                        with open(f"logs/{filename_short}", "w") as f:
+                            json.dump(state_short, f, indent=2)
+                    else:
+                        print(f"Skipping world state dump for tick {Simulation.get_instance().tick_count} as it is unchanged from prev.")
 
                 if ticks is not None and count >= ticks:
                     self.running = False

@@ -26,7 +26,10 @@ class GlobalConfig(BaseModel):
     llm_context_limit: ClassVar[int] = 32768  # Context limit for LLM (number of tokens)
 
     llm_timeout_seconds: ClassVar[float] = 240.0  # Default timeout for LLM requests in seconds
+
+    # Debug settings
     llm_dump_http_requests: ClassVar[bool] = True  # Whether to dump HTTP requests to files for later debugging
+    simulation_dump_state: ClassVar[bool] = True  # Whether to dump the simulation state to files for later debugging
 
     # Color codes for terminal output
     colors: ClassVar[Colors] = Colors()
