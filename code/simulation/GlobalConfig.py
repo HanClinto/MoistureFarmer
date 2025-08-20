@@ -25,6 +25,8 @@ class GlobalConfig(BaseModel):
     llm_seed: ClassVar[int] = 42  # Seed for LLM random number generation
     llm_context_limit: ClassVar[int] = 32768  # Context limit for LLM (number of tokens)
 
+    llm_timeout_seconds: ClassVar[float] = 240.0  # Default timeout for LLM requests in seconds
+
     # Color codes for terminal output
     colors: ClassVar[Colors] = Colors()
 
