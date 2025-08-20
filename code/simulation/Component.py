@@ -1,10 +1,11 @@
 from datetime import datetime
 import inspect
+import logging
 from typing import TypeVar, overload, Union, ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
 from pydantic import BaseModel
 from simulation.Entity import Entity, Location, GameObject, LogMessage
-from simulation.World import World
 from simulation.ToolCall import ToolCall, _IS_TOOL_FUNCTION
+from simulation.movement_intent import MovementIntent
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to
@@ -93,14 +94,21 @@ class Component(GameObject):
 class Chassis(Entity):
     slots: Dict[str, 'ComponentSlot']
     health: int = 100
+    # Movement extension fields
+    footprint_w: int = 1
+    footprint_h: int = 1
+    move_priority: int = 100
+    pending_intent: Optional[MovementIntent] = None
+
+    @property
+    def components(self):  # convenience iterable of installed components
+        return [slot.component for slot in self.slots.values() if slot.component]
 
     def __init__(__pydantic_self__, **data):
         super().__init__(**data)
         # Ensure every component is properly installed in its slot
         for slot_id, slot in __pydantic_self__.slots.items():
-            # Or a more Pythonic way to do this:
             slot.slot_id = slot.slot_id or slot_id
-            # If there is a default component for the slot, install it.
             if slot.component:
                 __pydantic_self__.install_component(slot.slot_id, slot.component)
 
@@ -194,11 +202,59 @@ class Chassis(Entity):
         }
         return data
 
+    # Movement API
+    def request_move(self, dx: int, dy: int, **metadata) -> bool:
+        if self.pending_intent is not None:
+            self.warn(f"Chassis {self.id} already has a pending intent; ignoring new request.")
+            return False
+        intent = MovementIntent(dx=dx, dy=dy, metadata=metadata)
+        invalid = intent.validate()
+        if invalid:
+            self.warn(f"Invalid movement intent ({dx},{dy}) rejected: {invalid}")
+            return False
+        self.pending_intent = intent
+        return True
+
+    def clear_intent(self):
+        self.pending_intent = None
+
+    def occupied_tiles(self, at_location: Location | None = None):
+        loc = at_location or self.location
+        for oy in range(self.footprint_h):
+            for ox in range(self.footprint_w):
+                yield (loc.x + ox, loc.y + oy)
+
+    # Callback dispatchers (Motivator or others may override by component methods)
+    def on_move_applied(self, old_loc: Location, new_loc: Location, intent: MovementIntent):
+        motivator = self.get_component_by_type_name("Motivator")
+        if motivator and hasattr(motivator, "on_move_applied"):
+            try:
+                motivator.on_move_applied(old_loc, new_loc, intent)
+            except Exception as e:
+                self.error(f"on_move_applied error: {e}")
+
+    def on_move_blocked(self, intent: MovementIntent, reason: str, blocker: Any | None = None):
+        for comp in self.components:
+            if hasattr(comp, 'on_move_blocked'):
+                try:
+                    comp.on_move_blocked(intent, reason, blocker)
+                except Exception:
+                    logging.exception("Component on_move_blocked error")
+
+    # Helper to locate component by class name (without importing class directly)
+    def get_component_by_type_name(self, type_name: str):
+        for slot in self.slots.values():
+            comp = slot.component
+            if comp and comp.__class__.__name__ == type_name:
+                return comp
+        return None
+
 class ComponentSlot(BaseModel):
     slot_id: Optional[str] = None
     accepts: Type[Component]
     component: Optional[Component] = None
 
+ComponentSlot.model_rebuild()
 
 # --- Specific Component Systems ---
 class PowerPack(Component):

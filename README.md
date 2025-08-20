@@ -131,3 +131,23 @@ And once we graduate to turning this simulator into a game, these scenarios coul
 I want to use this as a benchmark for evaluating the zero-shot capability of various tool-calling LLMs, and also use this as a benchmark that others can use to explore multi-agent systems.
 
 In the context of a game, these scenarios will form a tutorial-like progression, but in the context of a benchmark, these scenarios will form the test suite to evaluate model or prompting performance.
+
+## Running Tests in Docker
+
+Build the test image:
+
+```bash
+docker build -f Dockerfile.test -t moisture-tests .
+```
+
+Run the test suite:
+
+```bash
+docker run --rm moisture-tests
+```
+
+You can mount the workspace to re-run quickly without rebuilding (slower initial startup due to installing deps inside container each run):
+
+```bash
+docker run --rm -v $(pwd)/code:/app/code moisture-tests
+```
