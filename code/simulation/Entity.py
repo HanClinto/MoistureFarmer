@@ -45,6 +45,7 @@ class LogMessage(BaseModel):
     }
     message: str
     level: int            # 0 = info, 1 = warning, 2 = error
+    tick: int
     timestamp: datetime   # Internally used for sorting logs within a single tick
 
     def __str__(self):
@@ -55,12 +56,15 @@ class LogMessage(BaseModel):
         super().__init__(**data)
         if not self.timestamp:
             self.timestamp = datetime.now()
+        if not self.tick:
+            self.tick = Simulation.get_instance().tick_count
 
     def to_json(self):
         return {
+            "tick": self.tick,
             "timestamp": self.timestamp.isoformat(),
-            "message": self.message,
             "level": self.level,
+            "message": self.message,
         }
 
 class GameObject(BaseModel):
