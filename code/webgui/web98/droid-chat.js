@@ -158,40 +158,42 @@ function updateDroidChatWindow(entityId, syncOnly = false) {
     // See if we can find this entity's agent component
     agent_slot = simulationDataDictionary[`${entityId}.agent`];
     if (agent_slot && agent_slot.component) {
-        // For each message in the agent's context, add it to the chat log
-        messages = agent_slot.component.context.messages;
-        console.log(`Agent messages for ${entityId}:`);
-        console.log(messages);
+        if (Array.isArray(agent_slot.component.context?.messages)) {
+            // For each message in the agent's context, add it to the chat log
+            messages = agent_slot.component.context.messages;
+            console.log(`Agent messages for ${entityId}:`);
+            console.log(messages);
 
-        (messages || []).forEach(msg => {
-            const prefix = `<${msg.role}>`
-            if (msg.content){
-                // TODO: Add a checkbox that will optionally let us show / hide messages with "Current world state: {" in them.
-                const hide_world_state_messages = true;
-                if (hide_world_state_messages && msg.content.includes("Current world state: {")) {
-                    // Skip rendering this message
-                    return;
+            (messages || []).forEach(msg => {
+                const prefix = `<${msg.role}>`
+                if (msg.content){
+                    // TODO: Add a checkbox that will optionally let us show / hide messages with "Current world state: {" in them.
+                    const hide_world_state_messages = true;
+                    if (hide_world_state_messages && msg.content.includes("Current world state: {")) {
+                        // Skip rendering this message
+                        return;
+                    }
+                    const div = document.createElement('div');
+                    div.className = `chat-line chat-${msg.role}`;
+                    div.textContent = `${prefix} ${msg.content}`;
+                    logEl.appendChild(div);
                 }
-                const div = document.createElement('div');
-                div.className = `chat-line chat-${msg.role}`;
-                div.textContent = `${prefix} ${msg.content}`;
-                logEl.appendChild(div);
-            }
-            if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
-                // Structure tool calls as if they are IRC commands, such as "/kick <username>" or "/move_to_entity <identifier>"
-                msg.tool_calls.forEach(toolCall => {
-                    const toolDiv = document.createElement('div');
-                    toolDiv.className = `chat-line chat-toolcall`;
-                    // For now, just append the arguments as-is:
-                    toolDiv.textContent = `${prefix} /${toolCall.function.name} ${toolCall.function.arguments}`;
+                if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                    // Structure tool calls as if they are IRC commands, such as "/kick <username>" or "/move_to_entity <identifier>"
+                    msg.tool_calls.forEach(toolCall => {
+                        const toolDiv = document.createElement('div');
+                        toolDiv.className = `chat-line chat-toolcall`;
+                        // For now, just append the arguments as-is:
+                        toolDiv.textContent = `${prefix} /${toolCall.function.name} ${toolCall.function.arguments}`;
 
-                    // Append each argument as " identifier=value"
-                    //const args = JSON.parse(toolCall.arguments);
-                    //toolDiv.textContent = `${prefix} /${toolCall.function.name} ${Object.entries(args).map(([key, value]) => `${key}=${value}`).join(' ')}`;
-                    logEl.appendChild(toolDiv);
-                });
-            }
-        });
+                        // Append each argument as " identifier=value"
+                        //const args = JSON.parse(toolCall.arguments);
+                        //toolDiv.textContent = `${prefix} /${toolCall.function.name} ${Object.entries(args).map(([key, value]) => `${key}=${value}`).join(' ')}`;
+                        logEl.appendChild(toolDiv);
+                    });
+                }
+            });
+        }
     } else {
         // If no agent component is found, display a message
         const div = document.createElement('div');
