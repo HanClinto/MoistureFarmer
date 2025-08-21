@@ -18,7 +18,7 @@ def rebuild_models(verbose: bool = False) -> List[str]:
     from simulation.core.entity.Entity import Entity
     try_rebuild('Entity', Entity.model_rebuild)
     try:
-        from simulation.World import World
+        from simulation.core.World import World
         try_rebuild('World', World.model_rebuild)
     except Exception as e:
         if verbose:

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from simulation.core.entity.component.DroidAgents import DroidAgent
-from simulation.World import Simulation
+from simulation.core.World import Simulation
 from simulation.core.entity.RandomWalker import RandomWalker  # NEW
 
 app = FastAPI()

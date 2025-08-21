@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.AutoScenarioManager import AutoScenarioManager
-from simulation.World import Simulation
+from simulation.core.World import Simulation
 from simulation.core.entity.Entity import Location
 from simulation.core.entity.DroidModels import GonkDroid
 from simulation.core.entity.Vaporator import GX1_Vaporator
