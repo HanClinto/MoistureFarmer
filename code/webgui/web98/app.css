@@ -171,6 +171,8 @@ button.simulation-delay-button {
 .chat-user::before { content: ""; }
 .chat-droid::before { content: ""; }
 .chat-tool::before { content: ""; }
-.chat-system { color: #444; }
-/* Example prefixes are included in text; styles can add colors */
-
+.chat-line.chat-system { color: #6c757d; font-style: italic; }
+.chat-line.chat-toolcall { color: #007bff; }
+.chat-line.chat-tool { color: #28a745; font-style: italic; }
+.chat-line.chat-user { color: black; }
+.chat-line.chat-assistant { color: #005577; }

@@ -2,7 +2,7 @@ simulationData = {};
 simulationDataDictionary = {};
 
 // Simple in-memory chat state per droid
-const droidChats = {}; // { [entityId]: { messages: Array<{role:string,text:string}>, pending: boolean } }
+const droidChats = {}; // { [entityId]: { componentId: string, messages: Array<{role:string,text:string}>, pending: boolean } }
 
 // --- Movement tween configuration & state (web98 client only) ---
 // Duration in ms for an entity to visually move between tile centers.
@@ -352,8 +352,6 @@ function ensureDroidChatWindow(entityId) {
                 addChatMessage(entityId, 'system', `Error: ${resp.error}`);
                 droidChats[entityId].pending = false;
                 updateDroidChatWindow(entityId, /*syncOnly*/ true);
-            } else {
-                addChatMessage(entityId, 'system', 'Message sent. Droid is processing...');
             }
         })
         .catch(err => {
@@ -395,20 +393,57 @@ function updateDroidChatWindow(entityId, syncOnly = false) {
     // When we detect agent finished after a pending send, add a simple done line
     if (!active && droidChats[entityId]?.pending) {
         droidChats[entityId].pending = false;
-        // addChatMessage(entityId, 'droid', 'Task complete. What is your next command?');
     }
 
-    if (syncOnly || !logEl) return;
+    //if (syncOnly || !logEl) return;
 
     // Render messages
     logEl.innerHTML = '';
-    (droidChats[entityId]?.messages || []).forEach(msg => {
+
+    // See if we can find this entity's agent component
+    agent_slot = simulationDataDictionary[`${entityId}.agent`];
+    if (agent_slot && agent_slot.component) {
+        // For each message in the agent's context, add it to the chat log
+        messages = agent_slot.component.context.messages;
+        console.log(`Agent messages for ${entityId}:`);
+        console.log(messages);
+
+        (messages || []).forEach(msg => {
+            const prefix = `<${msg.role}>`
+            if (msg.content){
+                // TODO: Add a checkbox that will optionally let us show / hide messages with "Current world state: {" in them.
+                const hide_world_state_messages = true;
+                if (hide_world_state_messages && msg.content.includes("Current world state: {")) {
+                    // Skip rendering this message
+                    return;
+                }
+                const div = document.createElement('div');
+                div.className = `chat-line chat-${msg.role}`;
+                div.textContent = `${prefix} ${msg.content}`;
+                logEl.appendChild(div);
+            }
+            if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+                // Structure tool calls as if they are IRC commands, such as "/kick <username>" or "/move_to_entity <identifier>"
+                msg.tool_calls.forEach(toolCall => {
+                    const toolDiv = document.createElement('div');
+                    toolDiv.className = `chat-line chat-toolcall`;
+                    // For now, just append the arguments as-is:
+                    toolDiv.textContent = `${prefix} /${toolCall.function.name} ${toolCall.function.arguments}`;
+
+                    // Append each argument as " identifier=value"
+                    //const args = JSON.parse(toolCall.arguments);
+                    //toolDiv.textContent = `${prefix} /${toolCall.function.name} ${Object.entries(args).map(([key, value]) => `${key}=${value}`).join(' ')}`;
+                    logEl.appendChild(toolDiv);
+                });
+            }
+        });
+    } else {
+        // If no agent component is found, display a message
         const div = document.createElement('div');
-        div.className = `chat-line chat-${msg.role}`;
-        const prefix = msg.role === 'tool' ? '<tool>' : msg.role === 'droid' ? '<droid>' : msg.role === 'user' ? '<user>' : '<system>';
-        div.textContent = `${prefix} ${msg.text}`;
+        div.className = `chat-line chat-system`;
+        div.textContent = `<system> No agent component found for this entity.`;
         logEl.appendChild(div);
-    });
+    }
     // Auto-scroll
     logEl.scrollTop = logEl.scrollHeight;
 }
@@ -671,7 +706,11 @@ function updateEntityDetailWindow(entityId) {
 
                     const btn = document.createElement('button');
                     btn.textContent = 'Open Chat';
-                    btn.addEventListener('click', () => openDroidChatWindow(entityId));
+                    if (entity.slots.agent.component) {
+                        btn.addEventListener('click', () => openDroidChatWindow(entityId));
+                    } else {
+                        btn.disabled = true;
+                    }
                     chatGroup.appendChild(btn);
 
                     const isActive = !!entity.slots.agent.component?.is_active;
