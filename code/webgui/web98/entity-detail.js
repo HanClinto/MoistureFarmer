@@ -5,13 +5,13 @@
  */
 function showEntityDetailWindow(entityId) {
     // Create or focus the entity detail window for the given entity ID
-    let window = document.getElementById(`entity-detail-window-${entityId}`);
-    if (!window) {
+    let win = document.getElementById(`entity-detail-window-${entityId}`);
+    if (!win) {
         // Create a new window if it doesn't exist
-        window = document.createElement('div');
-        window.id = `entity-detail-window-${entityId}`;
-        window.className = 'window entity-detail-window draggable resizeable';
-        window.innerHTML = `
+        win = document.createElement('div');
+        win.id = `entity-detail-window-${entityId}`;
+        win.className = 'window entity-detail-window draggable resizeable';
+        win.innerHTML = `
             <div class="title-bar">
                 <div class="title-bar-text">Entity Detail - ${entityId}</div>
                 <div class="title-bar-controls">
@@ -24,28 +24,28 @@ function showEntityDetailWindow(entityId) {
                 </div>
             </div>
         `;
-        document.body.appendChild(window);
+        document.body.appendChild(win);
 
         // Add close button functionality
-        const closeButton = window.querySelector('.title-bar-controls button[aria-label="Close"]');
+        const closeButton = win.querySelector('.title-bar-controls button[aria-label="Close"]');
         closeButton.addEventListener('click', function() {
-            const window = closeButton.closest('.window');
-            if (window) {
-                window.classList.add('hidden');
+            const win = closeButton.closest('.window');
+            if (win) {
+                win.classList.add('hidden');
             }
         });
 
         // Make window interactive
-        if (typeof resizeableElement === 'function') resizeableElement(window);
-        if (typeof draggableElement === 'function') draggableElement(window);
-        if (typeof bringableToFront === 'function') bringableToFront(window);
+        if (typeof resizeableElement === 'function') resizeableElement(win);
+        if (typeof draggableElement === 'function') draggableElement(win);
+        if (typeof bringableToFront === 'function') bringableToFront(win);
     }
 
     updateEntityDetailWindow(entityId);
 
     // Show the window and bring it to the front
-    showWindow(window.id);
-    bringToFront(window);
+    showWindow(win.id);
+    bringToFront(win);
 }
 
 /**
@@ -53,8 +53,8 @@ function showEntityDetailWindow(entityId) {
  */
 function updateEntityDetailWindow(entityId) {
     // Update the entity detail window for the given entity ID
-    let window = document.getElementById(`entity-detail-window-${entityId}`);
-    if (!window) {
+    let win = document.getElementById(`entity-detail-window-${entityId}`);
+    if (!win) {
         return; // If the window doesn't exist, do nothing
     }
 
