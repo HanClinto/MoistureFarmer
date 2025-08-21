@@ -3,8 +3,8 @@ import inspect
 import logging
 from typing import TypeVar, overload, Union, ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
 from pydantic import BaseModel
-from simulation.Entity import Entity, Location, GameObject, LogMessage
-from simulation.ToolCall import ToolCall, _IS_TOOL_FUNCTION
+from simulation.entity.Entity import Entity, Location, GameObject, LogMessage
+from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 from simulation.movement_intent import MovementIntent
 
 # --- Component System ---

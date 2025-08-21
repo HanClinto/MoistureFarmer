@@ -6,11 +6,11 @@ from typing import Dict, List, Optional, Type, TYPE_CHECKING
 from pydantic import BaseModel
 
 from simulation.GlobalConfig import GlobalConfig
-from simulation.Entity import Entity, Location
+from simulation.entity.Entity import Entity, Location
 from simulation.Tilemap import Tilemap
 from simulation.movement_intent import MovementIntent, OUT_OF_BOUNDS, BLOCKED_TILE, OCCUPIED, INVALID_INTENT
 if TYPE_CHECKING:
-    from simulation.Component import Chassis  # type: ignore
+    from simulation.entity.component.Component import Chassis  # type: ignore
 
 # --- World System ---
 class World(BaseModel):
@@ -95,7 +95,7 @@ class World(BaseModel):
     def resolve_movement(self):
         if self.tilemap is None:
             return
-        from simulation.Component import Chassis as _Chassis  # local import avoids circular at module load
+        from simulation.entity.component.Component import Chassis as _Chassis  # local import avoids circular at module load
         chassis_list: List[_Chassis] = [e for e in self.entities.values() if isinstance(e, _Chassis)]
         intents = [c for c in chassis_list if c.pending_intent is not None]
         if not intents:
@@ -385,7 +385,7 @@ class Simulation(BaseModel):
 
 
 # Resolve forward references now that World is fully defined.
-from simulation.Entity import Entity as _Entity
+from simulation.entity.Entity import Entity as _Entity
 _Entity.model_rebuild()
 
 

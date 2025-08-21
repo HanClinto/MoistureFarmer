@@ -1,8 +1,8 @@
 from typing import Any, Callable, Dict, Optional, List, Type
-from simulation.ToolCall import ToolCallResult, ToolCallState, tool
+from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 from simulation.World import World, Simulation
-from simulation.Entity import Location
-from simulation.Component import Chassis, ComponentSlot, Component, PowerPack
+from simulation.entity.Entity import Location
+from simulation.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack
 from random import randint
 from simulation.movement_intent import MovementIntent
 import logging

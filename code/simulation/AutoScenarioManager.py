@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Type, Optional, get_type_hints
 from pathlib import Path
 from pydantic import BaseModel
 
-from simulation.Entity import Entity, Location
+from simulation.entity.Entity import Entity, Location
 from simulation.World import Simulation, World
 
 
@@ -221,10 +221,10 @@ class AutoScenarioManager:
             else:
                 # Fallback: search common simulation modules
                 search_modules = [
-                    "simulation.DroidModels",
-                    "simulation.Vaporator", 
-                    "simulation.Entity",
-                    "simulation.Component"
+                    "simulation.entity.DroidModels",
+                    "simulation.entity.Vaporator", 
+                    "simulation.entity.Entity",
+                    "simulation.entity.Component"
                 ]
                 
                 for mod_name in search_modules:
@@ -253,10 +253,10 @@ def load_scenario(file_path: str) -> Simulation:
 
 def demo_automatic_scenarios():
     """Create test scenarios automatically without templates"""
-    from simulation.DroidModels import GonkDroid
-    from simulation.Vaporator import GX1_Vaporator
-    from simulation.Component import PowerPack
-    from simulation.DroidComponents import Motivator
+    from simulation.entity.DroidModels import GonkDroid
+    from simulation.entity.Vaporator import GX1_Vaporator
+    from simulation.entity.component.Component import PowerPack
+    from simulation.entity.component.DroidComponents import Motivator
     
     scenarios = []
     

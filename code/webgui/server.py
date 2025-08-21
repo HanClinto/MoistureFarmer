@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from simulation.DroidAgents import DroidAgent
+from simulation.entity.component.DroidAgents import DroidAgent
 from simulation.World import Simulation
 from simulation.RandomWalker import RandomWalker  # NEW
 
@@ -183,7 +183,7 @@ def initialize_simulation() -> tuple[Simulation, threading.Thread]:
     if world.tilemap is None:
         world.tilemap = world.tilemap or None  # will be created in first tick; we can still place walkers at default interior
     # Place walkers near center after tilemap init in first tick; so subscribe a one-shot to add them once tilemap exists
-    from simulation.Entity import Location
+    from simulation.entity.Entity import Location
     def add_walkers_once(sim):
         """One-shot callback to add initial random walkers once the tilemap exists."""
         if sim.world.tilemap is None:

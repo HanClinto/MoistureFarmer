@@ -6,12 +6,12 @@ from typing import Callable, Dict, List, Optional
 
 from pydantic import BaseModel, field_serializer
 
-from simulation.Component import Component, Chassis
-from simulation.DroidComponents import Motivator
-from simulation.Entity import Location
+from simulation.entity.component.Component import Component, Chassis
+from simulation.entity.component.DroidComponents import Motivator
+from simulation.entity.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
-from simulation.QueuedWebRequest import QueuedHttpRequest
-from simulation.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
+from simulation.llm.QueuedWebRequest import QueuedHttpRequest
+from simulation.llm.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
 from simulation.World import World, Simulation
 
 class ContextMessage(BaseModel):

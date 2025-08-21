@@ -1,8 +1,8 @@
 from typing import Dict
 # --- Specific Droid Types ---
-from simulation.Component import Chassis, Component, ComponentSlot, PowerPack, SmallPowerPack, ComputerProbe
-from simulation.DroidComponents import Motivator
-from simulation.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
+from simulation.entity.component.Component import Chassis, Component, ComponentSlot, PowerPack, SmallPowerPack, ComputerProbe
+from simulation.entity.component.DroidComponents import Motivator
+from simulation.entity.component.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
 
 
 class R2Astromech(Chassis):

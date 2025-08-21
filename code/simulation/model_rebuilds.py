@@ -15,7 +15,7 @@ def rebuild_models(verbose: bool = False) -> List[str]:
             if verbose:
                 print(f"[rebuild_models] Skipped {name}: {e}")
     # Core base/graph dependent ordering: Entity -> World (others can be added)
-    from simulation.Entity import Entity
+    from simulation.entity.Entity import Entity
     try_rebuild('Entity', Entity.model_rebuild)
     try:
         from simulation.World import World
