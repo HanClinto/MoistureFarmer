@@ -8,7 +8,7 @@
   "entities": [
     {
       "type": "GonkDroid",
-      "module": "simulation.core.entity.DroidModels",
+      "module": "simulation.equipment.droid.DroidModels",
       "id": "GonkDroid_1",
       "location": {
         "x": 15,
@@ -17,7 +17,7 @@
       "components": {
         "agent": {
           "type": "DroidAgentSimplePowerDroid",
-          "module": "simulation.core.entity.component.DroidAgents",
+          "module": "simulation.core.entity.component.DroidAgentSimplePowerDroid",
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
