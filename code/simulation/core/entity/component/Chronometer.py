@@ -1,4 +1,4 @@
-from simulation.core.entity.component.Component import Component
+from simulation.core.entity.component.Chassis import Component
 from simulation.core.Simulation import Simulation
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 

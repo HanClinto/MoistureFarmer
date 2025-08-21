@@ -1,5 +1,5 @@
 import pytest
-from simulation.core.entity.component.Component import Chassis, ComponentSlot
+from simulation.core.entity.component.Chassis import Chassis, ComponentSlot
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.Entity import Location

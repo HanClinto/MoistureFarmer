@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Optional
 
-from simulation.core.entity.component.Component import Component
+from simulation.core.entity.component.Chassis import Component
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.Entity import Location
 from simulation.core.World import World

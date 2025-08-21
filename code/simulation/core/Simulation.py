@@ -8,7 +8,7 @@ from simulation.core.World import World
 from simulation.GlobalConfig import GlobalConfig
 
 if TYPE_CHECKING:
-    from simulation.core.entity.component.Component import \
+    from simulation.core.entity.component.Chassis import \
         Chassis  # type: ignore
 
 # --- Simulation System ---
