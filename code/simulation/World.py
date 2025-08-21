@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from simulation.GlobalConfig import GlobalConfig
 from simulation.entity.Entity import Entity, Location
-from simulation.Tilemap import Tilemap
+from simulation.entity.Tilemap import Tilemap
 from simulation.movement_intent import MovementIntent, OUT_OF_BOUNDS, BLOCKED_TILE, OCCUPIED, INVALID_INTENT
 if TYPE_CHECKING:
     from simulation.entity.component.Component import Chassis  # type: ignore
