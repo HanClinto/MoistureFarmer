@@ -22,7 +22,7 @@
         },
         "power_pack": {
           "type": "PowerPack",
-          "module": "simulation.core.entity.component.Component",
+          "module": "simulation.core.entity.component.PowerPack",
           "id": "PowerPack_1",
           "charge": 65
         },
@@ -49,7 +49,7 @@
       "components": {
         "power_pack": {
           "type": "SmallPowerPack",
-          "module": "simulation.core.entity.component.Component",
+          "module": "simulation.core.entity.component.PowerPack",
           "id": "SmallPowerPack_2",
           "charge": 45
         },

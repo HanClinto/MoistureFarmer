@@ -1,4 +1,5 @@
-from simulation.core.entity.component.Component import Component, PowerPack
+from simulation.core.entity.component.Component import Component
+from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
 
 # --- Supporting Components for Vaporators ---

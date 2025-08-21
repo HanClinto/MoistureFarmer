@@ -2,11 +2,11 @@ from typing import Dict
 
 # --- Specific Droid Types ---
 from simulation.core.entity.component.Component import (Chassis, Component,
-                                                        ComponentSlot,
-                                                        ComputerProbe,
-                                                        PowerPack,
-                                                        SmallPowerPack)
+                                                        ComponentSlot)
+from simulation.core.entity.component.ComputerProbe import ComputerProbe
 from simulation.core.entity.component.Motivator import Motivator
+from simulation.core.entity.component.PowerPack import (PowerPack,
+                                                        SmallPowerPack)
 from simulation.equipment.DroidAgentModels import (DroidAgentSimple,
                                                    DroidAgentSimplePowerDroid)
 

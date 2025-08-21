@@ -252,7 +252,7 @@ def demo_automatic_scenarios():
     """Create test scenarios automatically without templates"""
     from simulation.equipment.DroidModels import GonkDroid
     from simulation.equipment.VaporatorModels import GX1_Vaporator
-    from simulation.core.entity.component.Component import PowerPack
+    from simulation.core.entity.component.PowerPack import PowerPack
     from simulation.core.entity.component.Motivator import Motivator
     
     scenarios = []

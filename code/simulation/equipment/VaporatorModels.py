@@ -1,10 +1,10 @@
 from typing import Dict
 
-from simulation.core.entity.component.Component import (ComponentSlot,
-                                                        PowerPack,
-                                                        SmallPowerPack)
+from simulation.core.entity.component.Component import ComponentSlot
 from simulation.core.entity.component.CondenserUnit import (
     AdvancedCondenserUnit, CondenserUnit)
+from simulation.core.entity.component.PowerPack import (PowerPack,
+                                                        SmallPowerPack)
 from simulation.core.entity.component.WaterTank import (LargeWaterTank,
                                                         SmallWaterTank,
                                                         WaterTank)

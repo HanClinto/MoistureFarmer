@@ -1,12 +1,7 @@
-from typing import Any, Callable, Dict, Optional, List, Type
-from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
-from simulation.core.World import World
+from simulation.core.entity.component.Component import Component
 from simulation.core.Simulation import Simulation
-from simulation.core.entity.Entity import Location
-from simulation.core.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack
-from random import randint
-from simulation.movement_intent import MovementIntent
-import logging
+from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
+
 
 # Chronometer is a component that allows droids to be aware of time.
 # For now, it only provides a single tool call to allow sleeping for a specified number of ticks.

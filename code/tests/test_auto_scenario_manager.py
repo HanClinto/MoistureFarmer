@@ -1,20 +1,21 @@
-import pytest
-from pathlib import Path
-import tempfile
+import os
 #!/usr/bin/env python3
 import sys
-import os
+import tempfile
+from pathlib import Path
+
+import pytest
 
 # Add the parent directory to Python path so we can import simulation modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.AutoScenarioManager import AutoScenarioManager
-from simulation.core.Simulation import Simulation
+from simulation.core.entity.component.Motivator import Motivator
+from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.Entity import Location
+from simulation.core.Simulation import Simulation
 from simulation.equipment.DroidModels import GonkDroid
 from simulation.equipment.VaporatorModels import GX1_Vaporator
-from simulation.core.entity.component.Component import PowerPack
-from simulation.core.entity.component.Motivator import Motivator
 
 
 def test_auto_scenario_round_trip():

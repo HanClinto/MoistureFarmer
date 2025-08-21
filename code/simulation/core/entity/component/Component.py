@@ -255,22 +255,3 @@ class ComponentSlot(BaseModel):
     component: Optional[Component] = None
 
 ComponentSlot.model_rebuild()
-
-# --- Specific Component Systems ---
-class PowerPack(Component):
-    charge_max: int = 100
-    charge: int = 100
-
-class SmallPowerPack(PowerPack):
-    charge_max: int = 50
-    charge: int = 50
-
-class LargePowerPack(PowerPack):
-    charge_max: int = 200
-    charge: int = 200
-
-class ComputerProbe(Component):
-    pass
-    #def provides(self):
-    #    return ["connect_to_device", "download_status", "program"]
-

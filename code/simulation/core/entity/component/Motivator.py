@@ -1,9 +1,12 @@
-from typing import Any, Callable, Optional, List
-from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
-from simulation.core.World import World
+from typing import Any, Callable, List, Optional
+
+from simulation.core.entity.component.Component import Component
+from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.Entity import Location
-from simulation.core.entity.component.Component import Component, PowerPack
+from simulation.core.World import World
+from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 from simulation.movement_intent import MovementIntent
+
 
 # --- Droid Components ---
 class Motivator(Component):

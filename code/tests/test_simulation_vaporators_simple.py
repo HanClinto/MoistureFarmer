@@ -1,9 +1,10 @@
 import pytest
-from simulation.core.entity.component.Component import PowerPack
-from simulation.core.Simulation import Simulation, World
+from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
-from simulation.equipment.VaporatorModels import GX1_Vaporator, GX8_Vaporator
 from simulation.core.entity.Entity import Location
+from simulation.core.Simulation import Simulation
+from simulation.equipment.VaporatorModels import GX1_Vaporator, GX8_Vaporator
+
 
 @pytest.fixture
 def simulation() -> Simulation:
