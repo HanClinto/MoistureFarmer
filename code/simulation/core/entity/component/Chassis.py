@@ -267,4 +267,3 @@ class ComponentSlot(BaseModel):
         if default_component and not component:
             self.component = default_component()
 
-ComponentSlot.model_rebuild()
