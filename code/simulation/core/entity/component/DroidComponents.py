@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, Optional, List, Type
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
-from simulation.core.World import World, Simulation
+from simulation.core.World import World
+from simulation.core.Simulation import Simulation
 from simulation.core.entity.Entity import Location
 from simulation.core.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack
 from random import randint

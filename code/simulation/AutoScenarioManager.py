@@ -13,7 +13,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from simulation.core.entity.Entity import Entity, Location
-from simulation.core.World import Simulation, World
+from simulation.core.Simulation import Simulation, World
 
 
 class AutoScenarioManager:

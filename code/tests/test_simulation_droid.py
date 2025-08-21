@@ -6,7 +6,7 @@ from simulation.equipment.droid.DroidAgentSimplePowerDroid import DroidAgentSimp
 from simulation.core.entity.component.DroidComponents import Chronometer, Motivator
 from simulation.llm.QueuedWebRequest import QueuedHttpRequest
 from simulation.llm.ToolCall import ToolCall, ToolCallParameter
-from simulation.core.World import Simulation, World
+from simulation.core.Simulation import Simulation, World
 from simulation.equipment.droid.DroidModels import GonkDroid
 from simulation.core.entity.Entity import Location
 

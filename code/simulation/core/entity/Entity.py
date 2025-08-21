@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from simulation.GlobalConfig import GlobalConfig
 
 if TYPE_CHECKING:
-    from simulation.core.World import World, Simulation
+    from simulation.core.World import World
+    from simulation.core.Simulation import Simulation
 
 # --- Entity ---
 # Entities are objects that have a location and can move around and interact in the world.

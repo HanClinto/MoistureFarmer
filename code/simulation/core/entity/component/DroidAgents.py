@@ -12,7 +12,8 @@ from simulation.core.entity.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
 from simulation.llm.QueuedWebRequest import QueuedHttpRequest
 from simulation.llm.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
-from simulation.core.World import World, Simulation
+from simulation.core.World import World
+from simulation.core.Simulation import Simulation
 
 class ContextMessage(BaseModel):
     role:str = "user"

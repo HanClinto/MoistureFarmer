@@ -3,7 +3,7 @@ import pytest
 # Ensure modules import without forward-ref errors and RandomWalker can be instantiated and ticked.
 
 def test_random_walker_instantiation_and_tick():
-    from simulation.core.World import Simulation
+    from simulation.core.Simulation import Simulation
     from simulation.core.entity.RandomWalker import RandomWalker
     from simulation.core.entity.Entity import Location
 
