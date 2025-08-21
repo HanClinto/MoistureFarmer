@@ -10,8 +10,8 @@ from simulation.core.World import World
 class SimpleChassis(Chassis):
     from typing import Dict as _Dict
     slots: dict[str, ComponentSlot] = {
-        "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
-        "power": ComponentSlot(accepts=PowerPack, component=PowerPack()),
+        "motivator": ComponentSlot(accepts=Motivator, default_component=Motivator),
+        "power": ComponentSlot(accepts=PowerPack, default_component=PowerPack),
     }
 
 @pytest.fixture

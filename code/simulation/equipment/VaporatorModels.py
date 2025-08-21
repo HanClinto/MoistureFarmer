@@ -15,9 +15,9 @@ class GX1_Vaporator(Vaporator):
     model: str = "GX-1"
     
     slots: Dict[str, ComponentSlot] = {
-        "power_pack": ComponentSlot(accepts=PowerPack, component=SmallPowerPack()),
-        "condenser": ComponentSlot(accepts=CondenserUnit, component=CondenserUnit()),
-        "water_tank": ComponentSlot(accepts=WaterTank, component=SmallWaterTank()),
+        "power_pack": ComponentSlot(accepts=PowerPack, default_component=SmallPowerPack),
+        "condenser": ComponentSlot(accepts=CondenserUnit, default_component=CondenserUnit),
+        "water_tank": ComponentSlot(accepts=WaterTank, default_component=SmallWaterTank),
     }
 
 class GX8_Vaporator(Vaporator):
@@ -25,7 +25,7 @@ class GX8_Vaporator(Vaporator):
     description: str = "An advanced vaporator with improved power capacity and a larger water tank. More efficient condensers can collect more water from the air."
 
     slots: Dict[str, ComponentSlot] = {
-        "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
-        "condenser": ComponentSlot(accepts=CondenserUnit, component=AdvancedCondenserUnit()),
-        "water_tank": ComponentSlot(accepts=WaterTank, component=LargeWaterTank()),
+        "power_pack": ComponentSlot(accepts=PowerPack, default_component=PowerPack),
+        "condenser": ComponentSlot(accepts=CondenserUnit, default_component=AdvancedCondenserUnit),
+        "water_tank": ComponentSlot(accepts=WaterTank, default_component=LargeWaterTank),
     }

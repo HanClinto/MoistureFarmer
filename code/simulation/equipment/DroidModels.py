@@ -16,13 +16,13 @@ class R2Astromech(Chassis):
 
     slots: Dict[str, ComponentSlot] = {
         "processor": ComponentSlot(accepts=Component),
-        "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
-        "power_pack": ComponentSlot(accepts=PowerPack, component=SmallPowerPack()),
+        "motivator": ComponentSlot(accepts=Motivator, default_component=Motivator),
+        "power_pack": ComponentSlot(accepts=PowerPack, default_component=SmallPowerPack),
         "manipulator_1": ComponentSlot(accepts=Component),
         "manipulator_2": ComponentSlot(accepts=Component),
         "manipulator_3": ComponentSlot(accepts=Component),
         "manipulator_4": ComponentSlot(accepts=Component),
-        "computer_probe": ComponentSlot(accepts=ComputerProbe, component=ComputerProbe())
+        "computer_probe": ComponentSlot(accepts=ComputerProbe, default_component=ComputerProbe)
     }
 
 class GonkDroid(Chassis):
@@ -32,8 +32,8 @@ class GonkDroid(Chassis):
 
     slots: Dict[str, ComponentSlot] = {
         "agent": ComponentSlot(accepts=DroidAgentSimple),
-        "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
-        "motivator": ComponentSlot(accepts=Motivator, component=Motivator()),
+        "power_pack": ComponentSlot(accepts=PowerPack, default_component=PowerPack),
+        "motivator": ComponentSlot(accepts=Motivator, default_component=Motivator),
         "misc": ComponentSlot(accepts=Component),  # For any additional components
     }
     
