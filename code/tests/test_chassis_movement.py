@@ -1,6 +1,6 @@
 import pytest
 from simulation.World import World
-from simulation.Tilemap import Tilemap
+from simulation.entity.Tilemap import Tilemap
 from simulation.entity.component.Component import Chassis, PowerPack, ComponentSlot
 from simulation.entity.Entity import Location
 from simulation.entity.component.DroidComponents import Motivator

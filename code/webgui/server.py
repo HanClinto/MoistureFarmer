@@ -10,7 +10,7 @@ from pathlib import Path
 
 from simulation.entity.component.DroidAgents import DroidAgent
 from simulation.World import Simulation
-from simulation.RandomWalker import RandomWalker  # NEW
+from simulation.entity.RandomWalker import RandomWalker  # NEW
 
 app = FastAPI()
 subscribers = set()
