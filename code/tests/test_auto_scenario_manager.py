@@ -12,7 +12,7 @@ from simulation.AutoScenarioManager import AutoScenarioManager
 from simulation.core.Simulation import Simulation
 from simulation.core.entity.Entity import Location
 from simulation.equipment.droid.DroidModels import GonkDroid
-from simulation.core.entity.Vaporator import GX1_Vaporator
+from simulation.equipment.vaporator.VaporatorModels import GX1_Vaporator
 from simulation.core.entity.component.Component import PowerPack
 from simulation.core.entity.component.DroidComponents import Motivator
 

@@ -1,0 +1,31 @@
+from typing import Dict
+
+from simulation.core.entity.component.Component import (ComponentSlot,
+                                                        PowerPack,
+                                                        SmallPowerPack)
+from simulation.core.entity.component.CondenserUnit import (
+    AdvancedCondenserUnit, CondenserUnit)
+from simulation.core.entity.component.WaterTank import (LargeWaterTank,
+                                                        SmallWaterTank,
+                                                        WaterTank)
+from simulation.core.entity.Vaporator import Vaporator
+
+
+class GX1_Vaporator(Vaporator):
+    model: str = "GX-1"
+    
+    slots: Dict[str, ComponentSlot] = {
+        "power_pack": ComponentSlot(accepts=PowerPack, component=SmallPowerPack()),
+        "condenser": ComponentSlot(accepts=CondenserUnit, component=CondenserUnit()),
+        "water_tank": ComponentSlot(accepts=WaterTank, component=SmallWaterTank()),
+    }
+
+class GX8_Vaporator(Vaporator):
+    model: str = "GX-8"
+    description: str = "An advanced vaporator with improved power capacity and a larger water tank. More efficient condensers can collect more water from the air."
+
+    slots: Dict[str, ComponentSlot] = {
+        "power_pack": ComponentSlot(accepts=PowerPack, component=PowerPack()),
+        "condenser": ComponentSlot(accepts=CondenserUnit, component=AdvancedCondenserUnit()),
+        "water_tank": ComponentSlot(accepts=WaterTank, component=LargeWaterTank()),
+    }

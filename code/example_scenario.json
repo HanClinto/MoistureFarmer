@@ -40,7 +40,7 @@
     },
     {
       "type": "GX1_Vaporator",
-      "module": "simulation.core.entity.Vaporator",
+      "module": "simulation.equipment.vaporator.VaporatorModels",
       "id": "GX1_Vaporator_1",
       "location": {
         "x": 20,
@@ -55,12 +55,12 @@
         },
         "condenser": {
           "type": "CondenserUnit",
-          "module": "simulation.core.entity.Vaporator",
+          "module": "simulation.core.entity.component.CondenserUnit",
           "id": "CondenserUnit_1"
         },
         "water_tank": {
           "type": "SmallWaterTank",
-          "module": "simulation.core.entity.Vaporator",
+          "module": "simulation.core.entity.component.WaterTank",
           "id": "SmallWaterTank_1"
         }
       }

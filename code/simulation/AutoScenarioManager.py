@@ -6,14 +6,11 @@ to automatically handle any Entity or Component types without explicit registrat
 """
 
 import json
-import inspect
 import importlib
-from typing import Dict, List, Any, Type, Optional, get_type_hints
-from pathlib import Path
-from pydantic import BaseModel
+from typing import Dict, Any, Type, Optional
 
 from simulation.core.entity.Entity import Entity, Location
-from simulation.core.Simulation import Simulation, World
+from simulation.core.Simulation import Simulation
 
 
 class AutoScenarioManager:
@@ -222,7 +219,7 @@ class AutoScenarioManager:
                 # Fallback: search common simulation modules
                 search_modules = [
                     "simulation.equipment.droid.DroidModels",
-                    "simulation.core.entity.Vaporator", 
+                    "simulation.equipment.vaporator.VaporatorModels",
                     "simulation.core.entity.Entity",
                     "simulation.core.entity.Component"
                 ]
@@ -254,7 +251,7 @@ def load_scenario(file_path: str) -> Simulation:
 def demo_automatic_scenarios():
     """Create test scenarios automatically without templates"""
     from simulation.equipment.droid.DroidModels import GonkDroid
-    from simulation.core.entity.Vaporator import GX1_Vaporator
+    from simulation.equipment.vaporator.VaporatorModels import GX1_Vaporator
     from simulation.core.entity.component.Component import PowerPack
     from simulation.core.entity.component.DroidComponents import Motivator
     
