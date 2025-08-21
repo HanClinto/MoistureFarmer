@@ -4,8 +4,8 @@ import pytest
 
 def test_random_walker_instantiation_and_tick():
     from simulation.World import Simulation
-    from simulation.entity.RandomWalker import RandomWalker
-    from simulation.entity.Entity import Location
+    from simulation.core.entity.RandomWalker import RandomWalker
+    from simulation.core.entity.Entity import Location
 
     # Explicit rebuild should be a no-op if already resolved; will raise if still invalid
     RandomWalker.model_rebuild()

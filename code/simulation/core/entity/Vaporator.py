@@ -1,6 +1,6 @@
 from typing import ClassVar, Dict, Optional, List, Type, Optional
 from pydantic import BaseModel
-from simulation.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack, SmallPowerPack
+from simulation.core.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack, SmallPowerPack
 
 # --- Supporting Components for Vaporators ---
 

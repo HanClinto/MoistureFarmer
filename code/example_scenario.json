@@ -8,7 +8,7 @@
   "entities": [
     {
       "type": "GonkDroid",
-      "module": "simulation.entity.DroidModels",
+      "module": "simulation.core.entity.DroidModels",
       "id": "GonkDroid_1",
       "location": {
         "x": 15,
@@ -17,18 +17,18 @@
       "components": {
         "agent": {
           "type": "DroidAgentSimplePowerDroid",
-          "module": "simulation.entity.component.DroidAgents",
+          "module": "simulation.core.entity.component.DroidAgents",
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
           "type": "PowerPack",
-          "module": "simulation.entity.component.Component",
+          "module": "simulation.core.entity.component.Component",
           "id": "PowerPack_1",
           "charge": 65
         },
         "motivator": {
           "type": "Motivator",
-          "module": "simulation.entity.component.DroidComponents",
+          "module": "simulation.core.entity.component.DroidComponents",
           "id": "Motivator_2",
           "destination": {
             "x": 50,
@@ -40,7 +40,7 @@
     },
     {
       "type": "GX1_Vaporator",
-      "module": "simulation.entity.Vaporator",
+      "module": "simulation.core.entity.Vaporator",
       "id": "GX1_Vaporator_1",
       "location": {
         "x": 20,
@@ -49,18 +49,18 @@
       "components": {
         "power_pack": {
           "type": "SmallPowerPack",
-          "module": "simulation.entity.component.Component",
+          "module": "simulation.core.entity.component.Component",
           "id": "SmallPowerPack_2",
           "charge": 45
         },
         "condenser": {
           "type": "CondenserUnit",
-          "module": "simulation.entity.Vaporator",
+          "module": "simulation.core.entity.Vaporator",
           "id": "CondenserUnit_1"
         },
         "water_tank": {
           "type": "SmallWaterTank",
-          "module": "simulation.entity.Vaporator",
+          "module": "simulation.core.entity.Vaporator",
           "id": "SmallWaterTank_1"
         }
       }

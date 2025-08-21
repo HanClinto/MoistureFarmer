@@ -1,5 +1,5 @@
-from simulation.entity.Tilemap import Tilemap
-from simulation.entity.TileTypes import TileType
+from simulation.core.entity.Tilemap import Tilemap
+from simulation.core.entity.TileTypes import TileType
 
 def test_tile_types_serialization():
     tm = Tilemap.from_default()
