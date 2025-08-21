@@ -1,7 +1,7 @@
 """Centralized pydantic model rebuilds to resolve forward references.
 Call rebuild_models() early (e.g., in simulation.__init__) so importing simulation ensures models are fully defined.
 """
-from typing import List, Callable
+from typing import Callable, List
 
 # Import model classes lazily inside function to avoid circulars at module import time.
 

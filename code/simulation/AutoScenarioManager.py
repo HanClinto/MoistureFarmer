@@ -5,15 +5,15 @@ This version uses Python introspection and Pydantic's built-in capabilities
 to automatically handle any Entity or Component types without explicit registration.
 """
 
-import json
-import inspect
 import importlib
-from typing import Dict, List, Any, Type, Optional, get_type_hints
-from pathlib import Path
-from pydantic import BaseModel
+import json
+from typing import Any, Dict, Optional, Type
 
+from simulation.entity.Chassis import Chassis
 from simulation.entity.Entity import Entity, Location
-from simulation.World import Simulation, World
+from simulation.World import Simulation
+from simulation.entity.component.Component import SmallPowerPack
+from simulation.entity.component.DroidComponents import Motivator
 
 
 class AutoScenarioManager:
@@ -217,23 +217,27 @@ class AutoScenarioManager:
             if module_name:
                 # Try to import the specific module
                 module = importlib.import_module(module_name)
-                return getattr(module, class_name, None)
+                class_type = getattr(module, class_name, None)
+                # If we can find the class, rebuild its model if it's a Pydantic model
+                if class_type and hasattr(class_type, 'model_rebuild'):
+                    class_type.model_rebuild()
             else:
                 # Fallback: search common simulation modules
                 search_modules = [
                     "simulation.entity.DroidModels",
                     "simulation.entity.Vaporator", 
                     "simulation.entity.Entity",
-                    "simulation.entity.Component"
+                    "simulation.entity.Chassis",
+                    "simulation.entity.component.Component"
                 ]
                 
                 for mod_name in search_modules:
-                    try:
+                    #try:
                         module = importlib.import_module(mod_name)
                         if hasattr(module, class_name):
                             return getattr(module, class_name)
-                    except ImportError:
-                        continue
+                    #except ImportError:
+                    #    continue
         except Exception as e:
             print(f"Error resolving class {class_name}: {e}")
         
@@ -253,10 +257,10 @@ def load_scenario(file_path: str) -> Simulation:
 
 def demo_automatic_scenarios():
     """Create test scenarios automatically without templates"""
-    from simulation.entity.DroidModels import GonkDroid
-    from simulation.entity.Vaporator import GX1_Vaporator
     from simulation.entity.component.Component import PowerPack
     from simulation.entity.component.DroidComponents import Motivator
+    from simulation.entity.DroidModels import GonkDroid
+    from simulation.entity.Vaporator import GX1_Vaporator
     
     scenarios = []
     
@@ -291,3 +295,7 @@ def demo_automatic_scenarios():
     scenarios.append(("GX1 Vaporator Low Power Test", sim3))
     
     return scenarios
+
+Chassis.model_rebuild()
+Motivator.model_rebuild()
+SmallPowerPack.model_rebuild()

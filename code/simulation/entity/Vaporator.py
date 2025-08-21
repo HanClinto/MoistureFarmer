@@ -1,8 +1,11 @@
-from typing import ClassVar, Dict, Optional, List, Type, Optional
-from pydantic import BaseModel
-from simulation.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack, SmallPowerPack
+from typing import Dict
 
-# --- Supporting Components for Vaporators ---
+from simulation.entity.Chassis import Chassis
+from simulation.entity.component.Component import (Component, PowerPack,
+                                                   SmallPowerPack)
+from simulation.entity.component.ComponentSlot import ComponentSlot
+
+# --- Vaporators and Supporting Components for Vaporators ---
 
 class CondenserUnit(Component):
     water_per_charge: int = 1 # Amount of water condensed per unit of charge

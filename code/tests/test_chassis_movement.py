@@ -1,9 +1,12 @@
 import pytest
-from simulation.World import World
-from simulation.entity.Tilemap import Tilemap
-from simulation.entity.component.Component import Chassis, PowerPack, ComponentSlot
-from simulation.entity.Entity import Location
+from simulation.entity.Chassis import Chassis
+from simulation.entity.component.Component import PowerPack
+from simulation.entity.component.ComponentSlot import ComponentSlot
 from simulation.entity.component.DroidComponents import Motivator
+from simulation.entity.Entity import Location
+from simulation.entity.Tilemap import Tilemap
+from simulation.World import World
+
 
 class SimpleChassis(Chassis):
     from typing import Dict as _Dict

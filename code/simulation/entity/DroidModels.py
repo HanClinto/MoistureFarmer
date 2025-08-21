@@ -1,9 +1,21 @@
 from typing import Dict
-# --- Specific Droid Types ---
-from simulation.entity.component.Component import Chassis, Component, ComponentSlot, PowerPack, SmallPowerPack, ComputerProbe
-from simulation.entity.component.DroidComponents import Motivator
-from simulation.entity.component.DroidAgents import DroidAgentSimple, DroidAgentSimplePowerDroid
 
+# --- Specific Droid Types ---
+from simulation.entity.Chassis import Chassis
+from simulation.entity.component.Component import (Component, ComputerProbe,
+                                                   PowerPack, SmallPowerPack)
+from simulation.entity.component.ComponentSlot import ComponentSlot
+from simulation.entity.component.DroidAgents import (
+    DroidAgentSimple, DroidAgentSimplePowerDroid)
+from simulation.entity.component.DroidComponents import Motivator
+
+
+ComputerProbe.model_rebuild()
+DroidAgentSimple.model_rebuild()
+PowerPack.model_rebuild()
+Motivator.model_rebuild()
+SmallPowerPack.model_rebuild()
+DroidAgentSimplePowerDroid.model_rebuild()
 
 class R2Astromech(Chassis):
     model:str = "R2 Astromech"
@@ -36,4 +48,3 @@ class GonkDroid(Chassis):
         # Install default agent component after initialization
         if not self.slots["agent"].component:
             self.install_component("agent", DroidAgentSimplePowerDroid())
-

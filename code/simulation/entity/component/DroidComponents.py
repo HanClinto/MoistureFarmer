@@ -1,11 +1,13 @@
-from typing import Any, Callable, Dict, Optional, List, Type
-from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
-from simulation.World import World, Simulation
+from typing import TYPE_CHECKING, Any, Callable, List, Optional
+
+from simulation.entity.component.Component import Component, PowerPack
 from simulation.entity.Entity import Location
-from simulation.entity.component.Component import Chassis, ComponentSlot, Component, PowerPack
-from random import randint
+from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 from simulation.movement_intent import MovementIntent
-import logging
+from simulation.World import Simulation, World
+
+if TYPE_CHECKING:
+    from simulation.entity.Chassis import Chassis  # type: ignore
 
 # --- Droid Components ---
 class Motivator(Component):
@@ -234,4 +236,4 @@ class Chronometer(Component):
             return ToolCallResult(state=ToolCallState.SUCCESS, message=f"Woke up from sleep at {self.wake_time} ticks.")
         return ToolCallResult(state=ToolCallState.IN_PROCESS)
 
-Motivator.model_rebuild()
+#Motivator.model_rebuild()

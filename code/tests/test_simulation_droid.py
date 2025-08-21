@@ -1,13 +1,14 @@
 import json
+
 import pytest
 from simulation.entity.component.Component import PowerPack
-from simulation.entity.component.DroidAgents import DroidAgent, DroidAgentSimplePowerDroid
+from simulation.entity.component.DroidAgents import DroidAgent
 from simulation.entity.component.DroidComponents import Chronometer, Motivator
-from simulation.llm.QueuedWebRequest import QueuedHttpRequest
-from simulation.llm.ToolCall import ToolCall, ToolCallParameter
-from simulation.World import Simulation, World
 from simulation.entity.DroidModels import GonkDroid
 from simulation.entity.Entity import Location
+from simulation.llm.QueuedWebRequest import QueuedHttpRequest
+from simulation.World import Simulation
+
 
 @pytest.fixture
 def simulation() -> Simulation:

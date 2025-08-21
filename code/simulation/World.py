@@ -1,16 +1,17 @@
 import asyncio
 import json
 import os
-from time import sleep
-from typing import Dict, List, Optional, Type, TYPE_CHECKING
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
-from simulation.GlobalConfig import GlobalConfig
+from pydantic import BaseModel
 from simulation.entity.Entity import Entity, Location
 from simulation.entity.Tilemap import Tilemap
-from simulation.movement_intent import MovementIntent, OUT_OF_BOUNDS, BLOCKED_TILE, OCCUPIED, INVALID_INTENT
+from simulation.GlobalConfig import GlobalConfig
+from simulation.movement_intent import (BLOCKED_TILE, INVALID_INTENT, OCCUPIED,
+                                        OUT_OF_BOUNDS, MovementIntent)
+
 if TYPE_CHECKING:
-    from simulation.entity.component.Component import Chassis  # type: ignore
+    from simulation.entity.Chassis import Chassis  # type: ignore
 
 # --- World System ---
 class World(BaseModel):
@@ -95,21 +96,21 @@ class World(BaseModel):
     def resolve_movement(self):
         if self.tilemap is None:
             return
-        from simulation.entity.component.Component import Chassis as _Chassis  # local import avoids circular at module load
+        from simulation.entity.Chassis import Chassis as _Chassis  # local import avoids circular at module load
         chassis_list: List[_Chassis] = [e for e in self.entities.values() if isinstance(e, _Chassis)]
         intents = [c for c in chassis_list if c.pending_intent is not None]
         if not intents:
             return
         intents.sort(key=lambda c: (c.move_priority, c.id))
         # Build current occupancy
-        occupancy: Dict[tuple[int,int], Chassis] = {}
+        occupancy: Dict[tuple[int,int], 'Chassis'] = {}
         for c in chassis_list:
             for tile in c.occupied_tiles():
                 occupancy[tile] = c
         shadow = dict(occupancy)
         journal: List[Dict] = []
-        successes: List[tuple[Chassis, Location, Location, MovementIntent]] = []
-        failures: List[tuple[Chassis, MovementIntent, str, Optional[Entity]]] = []
+        successes: List[tuple['Chassis', Location, Location, MovementIntent]] = []
+        failures: List[tuple['Chassis', MovementIntent, str, Optional[Entity]]] = []
 
         for c in intents:
             intent = c.pending_intent  # type: ignore
@@ -382,10 +383,9 @@ class Simulation(BaseModel):
             # Sleep for the specified delay before the next tick
             await asyncio.sleep(sleep_time)
 
-
-
 # Resolve forward references now that World is fully defined.
 from simulation.entity.Entity import Entity as _Entity
+
 _Entity.model_rebuild()
 
 

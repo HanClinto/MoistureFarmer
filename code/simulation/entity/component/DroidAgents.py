@@ -5,14 +5,14 @@ import re
 from typing import Callable, Dict, List, Optional
 
 from pydantic import BaseModel, field_serializer
-
-from simulation.entity.component.Component import Component, Chassis
+from simulation.entity.component.Component import Component
 from simulation.entity.component.DroidComponents import Motivator
 from simulation.entity.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
 from simulation.llm.QueuedWebRequest import QueuedHttpRequest
-from simulation.llm.ToolCall import ToolCall, ToolCallResult, ToolCallState, tool
-from simulation.World import World, Simulation
+from simulation.llm.ToolCall import ToolCall, ToolCallResult, ToolCallState
+from simulation.World import Simulation, World
+
 
 class ContextMessage(BaseModel):
     role:str = "user"
