@@ -5,4 +5,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
 else
     UVICORN_CMD="uvicorn"
 fi
+# Clear our logs folder
+rm logs/*.json
+
 MF_DEFAULT_SCENARIO="$(dirname "$0")/example_scenario.json" $UVICORN_CMD webgui.server:app --reload

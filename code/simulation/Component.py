@@ -49,7 +49,8 @@ class Component(GameObject):
                          'entity',
                          'pending_tool_call',
                          'pending_tool_completion_callback',
-                         'context',
+                         #'context',
+                         #'session_history',
                          'function_ptr',
                          } # Exclude back-references
         if short:
@@ -61,6 +62,7 @@ class Component(GameObject):
             excludes_list.add('pending_tool_call_id')
             excludes_list.add('current_cooldown')
             excludes_list.add('cooldown_delay')
+            excludes_list.add('context')
             excludes_list.add('session_history')
 
         props = self.model_dump(

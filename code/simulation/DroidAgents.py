@@ -4,7 +4,7 @@ import random
 import re
 from typing import Callable, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 from simulation.Component import Component, Chassis
 from simulation.DroidComponents import Motivator
@@ -24,6 +24,9 @@ class ContextMessage(BaseModel):
     # Note that the old "function" message had a "name" field (but not tool_call_id), whereas the new "tool" message has a "tool_call_id" field (but no "name" field).
     tool_name:Optional[str] = None
 
+    # {'role': 'assistant', 'content': None, 'tool_calls': [{'type': 'function', 'function': {'name': 'move_to_entity', 'arguments': '{"identifier":"GX1_Vaporator_1"}'}, 'id': 'hENdCWSa1bonPfvtsFUvHWszIqCmRqq5'}]}
+    tool_calls:Optional[List[Dict]] = None
+
     key:Optional[str] = None
 
     def to_json(self) -> Dict:
@@ -37,6 +40,9 @@ class ContextMessage(BaseModel):
 
         if (self.tool_name):
             msg["tool_name"] = self.tool_name
+
+        if (self.tool_calls):
+            msg["tool_calls"] = self.tool_calls
 
         return msg
 
@@ -96,14 +102,23 @@ class DroidAgent(Component):
     pending_tool_call_id: Optional[str] = None  # The ID of the pending tool call, if any
 
     context: Optional[AgentContext] = None  # The context for the agent, containing the system prompt, tools, and recent history
+    session_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
+
+    @field_serializer('context')
+    def serialize_context(self, context: Optional[AgentContext]) -> Optional[Dict]:
+        if context:
+            return context.to_json()
+        return None
+
+    @field_serializer('session_history')
+    def serialize_session_history(self, session_history: List[AgentContext]) -> List[Dict]:
+        return [context.to_json() for context in session_history]
 
     # HACK: Should probably be properties of the AgentContext, but for now we keep them here so that we can pass them down to the front-end without passing the entire context object.
     last_total_tokens: int = 0  # Total tokens used in the most recent LLM call
     last_completion_tokens: int = 0
     last_prompt_tokens: int = 0
     tokens_max: int = GlobalConfig.llm_context_limit  # Maximum number of tokens allowed in the context
-
-    session_history: List[AgentContext] = []  # History of agent contexts for debugging or analysis
 
     def activate(self, prompt:Optional[str] = None):
         # Initialize the agent with the provider and system prompt
@@ -218,9 +233,11 @@ class DroidAgent(Component):
                 if "finish_reason" in choice:
                     if choice["finish_reason"] == "tool_calls":
                         assert "tool_calls" in choice["message"], "No tool calls in response from LLM API"
-                        self.info(f'Response contained {len(choice["message"]["tool_calls"])} tool calls.')
+                        tool_calls = choice["message"]["tool_calls"]
+                        self.info(f'Response contained {len(tool_calls)} tool calls.')
+                        self.context.append_message(ContextMessage(role="assistant", tool_calls=tool_calls))
 
-                        for tool_call in choice["message"]["tool_calls"]:
+                        for tool_call in tool_calls:
                             # For each tool call, execute it, and save the response to the agent context
                             tool_name = tool_call["function"]["name"]
                             tool_call_id = tool_call["id"]

@@ -336,7 +336,12 @@ class Simulation(BaseModel):
                     # Only write the new state if it has changed
                     if short_state_changed:
                         with open(f"logs/{filename_full}", "w") as f:
-                            json.dump(state_full, f, indent=2)
+                            try:
+                                json.dump(state_full, f, indent=2)
+                            except Exception as e:
+                                # Write without dumping it as JSON -- just serialize as string
+                                print(f"[WARN] Failed to write {filename_full}: {e}")
+                                f.write(str(state_full))
                         with open(f"logs/{filename_short}", "w") as f:
                             json.dump(state_short, f, indent=2)
                     else:
