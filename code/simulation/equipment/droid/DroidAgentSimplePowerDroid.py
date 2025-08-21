@@ -1,4 +1,4 @@
-from simulation.core.entity.component.DroidAgentSimple import DroidAgentSimple
+from simulation.equipment.droid.DroidAgentSimple import DroidAgentSimple
 
 
 class DroidAgentSimplePowerDroid(DroidAgentSimple):

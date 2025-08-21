@@ -6,8 +6,8 @@ from simulation.core.entity.component.Component import (Chassis, Component,
                                                         ComputerProbe,
                                                         PowerPack,
                                                         SmallPowerPack)
-from simulation.core.entity.component.DroidAgentSimple import DroidAgentSimple
-from simulation.core.entity.component.DroidAgentSimplePowerDroid import \
+from simulation.equipment.droid.DroidAgentSimple import DroidAgentSimple
+from simulation.equipment.droid.DroidAgentSimplePowerDroid import \
     DroidAgentSimplePowerDroid
 from simulation.core.entity.component.DroidComponents import Motivator
 

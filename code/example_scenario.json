@@ -17,7 +17,7 @@
       "components": {
         "agent": {
           "type": "DroidAgentSimplePowerDroid",
-          "module": "simulation.core.entity.component.DroidAgentSimplePowerDroid",
+          "module": "simulation.equipment.droid.DroidAgentSimplePowerDroid",
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
