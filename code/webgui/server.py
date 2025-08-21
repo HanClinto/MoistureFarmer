@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from simulation.core.entity.component.DroidAgents import DroidAgent
+from simulation.core.entity.component.DroidAgent import DroidAgent
 from simulation.core.Simulation import Simulation
 from simulation.core.entity.RandomWalker import RandomWalker  # NEW
 

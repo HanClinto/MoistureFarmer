@@ -218,8 +218,8 @@ class AutoScenarioManager:
             else:
                 # Fallback: search common simulation modules
                 search_modules = [
-                    "simulation.equipment.droid.DroidModels",
-                    "simulation.equipment.vaporator.VaporatorModels",
+                    "simulation.equipment.DroidModels",
+                    "simulation.equipment.VaporatorModels",
                     "simulation.core.entity.Entity",
                     "simulation.core.entity.Component"
                 ]
@@ -250,10 +250,10 @@ def load_scenario(file_path: str) -> Simulation:
 
 def demo_automatic_scenarios():
     """Create test scenarios automatically without templates"""
-    from simulation.equipment.droid.DroidModels import GonkDroid
-    from simulation.equipment.vaporator.VaporatorModels import GX1_Vaporator
+    from simulation.equipment.DroidModels import GonkDroid
+    from simulation.equipment.VaporatorModels import GX1_Vaporator
     from simulation.core.entity.component.Component import PowerPack
-    from simulation.core.entity.component.DroidComponents import Motivator
+    from simulation.core.entity.component.Motivator import Motivator
     
     scenarios = []
     

@@ -8,7 +8,7 @@
   "entities": [
     {
       "type": "GonkDroid",
-      "module": "simulation.equipment.droid.DroidModels",
+      "module": "simulation.equipment.DroidModels",
       "id": "GonkDroid_1",
       "location": {
         "x": 15,
@@ -17,7 +17,7 @@
       "components": {
         "agent": {
           "type": "DroidAgentSimplePowerDroid",
-          "module": "simulation.equipment.droid.DroidAgentSimplePowerDroid",
+          "module": "simulation.equipment.DroidAgentModels",
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
@@ -28,7 +28,7 @@
         },
         "motivator": {
           "type": "Motivator",
-          "module": "simulation.core.entity.component.DroidComponents",
+          "module": "simulation.core.entity.component.Motivator",
           "id": "Motivator_2",
           "destination": {
             "x": 50,
@@ -40,7 +40,7 @@
     },
     {
       "type": "GX1_Vaporator",
-      "module": "simulation.equipment.vaporator.VaporatorModels",
+      "module": "simulation.equipment.VaporatorModels",
       "id": "GX1_Vaporator_1",
       "location": {
         "x": 20,

@@ -6,10 +6,9 @@ from simulation.core.entity.component.Component import (Chassis, Component,
                                                         ComputerProbe,
                                                         PowerPack,
                                                         SmallPowerPack)
-from simulation.equipment.droid.DroidAgentSimple import DroidAgentSimple
-from simulation.equipment.droid.DroidAgentSimplePowerDroid import \
-    DroidAgentSimplePowerDroid
-from simulation.core.entity.component.DroidComponents import Motivator
+from simulation.core.entity.component.Motivator import Motivator
+from simulation.equipment.DroidAgentModels import (DroidAgentSimple,
+                                                   DroidAgentSimplePowerDroid)
 
 
 class R2Astromech(Chassis):

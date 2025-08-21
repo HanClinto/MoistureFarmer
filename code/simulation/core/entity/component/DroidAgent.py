@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional
 from pydantic import BaseModel, field_serializer
 
 from simulation.core.entity.component.Component import Component, Chassis
-from simulation.core.entity.component.DroidComponents import Motivator
+from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.Entity import Location
 from simulation.GlobalConfig import GlobalConfig
 from simulation.llm.QueuedWebRequest import QueuedHttpRequest

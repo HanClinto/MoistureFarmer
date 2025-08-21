@@ -11,10 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from simulation.AutoScenarioManager import AutoScenarioManager
 from simulation.core.Simulation import Simulation
 from simulation.core.entity.Entity import Location
-from simulation.equipment.droid.DroidModels import GonkDroid
-from simulation.equipment.vaporator.VaporatorModels import GX1_Vaporator
+from simulation.equipment.DroidModels import GonkDroid
+from simulation.equipment.VaporatorModels import GX1_Vaporator
 from simulation.core.entity.component.Component import PowerPack
-from simulation.core.entity.component.DroidComponents import Motivator
+from simulation.core.entity.component.Motivator import Motivator
 
 
 def test_auto_scenario_round_trip():
@@ -135,7 +135,7 @@ def test_auto_scenario_minimal_json():
         # Entity should have minimal data (type, module, id, and default components)
         entity = data["entities"][0]
         assert entity["type"] == "GonkDroid"
-        assert entity["module"] == "simulation.equipment.droid.DroidModels"
+        assert entity["module"] == "simulation.equipment.DroidModels"
         assert "id" in entity
         
         # Should not have simulation_settings (all defaults)
