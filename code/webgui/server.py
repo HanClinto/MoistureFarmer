@@ -20,7 +20,6 @@ movement_subscribers = set()
 web31_root = Path(__file__).parent / 'web31'
 web98_root = Path(__file__).parent / 'web98'
 app.mount('/web98', StaticFiles(directory=web98_root), name='web98')
-app.mount('/web31', StaticFiles(directory=web31_root), name='web31')
 
 resources_root = Path(__file__).parent / 'resources'
 app.mount('/resources', StaticFiles(directory=resources_root), name='resources')
