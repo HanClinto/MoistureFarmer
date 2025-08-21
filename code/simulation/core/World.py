@@ -1,16 +1,14 @@
-import asyncio
-import json
-import os
-from time import sleep
-from typing import Dict, List, Optional, Type, TYPE_CHECKING
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
-from simulation.GlobalConfig import GlobalConfig
+from pydantic import BaseModel
 from simulation.core.entity.Entity import Entity, Location
 from simulation.core.entity.Tilemap import Tilemap
-from simulation.movement_intent import MovementIntent, OUT_OF_BOUNDS, BLOCKED_TILE, OCCUPIED, INVALID_INTENT
+from simulation.movement_intent import (BLOCKED_TILE, INVALID_INTENT, OCCUPIED,
+                                        OUT_OF_BOUNDS, MovementIntent)
+
 if TYPE_CHECKING:
-    from simulation.core.entity.component.Component import Chassis  # type: ignore
+    from simulation.core.entity.component.Component import \
+        Chassis  # type: ignore
 
 # --- World System ---
 class World(BaseModel):
@@ -95,7 +93,8 @@ class World(BaseModel):
     def resolve_movement(self):
         if self.tilemap is None:
             return
-        from simulation.core.entity.component.Component import Chassis as _Chassis  # local import avoids circular at module load
+        from simulation.core.entity.component.Component import \
+            Chassis as _Chassis  # local import avoids circular at module load
         chassis_list: List[_Chassis] = [e for e in self.entities.values() if isinstance(e, _Chassis)]
         intents = [c for c in chassis_list if c.pending_intent is not None]
         if not intents:
@@ -227,6 +226,7 @@ class World(BaseModel):
 
 # Resolve forward references now that World is fully defined.
 from simulation.core.entity.Entity import Entity as _Entity
+
 _Entity.model_rebuild()
 
 
