@@ -1,7 +1,8 @@
 from typing import Any, Callable, List, Optional
 
-from simulation.core.entity.component.Chassis import Component
+from simulation.core.entity.component.Chassis import Component, Chassis
 from simulation.core.entity.component.PowerPack import PowerPack
+from simulation.core.entity.component.ComponentSlot import ComponentSlot
 from simulation.core.entity.Entity import Location
 from simulation.core.World import World
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
@@ -200,4 +201,3 @@ class AStarMotivator(Motivator):
         # TODO: Use the world's collision map to find a valid path
         return super().find_path(start, end)
 
-Motivator.model_rebuild()

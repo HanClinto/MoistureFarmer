@@ -1,11 +1,13 @@
-from datetime import datetime
 import inspect
 import logging
-from typing import TypeVar, overload, Union, ClassVar, Dict, Optional, List, Tuple, Type, Callable, Any
-from pydantic import BaseModel
+from typing import TYPE_CHECKING, TypeVar, overload, ClassVar, Dict, Optional, List, Type, Any
 from simulation.core.entity.Entity import Entity, Location, GameObject, LogMessage
 from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 from simulation.movement_intent import MovementIntent
+
+if TYPE_CHECKING:
+    from simulation.core.entity.component.ComponentSlot import \
+        ComponentSlot  # type: ignore
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to
@@ -248,22 +250,4 @@ class Chassis(Entity):
             if comp and comp.__class__.__name__ == type_name:
                 return comp
         return None
-
-
-class ComponentSlot(BaseModel):
-    slot_id: Optional[str] = None
-    accepts: Optional[Type[Component]] = Component
-    component: Optional[Component] = None
-    default_component: Optional[Type[Component]] = None
-
-    def __init__(self, slot_id: Optional[str] = None, accepts: Optional[Type[Component]] = Component, component: Optional[Component] = None, default_component: Optional[Type[Component]] = None, **data):
-        super().__init__(**data)
-        self.slot_id = slot_id
-        self.accepts = accepts
-        self.component = component
-        self.default_component = default_component
-        # If we have a default component set but no component, then initialize one
-        # TODO: Are we going to need to include kwargs for the default component as another parameter?
-        if default_component and not component:
-            self.component = default_component()
 

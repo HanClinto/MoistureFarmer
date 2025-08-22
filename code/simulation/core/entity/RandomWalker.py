@@ -3,7 +3,9 @@ from __future__ import annotations
 import random
 from typing import ClassVar, Dict
 
-from .component.Chassis import Chassis, ComponentSlot
+from simulation.core.entity.component.ComponentSlot import ComponentSlot
+
+from .component.Chassis import Chassis
 
 class RandomWalker(Chassis):
     """Simple autonomous chassis that attempts a random 8-way step each think interval.

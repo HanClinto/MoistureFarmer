@@ -12,7 +12,18 @@ from typing import Dict, Any, Type, Optional
 from simulation.core.entity.Entity import Entity, Location
 from simulation.core.Simulation import Simulation
 
+# BEGIN REBUILD HACK: Rebuild models for a bunch of things so that we don't get circular referrence or import errors.
+from simulation.core.entity.component.ComponentSlot import ComponentSlot
+from simulation.core.entity.component.Motivator import Motivator
+from simulation.core.entity.component.PowerPack import PowerPack, SmallPowerPack
+from simulation.core.entity.component.Chassis import Chassis
 
+Motivator.model_rebuild()
+PowerPack.model_rebuild()
+SmallPowerPack.model_rebuild()
+Chassis.model_rebuild()
+ComponentSlot.model_rebuild()
+# END REBUILD HACK
 class AutoScenarioManager:
     """Automatic scenario manager that discovers entity types dynamically"""
     

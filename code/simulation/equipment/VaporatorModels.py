@@ -1,6 +1,6 @@
 from typing import Dict
 
-from simulation.core.entity.component.Chassis import ComponentSlot
+from simulation.core.entity.component.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.CondenserUnit import (
     AdvancedCondenserUnit, CondenserUnit)
 from simulation.core.entity.component.PowerPack import (PowerPack,
