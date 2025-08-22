@@ -1,4 +1,4 @@
-from simulation.core.entity.component.Chassis import Component
+from simulation.core.entity.component.Component import Component
 
 
 class WaterTank(Component):

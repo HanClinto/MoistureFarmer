@@ -1,6 +1,7 @@
 from typing import Any, Callable, List, Optional
 
-from simulation.core.entity.component.Chassis import Component, Chassis
+from simulation.core.entity.component.Chassis import Chassis
+from simulation.core.entity.component.Component import Component
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.ComponentSlot import ComponentSlot
 from simulation.core.entity.Entity import Location
