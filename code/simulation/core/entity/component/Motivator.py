@@ -63,6 +63,10 @@ class Motivator(Component):
         # Remove the final location from the path so that we don't include it in the movement
         self.path_to_destination = self.path_to_destination[:-1]
 
+        # Update the destination to be the new last location in the path
+        if self.path_to_destination:
+            self.destination = self.path_to_destination[-1]
+
         return ToolCallResult(state=ToolCallState.IN_PROCESS, callback=self.move_to_isdone)
 
     @tool
@@ -144,6 +148,7 @@ class Motivator(Component):
         if self.destination is None or self.chassis.location == self.destination:
             # We have arrived at our destination, so clear the destination
             self.destination = None
+            self.destination_identifier = None
             self.path_to_destination = None
             self.cooldown_remaining = 0
             return
@@ -170,11 +175,12 @@ class Motivator(Component):
         if not self.path_to_destination:
             self.warn("No path available to destination.")
             self.destination = None
+            self.destination_identifier = None
             return
-        
+
         # Peek at the next location in the path
         next_location = self.path_to_destination[0]
-            
+
         # Calculate the movement deltas
         dx = next_location.x - self.chassis.location.x
         dy = next_location.y - self.chassis.location.y
