@@ -37,5 +37,3 @@ class Chronometer(Component):
         if Simulation.get_instance().tick_count >= self.wake_time:
             return ToolCallResult(state=ToolCallState.SUCCESS, message=f"Woke up from sleep at {self.wake_time} ticks.")
         return ToolCallResult(state=ToolCallState.IN_PROCESS)
-
-Chronometer.model_rebuild()
