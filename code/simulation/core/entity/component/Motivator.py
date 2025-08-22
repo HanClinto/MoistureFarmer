@@ -18,6 +18,7 @@ class Motivator(Component):
     # Motivators can be installed in Chassis to provide movement capabilities.
 
     destination: Optional[Location] = None  # The destination the chassis is moving towards
+    destination_identifier: Optional[str] = None  # The identifier of the destination entity
 
     path_to_destination: Optional[List[Location]] = None  # The path to the destination
     cooldown_remaining: int = 0  # Cooldown for movement after each tick
@@ -54,9 +55,13 @@ class Motivator(Component):
 
         # Assign our desination to the entity's location
         self.destination = entity.location
+        self.destination_identifier = entity.id  # Store the identifier of the destination entity
 
         # Calculate the path to the destination
         self.path_to_destination = self.find_path(self.chassis.location, self.destination)
+
+        # Remove the final location from the path so that we don't include it in the movement
+        self.path_to_destination = self.path_to_destination[:-1]
 
         return ToolCallResult(state=ToolCallState.IN_PROCESS, callback=self.move_to_isdone)
 
@@ -70,6 +75,8 @@ class Motivator(Component):
         """
         # Set the destination of the chassis to the specified location
         self.destination = Location(x=x, y=y)
+        self.destination_identifier = None  # Clear the destination identifier
+
         # Calculate the path to the destination
         self.path_to_destination = self.find_path(self.chassis.location, self.destination)
         return ToolCallResult(state=ToolCallState.IN_PROCESS, callback=self.move_to_isdone)
@@ -132,6 +139,8 @@ class Motivator(Component):
         self.cooldown_remaining = max(0, v)
 
     def tick(self):
+        # TODO: If we are moving towards a specific entity, we can check to see if it has moved and update our path accordingly.
+
         if self.destination is None or self.chassis.location == self.destination:
             # We have arrived at our destination, so clear the destination
             self.destination = None
