@@ -1,10 +1,10 @@
 import pytest
-from simulation.core.entity.component.Chassis import Chassis
-from simulation.core.entity.component.ComponentSlot import ComponentSlot
+from simulation.core.entity.Chassis import Chassis
+from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.Entity import Location
-from simulation.core.entity.Tilemap import Tilemap
+from simulation.core.tiles.Tilemap import Tilemap
 from simulation.core.World import World
 
 

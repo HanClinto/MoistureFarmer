@@ -7,7 +7,7 @@ from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 from simulation.movement_intent import MovementIntent
 
 if TYPE_CHECKING:
-    from simulation.core.entity.component.ComponentSlot import \
+    from simulation.core.entity.ComponentSlot import \
         ComponentSlot  # type: ignore
 
 # -- Chassis System ---

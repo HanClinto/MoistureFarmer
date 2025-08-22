@@ -6,7 +6,7 @@ from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 from simulation.movement_intent import MovementIntent
 
 if TYPE_CHECKING:
-    from simulation.core.entity.component.Chassis import Chassis  # type: ignore
+    from simulation.core.entity.Chassis import Chassis  # type: ignore
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to

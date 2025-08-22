@@ -1,4 +1,4 @@
-from simulation.core.entity.Tilemap import Tilemap
+from simulation.core.tiles.Tilemap import Tilemap
 
 
 def test_tilemap_default_init_shape():

@@ -1,9 +1,9 @@
 from typing import Dict
 
 # --- Specific Droid Types ---
-from simulation.core.entity.component.Chassis import Chassis
+from simulation.core.entity.Chassis import Chassis
 from simulation.core.entity.component.Component import Component
-from simulation.core.entity.component.ComponentSlot import ComponentSlot
+from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.ComputerProbe import ComputerProbe
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerPack import (PowerPack,

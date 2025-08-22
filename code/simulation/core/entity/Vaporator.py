@@ -1,7 +1,7 @@
 from typing import Dict
 
-from simulation.core.entity.component.Chassis import Chassis
-from simulation.core.entity.component.ComponentSlot import ComponentSlot
+from simulation.core.entity.Chassis import Chassis
+from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.CondenserUnit import CondenserUnit
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
