@@ -1,14 +1,13 @@
 from typing import Dict
 
-from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.CondenserUnit import (
     AdvancedCondenserUnit, CondenserUnit)
 from simulation.core.entity.component.PowerPack import (PowerPack,
                                                         SmallPowerPack)
-from simulation.core.entity.component.WaterTank import (LargeWaterTank,
-                                                        SmallWaterTank,
-                                                        WaterTank)
+from simulation.core.entity.component.WaterTank import WaterTank
+from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.Vaporator import Vaporator
+from simulation.equipment.WaterTankModels import LargeWaterTank, SmallWaterTank
 
 
 class GX1_Vaporator(Vaporator):
