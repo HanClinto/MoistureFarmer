@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="128" height="128" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="15">
  <editorsettings>
-  <export target="../../../../../../Downloads/JSPrototype/world.tmj" format="json"/>
+  <export target="world.tmj" format="json"/>
  </editorsettings>
- <tileset firstgid="1" source="../../../../../yoda-stories/src/site/resources/tiles/Yoda Stories.tsx"/>
+ <tileset firstgid="1" source="../tiles/Yoda Stories.tsx"/>
  <layer id="6" name="Background" width="128" height="128">
   <data encoding="csv">
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
