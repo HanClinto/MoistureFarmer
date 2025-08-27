@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from simulation.core.entity.ComponentSlot import \
         ComponentSlot  # type: ignore
 
+T = TypeVar('T', bound=Component)
+
 # -- Chassis System ---
 # Chassis are the physical bodies of entities that can have components
 #  installed in them to extend their capabilities.
@@ -61,9 +63,6 @@ class Chassis(Entity):
         # Raise an on_installed event for the component so that it can initialize itself (if needed)
         component.on_installed(self)
 
-    # Generic helper TypeVar for get_component overloads; mark as ClassVar so Pydantic doesn't treat as field
-    T: ClassVar = TypeVar('T', bound='Component')
-
     @overload
     def get_component(self, identifier: Type[T]) -> Optional[T]: ...
     @overload
@@ -72,8 +71,9 @@ class Chassis(Entity):
     # get_component accepts a Type or string parameter.
     #  If a Type is provided, it will return the first component of that type found in the slots.
     #  If a string is provided, it will return the component of the Slot with an ID matching that ID.
-    #  If no Slot with that ID exists, it will then return the first component matching that ID from any slot.
-    #.  If no matching Component or Slot is found, then it will return None.
+    #  If no Slot with that ID exists, it will then return the first Component whose ID matches that identifier.
+    #  If no Component with that ID exists, then it will return the first Component whose class or parent class name matches that identifier.
+    #  If no matching Component or Slot is found, then it will return None.
     def get_component(self, identifier: Type[Component] | str) -> Optional[Component]:
         if isinstance(identifier, str):
             # Check for a slot with the given ID first
@@ -83,6 +83,15 @@ class Chassis(Entity):
             for slot in self.slots.values():
                 if slot.component and slot.component.id == identifier:
                     return slot.component
+            # If no ID found, check all components for a matching type
+            for slot in self.slots.values():
+                if slot.component:
+                    # Check the __class__.__name__ and all parent class names
+                    if slot.component.__class__.__name__ == identifier:
+                        return slot.component
+                    for base in inspect.getmro(slot.component.__class__):
+                        if base.__name__ == identifier:
+                            return slot.component
             return None
         elif isinstance(identifier, type) and issubclass(identifier, Component):
             # If a Type is provided, return the first component of that type found in the slots
@@ -181,7 +190,12 @@ class Chassis(Entity):
     def get_component_by_type_name(self, type_name: str):
         for slot in self.slots.values():
             comp = slot.component
-            if comp and comp.__class__.__name__ == type_name:
-                return comp
+            if comp:
+                # Check the __class__.__name__ and all parent class names
+                if comp.__class__.__name__ == type_name:
+                    return comp
+                for base in inspect.getmro(comp.__class__):
+                    if base.__name__ == type_name:
+                        return comp
         return None
 
