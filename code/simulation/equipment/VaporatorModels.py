@@ -1,5 +1,6 @@
 from typing import Dict
 
+from simulation.core.entity.Chassis import Chassis
 from simulation.core.entity.component.CondenserUnit import (
     AdvancedCondenserUnit, CondenserUnit)
 from simulation.core.entity.component.PowerPack import (PowerPack,
@@ -9,6 +10,9 @@ from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.Vaporator import Vaporator
 from simulation.equipment.WaterTankModels import LargeWaterTank, SmallWaterTank
 
+Chassis.model_rebuild()
+LargeWaterTank.model_rebuild()
+SmallWaterTank.model_rebuild()
 
 class GX1_Vaporator(Vaporator):
     model: str = "GX-1"

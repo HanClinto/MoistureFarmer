@@ -54,6 +54,7 @@ class Component(GameObject):
                          #'context',
                          #'session_history',
                          'function_ptr',
+                         'tool_result',
                          } # Exclude back-references
         if short:
             excludes_list.add('path_to_destination')
@@ -66,6 +67,9 @@ class Component(GameObject):
             excludes_list.add('cooldown_delay')
             excludes_list.add('context')
             excludes_list.add('session_history')
+            # PowerAdapter
+            excludes_list.add('transfer_target')
+            excludes_list.add('transfer_mode')
 
         props = self.model_dump(
                 exclude_defaults=False,

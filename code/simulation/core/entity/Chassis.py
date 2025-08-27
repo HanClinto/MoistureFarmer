@@ -100,7 +100,7 @@ class Chassis(Entity):
                     return slot.component
             return None
         else:
-            raise TypeError("Identifier must be a Type of Component or a string representing a slot ID or component ID.")
+            raise TypeError(f"Identifier must be a Type of Component or a string representing a slot ID or component ID. Got: {identifier}")
 
     def get_available_tools(self) -> Dict[str, ToolCall]:
         # Collect all tool calls from all components in the chassis
