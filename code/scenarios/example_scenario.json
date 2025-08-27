@@ -19,12 +19,10 @@
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
-          "type": "PowerPack",
           "id": "PowerPack_1",
           "charge": 65
         },
         "motivator": {
-          "type": "Motivator",
           "id": "Motivator_2",
           "destination": {
             "x": 50,
@@ -43,16 +41,13 @@
       },
       "components": {
         "power_pack": {
-          "type": "SmallPowerPack",
           "id": "SmallPowerPack_2",
           "charge": 45
         },
         "condenser": {
-          "type": "CondenserUnit",
           "id": "CondenserUnit_1"
         },
         "water_tank": {
-          "type": "SmallWaterTank",
           "id": "SmallWaterTank_1"
         }
       }
