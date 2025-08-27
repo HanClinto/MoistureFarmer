@@ -14,6 +14,7 @@ from simulation.core.Simulation import Simulation
 
 # BEGIN REBUILD HACK: Rebuild models for a bunch of things so that we don't get circular referrence or import errors.
 from simulation.core.entity.ComponentSlot import ComponentSlot
+from simulation.core.entity.component.Component import Component
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerPack import LargePowerPack, PowerPack, SmallPowerPack
 from simulation.core.entity.Chassis import Chassis
@@ -99,7 +100,7 @@ class AutoScenarioManager:
             components = {}
             for slot_name, slot in entity.slots.items():
                 if slot.component:
-                    comp_data = cls._component_to_dict(slot.component)
+                    comp_data = cls._component_to_dict(slot)
                     if comp_data:  # Only include if there are non-default values
                         components[slot_name] = comp_data
             
@@ -109,14 +110,20 @@ class AutoScenarioManager:
         return entity_data
     
     @classmethod
-    def _component_to_dict(cls, component) -> Optional[Dict[str, Any]]:
+    def _component_to_dict(cls, slot:ComponentSlot) -> Optional[Dict[str, Any]]:
         """Convert component to dictionary"""
         try:
-            # Get component type and module
+            component = slot.component
+
             comp_data = {
-                "type": component.__class__.__name__,
             }
-            
+
+            # Only include the component type information if it is not the default for the slot.
+            component_type = component.__class__.__name__
+            if not slot.default_component or slot.default_component.__name__ != component_type:
+                print(f"Component in slot {slot.slot_id} is of type {component_type}, which differs from slot default {slot.accepts.__name__}")
+                comp_data["type"] = component_type
+
             # Get component properties (excluding defaults and circular references)
             props = component.model_dump(
                 exclude_defaults=True,
