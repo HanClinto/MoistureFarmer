@@ -5,8 +5,9 @@ from simulation.core.entity.component.WaterTank import WaterTank
 from simulation.core.entity.Entity import Location
 from simulation.core.Simulation import Simulation
 from simulation.equipment.DroidModels import GonkDroid
-from simulation.equipment.PowerStationModels import MicroFusionPowerStation, SolarPowerStation
-from simulation.equipment.VaporatorModels import GX1_Vaporator, GX8_Vaporator
+from simulation.equipment.PowerStationModels import (MicroFusionPowerStation,
+                                                     SolarPowerStation)
+from simulation.equipment.VaporatorModels import GX1_Vaporator
 from simulation.llm.ToolCall import ToolCallState
 
 
