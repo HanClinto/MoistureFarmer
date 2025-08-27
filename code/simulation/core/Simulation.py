@@ -152,7 +152,8 @@ class Simulation(BaseModel):
                         with open(f"logs/{filename_short}", "w") as f:
                             json.dump(state_short, f, indent=2)
                     else:
-                        print(f"Skipping world state dump for tick {Simulation.get_instance().tick_count} as it is unchanged from prev.")
+                        pass
+                        #print(f"Skipping world state dump for tick {Simulation.get_instance().tick_count} as it is unchanged from prev.")
 
                 if ticks is not None and count >= ticks:
                     self.running = False
@@ -164,7 +165,7 @@ class Simulation(BaseModel):
                 if self.world.entity_thinking_count > 0:
                     # If any entities are thinking, then give them the maximum delay to think
                     sleep_time = self.simulation_delay_max
-                    print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
+                    #print(f"Simulation: {self.world.entity_thinking_count} entities are thinking, sleeping for {sleep_time} seconds.")
 
             # Sleep for the specified delay before the next tick
             await asyncio.sleep(sleep_time)

@@ -9,7 +9,7 @@ import json
 import importlib
 from typing import Dict, Any, Type, Optional
 
-from simulation.core.entity.Entity import Entity, Location
+from simulation.core.entity.Entity import Entity, GameObject, Location
 from simulation.core.Simulation import Simulation
 
 # BEGIN REBUILD HACK: Rebuild models for a bunch of things so that we don't get circular referrence or import errors.
@@ -82,7 +82,6 @@ class AutoScenarioManager:
         # Start with the entity type and module for automatic resolution
         entity_data = {
             "type": entity.__class__.__name__,
-            "module": entity.__class__.__module__
         }
         
         # Get entity properties (excluding defaults and circular references)
@@ -116,7 +115,6 @@ class AutoScenarioManager:
             # Get component type and module
             comp_data = {
                 "type": component.__class__.__name__,
-                "module": component.__class__.__module__
             }
             
             # Get component properties (excluding defaults and circular references)
@@ -223,6 +221,12 @@ class AutoScenarioManager:
     def _resolve_class(cls, class_name: str, module_name: str = None) -> Optional[Type]:
         """Dynamically resolve a class by name and module"""
         try:
+            # First, search for all subclasses of GameObject registered in the application and look for a match.
+            game_object_classes = GameObject.__subclasses__()
+            for cls in game_object_classes:
+                if cls.__name__ == class_name:
+                    return cls
+                
             if module_name:
                 # Try to import the specific module
                 module = importlib.import_module(module_name)

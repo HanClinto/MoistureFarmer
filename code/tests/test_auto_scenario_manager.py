@@ -136,7 +136,6 @@ def test_auto_scenario_minimal_json():
         # Entity should have minimal data (type, module, id, and default components)
         entity = data["entities"][0]
         assert entity["type"] == "GonkDroid"
-        assert entity["module"] == "simulation.equipment.DroidModels"
         assert "id" in entity
         
         # Should not have simulation_settings (all defaults)

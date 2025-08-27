@@ -8,7 +8,6 @@
   "entities": [
     {
       "type": "GonkDroid",
-      "module": "simulation.equipment.DroidModels",
       "id": "GonkDroid_1",
       "location": {
         "x": 15,
@@ -17,18 +16,15 @@
       "components": {
         "agent": {
           "type": "DroidAgentSimplePowerDroid",
-          "module": "simulation.equipment.DroidAgentModels",
           "id": "DroidAgentSimplePowerDroid_1"
         },
         "power_pack": {
           "type": "PowerPack",
-          "module": "simulation.core.entity.component.PowerPack",
           "id": "PowerPack_1",
           "charge": 65
         },
         "motivator": {
           "type": "Motivator",
-          "module": "simulation.core.entity.component.Motivator",
           "id": "Motivator_2",
           "destination": {
             "x": 50,
@@ -40,7 +36,6 @@
     },
     {
       "type": "GX1_Vaporator",
-      "module": "simulation.equipment.VaporatorModels",
       "id": "GX1_Vaporator_1",
       "location": {
         "x": 20,
@@ -49,18 +44,15 @@
       "components": {
         "power_pack": {
           "type": "SmallPowerPack",
-          "module": "simulation.core.entity.component.PowerPack",
           "id": "SmallPowerPack_2",
           "charge": 45
         },
         "condenser": {
           "type": "CondenserUnit",
-          "module": "simulation.core.entity.component.CondenserUnit",
           "id": "CondenserUnit_1"
         },
         "water_tank": {
           "type": "SmallWaterTank",
-          "module": "simulation.core.entity.component.WaterTank",
           "id": "SmallWaterTank_1"
         }
       }

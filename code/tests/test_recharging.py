@@ -1,4 +1,5 @@
 import pytest
+from simulation.GlobalConfig import GlobalConfig
 from simulation.core.entity.component.PowerAdapter import HeavyDutyPowerAdapter
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
@@ -15,6 +16,8 @@ from simulation.llm.ToolCall import ToolCallState
 def simulation() -> Simulation:
     """Fixture to create a simulation instance for testing."""
     sim = Simulation(simulation_delay=0, web_server_enabled=False)
+    # Set log level to reduce verbosity during tests
+    GlobalConfig.log_print_level = 2
     return sim
 
 def test_recharge_vaporator(simulation: Simulation):
