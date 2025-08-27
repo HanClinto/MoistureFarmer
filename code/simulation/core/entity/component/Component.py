@@ -67,7 +67,7 @@ class Component(GameObject):
             excludes_list.add('cooldown_delay')
             excludes_list.add('context')
             excludes_list.add('session_history')
-            # PowerAdapter
+            # PowerConverter
             excludes_list.add('transfer_target')
             excludes_list.add('transfer_mode')
 

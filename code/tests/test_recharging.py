@@ -1,6 +1,6 @@
 import pytest
 from simulation.GlobalConfig import GlobalConfig
-from simulation.core.entity.component.PowerAdapter import HeavyDutyPowerAdapter
+from simulation.core.entity.component.PowerConverter import HeavyDutyPowerConverter
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
 from simulation.core.entity.Entity import Location
@@ -36,7 +36,7 @@ def test_recharge_vaporator(simulation: Simulation):
     # Create a power droid to recharge it, next to the vaporator
     droid = GonkDroid(location=Location(x=1, y=0))
     droid_power:PowerPack = droid.get_component(PowerPack)
-    droid_adapter: HeavyDutyPowerAdapter = droid.get_component(HeavyDutyPowerAdapter)    
+    droid_adapter: HeavyDutyPowerConverter = droid.get_component(HeavyDutyPowerConverter)    
     simulation.world.add_entity(droid)
     
     # Instruct the droid to charge the vaporator
@@ -72,7 +72,7 @@ def test_recharge_droid(simulation: Simulation):
     power_station_power: PowerPack = power_station.get_component(PowerPack)
 
     # Assign the droid to charge itself from the power station.
-    droid_adapter: HeavyDutyPowerAdapter = droid.get_component(HeavyDutyPowerAdapter)
+    droid_adapter: HeavyDutyPowerConverter = droid.get_component(HeavyDutyPowerConverter)
     droid_adapter.recharge_self(power_station.id)
 
     print(f'Initial droid charge: {power.charge}')
@@ -110,7 +110,7 @@ def test_recharge_droid_slow(simulation: Simulation):
     solar_station_power.charge = 50
 
     # Assign the droid to charge itself from the power station.
-    droid_adapter: HeavyDutyPowerAdapter = droid.get_component(HeavyDutyPowerAdapter)
+    droid_adapter: HeavyDutyPowerConverter = droid.get_component(HeavyDutyPowerConverter)
     droid_adapter.recharge_self(solar_station.id)
 
     print(f'Initial power charge: {power.charge}')

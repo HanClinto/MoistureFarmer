@@ -6,9 +6,9 @@ from simulation.core.entity.component.Component import Component
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 
 
-class PowerAdapter(Component):
-    model: str = "Universal Power Adapter"
-    description: str = "A universal power adapter that allows a unit to recharge itself from any adjacent power source."
+class PowerConverter(Component):
+    model: str = "Universal Power Converter"
+    description: str = "A universal power converter that allows a unit to recharge itself from any adjacent power source."
 
     transfer_rate: int = 2  # Amount of charge to transfer per tick
 
@@ -131,10 +131,10 @@ class PowerAdapter(Component):
         return self.tool_result
 
 
-class HeavyDutyPowerAdapter(PowerAdapter):
-    model: str = "Heavy-Duty Universal Power Adapter"
-    description: str = "A heavy-duty power adapter designed for high-capacity power transfer. Can recharge other equipment, in addition to itself."
-    
+class HeavyDutyPowerConverter(PowerConverter):
+    model: str = "Heavy-Duty Universal Power Converter"
+    description: str = "A heavy-duty power converter designed for high-capacity power transfer. Can recharge other equipment, in addition to itself."
+
     transfer_rate: int = 5  # Amount of charge to transfer per tick
 
     @tool

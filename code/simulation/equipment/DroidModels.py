@@ -6,7 +6,7 @@ from simulation.core.entity.component.Component import Component
 from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.ComputerProbe import ComputerProbe
 from simulation.core.entity.component.Motivator import Motivator
-from simulation.core.entity.component.PowerAdapter import HeavyDutyPowerAdapter, PowerAdapter
+from simulation.core.entity.component.PowerConverter import HeavyDutyPowerConverter, PowerConverter
 from simulation.core.entity.component.PowerPack import (PowerPack,
                                                         SmallPowerPack)
 from simulation.equipment.DroidAgentModels import (DroidAgentSimple,
@@ -29,7 +29,7 @@ class R2Astromech(Chassis):
         "manipulator_2": ComponentSlot(accepts=Component),
         "manipulator_3": ComponentSlot(accepts=Component),
         "manipulator_4": ComponentSlot(accepts=Component),
-        "power_adapter": ComponentSlot(accepts=PowerAdapter, default_component=PowerAdapter),
+        "power_adapter": ComponentSlot(accepts=PowerConverter, default_component=PowerConverter),
         "computer_probe": ComponentSlot(accepts=ComputerProbe, default_component=ComputerProbe)
     }
 
@@ -42,7 +42,7 @@ class GonkDroid(Chassis):
         "agent": ComponentSlot(accepts=DroidAgentSimple),
         "power_pack": ComponentSlot(accepts=PowerPack, default_component=PowerPack),
         "motivator": ComponentSlot(accepts=Motivator, default_component=Motivator),
-        "power_adapter": ComponentSlot(accepts=PowerAdapter, default_component=HeavyDutyPowerAdapter),
+        "power_adapter": ComponentSlot(accepts=PowerConverter, default_component=HeavyDutyPowerConverter),
         "misc": ComponentSlot(accepts=Component),  # For any additional components
     }
     
