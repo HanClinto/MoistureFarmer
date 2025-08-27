@@ -10,5 +10,6 @@ class SmallPowerPack(PowerPack):
     charge: int = 50
 
 class LargePowerPack(PowerPack):
+    # Dylinium hydride power pack
     charge_max: int = 200
     charge: int = 200
