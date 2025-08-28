@@ -58,6 +58,12 @@ class Chassis(Entity):
         if not isinstance(component, slot.accepts):
             # TODO: Don't raise a TypeError for this, but instead post an error message to the world and/or chassis system
             raise TypeError(f"Component '{component.id}' is not a valid type for slot '{slot_id}'. Expected {slot.accepts.__name__} or compatible subclass.")
+        
+        # Ensure that the slot is empty
+        if slot.component and slot.component is not component:
+            # TODO: Do not raise an exception for this, but instead post an error message to the world and/or chassis system
+            raise ValueError(f"Slot '{slot_id}' is already occupied by component '{slot.component.id}'.")
+
         component.chassis = self
         slot.component = component
         # Raise an on_installed event for the component so that it can initialize itself (if needed)

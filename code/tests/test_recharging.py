@@ -6,6 +6,7 @@ from simulation.core.entity.component.WaterTank import WaterTank
 from simulation.core.entity.Entity import Location
 from simulation.core.Simulation import Simulation
 from simulation.equipment.DroidModels import GonkDroid
+from simulation.equipment.PowerGeneratorModels import SolarPanel
 from simulation.equipment.PowerStationModels import (MicroFusionPowerStation,
                                                      SolarPowerStation)
 from simulation.equipment.VaporatorModels import GX1_Vaporator
@@ -130,3 +131,27 @@ def test_recharge_droid_slow(simulation: Simulation):
     assert droid_adapter.tool_result.state == ToolCallState.SUCCESS
 
     print(f"Final power charge: {power.charge}")
+
+def test_recharge_multiple_panels(simulation: Simulation):
+    # Compare two solar power generators, one with more panels than the other.
+    # The one with additional panels should recharge faster than the one with fewer panels.
+    powerstation1 = SolarPowerStation(location=Location(x=0, y=1))
+    powerstation2 = SolarPowerStation(location=Location(x=0, y=2))
+
+    # Add additional panels to the second one.
+    powerstation2.install_component('solar_vane_3', SolarPanel())
+    powerstation2.install_component('solar_vane_4', SolarPanel())
+
+    powerpack1 = powerstation1.get_component(PowerPack)
+    powerpack2 = powerstation2.get_component(PowerPack)
+
+    powerpack1.charge = 0
+    powerpack2.charge = 0
+
+    simulation.world.add_entity(powerstation1)
+    simulation.world.add_entity(powerstation2)
+
+    # Run the simulation for some ticks, and check the final charge to assert that they are not equal.
+    simulation.run_sync(ticks=50)
+
+    assert powerpack1.charge != powerpack2.charge

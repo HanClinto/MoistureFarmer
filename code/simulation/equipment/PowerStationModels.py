@@ -6,10 +6,12 @@ from simulation.core.entity.component.PowerPack import (LargePowerPack,
                                                         PowerPack)
 from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.equipment.PowerGeneratorModels import (MicroFusionPowerCell,
-                                                       SolarPowerGenerator)
+                                                       SolarPanel)
 
 Chassis.model_rebuild()
 LargePowerPack.model_rebuild()
+MicroFusionPowerCell.model_rebuild()
+SolarPanel.model_rebuild()
 
 class PowerStation(Chassis):
     model: str = "Generic Power Station"
@@ -24,11 +26,14 @@ class PowerStation(Chassis):
 # Due to their symbiotic relationship with plants, M'shinn technology has two main foci - solar power and agriculture. The M'shinni have combined the sciences of engineering and botany in some unusual ways, producing solar collectors and power generators that are based on organic, cellular technologies.
 class SolarPowerStation(PowerStation):
     model: str = "SPG-1"
-    description: str = "A solar power generator that harnesses sunlight to produce energy."
+    description: str = "A solar power generator that harnesses sunlight to produce energy. Has four vanes that can each hold a solar panel."
 
     slots: Dict[str, ComponentSlot] = {
         "power_pack": ComponentSlot(accepts=PowerPack, default_component=LargePowerPack),
-        "power_generator": ComponentSlot(accepts=PowerGenerator, default_component=SolarPowerGenerator),
+        "solar_vane_1": ComponentSlot(accepts=SolarPanel, default_component=SolarPanel),
+        "solar_vane_2": ComponentSlot(accepts=SolarPanel, default_component=SolarPanel),
+        "solar_vane_3": ComponentSlot(accepts=SolarPanel),
+        "solar_vane_4": ComponentSlot(accepts=SolarPanel),
     }
 
 class MicroFusionPowerStation(PowerStation):
