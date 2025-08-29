@@ -7,7 +7,7 @@ else
 fi
 # Enable flash-attention, default to port 8080, always use jinja template file for tool-calling
 # Setting ctx-size to 0 loads the context size from the model itself
-OPTS="-fa --port 8080 --jinja --ctx-size 0"
+OPTS="-fa --port 8080 --jinja --ctx-size 0 -ub 2048 -b 2048 -ngl 99"
 
 if ! command -v $LLAMASERVER_CMD &> /dev/null; then
     echo "llama-server could not be found. Please follow install instructions from https://github.com/ggml-org/llama.cpp?tab=readme-ov-file#quick-start"

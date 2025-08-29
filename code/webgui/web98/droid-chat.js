@@ -46,7 +46,7 @@ function ensureDroidChatWindow(entityId) {
     win.style.height = '300px';
     win.innerHTML = `
         <div class="title-bar">
-            <div class="title-bar-text">Droid Chat - ${entityId}</div>
+            <div class="title-bar-text">JawaScript© Droid Chat Interface - ${entityId}</div>
             <div class="title-bar-controls">
                 <button aria-label="Close"></button>
             </div>
