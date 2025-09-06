@@ -5,8 +5,8 @@
     "paused": true,
     "simulation_delay": 0.2
   },
-  "entities": [
-    {
+  "entities": {
+    "GonkDroid_1": {
       "type": "GonkDroid",
       "id": "GonkDroid_1",
       "location": {
@@ -32,7 +32,7 @@
         }
       }
     },
-    {
+    "GX1_Vaporator_1": {
       "type": "GX1_Vaporator",
       "id": "GX1_Vaporator_1",
       "location": {
@@ -52,5 +52,5 @@
         }
       }
     }
-  ]
+  }
 }
