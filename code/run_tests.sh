@@ -10,3 +10,6 @@ python -m pytest -rP tests/
 # python -m pytest -rP tests/test_recharging.py::test_recharge_vaporator
 
 # python -m pytest -rP tests/test_simulation_droid.py::test_droid_agent_behavior
+
+# Run only the tests within tests/test_recharging.py
+# python -m pytest -rP tests/test_recharging.py

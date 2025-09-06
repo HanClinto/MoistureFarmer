@@ -134,7 +134,8 @@ def test_auto_scenario_minimal_json():
         assert len(data["entities"]) == 1
         
         # Entity should have minimal data (type, module, id, and default components)
-        entity = data["entities"][0]
+        entities = data["entities"]
+        entity = next(iter(entities.values()))
         assert entity["type"] == "GonkDroid"
         assert "id" in entity
         

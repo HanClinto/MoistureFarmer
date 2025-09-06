@@ -14,6 +14,7 @@ from simulation.core.Simulation import Simulation
 
 # BEGIN REBUILD HACK: Rebuild models for a bunch of things so that we don't get circular referrence or import errors.
 from simulation.core.entity.ComponentSlot import ComponentSlot
+from simulation.core.entity.component.Chronometer import Chronometer
 from simulation.core.entity.component.Component import Component
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerPack import LargePowerPack, PowerPack, SmallPowerPack
@@ -25,6 +26,7 @@ SmallPowerPack.model_rebuild()
 LargePowerPack.model_rebuild()
 Chassis.model_rebuild()
 ComponentSlot.model_rebuild()
+Chronometer.model_rebuild()
 # END REBUILD HACK
 class AutoScenarioManager:
     """Automatic scenario manager that discovers entity types dynamically"""
@@ -65,13 +67,19 @@ class AutoScenarioManager:
         if sim_settings:
             result["simulation_settings"] = sim_settings
         
-        # Process entities
-        entities = []
+        # Process entities: serialize as a dict keyed by entity id for stable lookup
+        entities = {}
         for entity in simulation.world.entities.values():
             entity_data = cls._entity_to_dict(entity)
             if entity_data:  # Only add if there's meaningful data
-                entities.append(entity_data)
-        
+                # Ensure the entity_data contains an id when stored as value
+                if 'id' not in entity_data:
+                    try:
+                        entity_data['id'] = entity.id
+                    except Exception:
+                        pass
+                entities[str(entity.id)] = entity_data
+
         if entities:
             result["entities"] = entities
         
@@ -161,11 +169,18 @@ class AutoScenarioManager:
         # Clear entities from the old world
         simulation.world.clear_entities()
         print(f'*** Cleared old entities from the world ***')
-        # Create entities
-        for entity_data in scenario_data.get("entities", []):
+        # Create entities. Entities are expected to be a mapping of id -> entity_data
+        entities_mapping = scenario_data.get("entities", {}) or {}
+        iterator = entities_mapping.items()
+
+        for key, entity_data in iterator:
             print(f'*** Creating entity from data: {entity_data} ***')
             entity = cls._dict_to_entity(entity_data)
             if entity:
+                # If the JSON provided an id as the mapping key, set it on the entity if the entity does not have an 'id' set
+                if not entity.id:
+                    # mapping key might be string of id
+                    setattr(entity, 'id', key)
                 simulation.world.add_entity(entity)
                 print(f'*** Added entity {entity.id} of type {entity.__class__.__name__} to the world ***')
             else:

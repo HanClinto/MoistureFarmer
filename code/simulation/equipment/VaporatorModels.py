@@ -15,6 +15,7 @@ LargeWaterTank.model_rebuild()
 SmallWaterTank.model_rebuild()
 CondenserUnit.model_rebuild()
 AdvancedCondenserUnit.model_rebuild()
+
 class GX1_Vaporator(Vaporator):
     model: str = "GX-1"
     
