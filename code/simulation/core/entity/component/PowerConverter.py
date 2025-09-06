@@ -10,7 +10,7 @@ class PowerConverter(Component):
     model: str = "Universal Power Converter"
     description: str = "A universal power converter that allows a unit to recharge itself from any adjacent power source."
 
-    transfer_rate: int = 2  # Amount of charge to transfer per tick
+    transfer_rate: int = 20  # Amount of charge to transfer per tick
 
     transfer_target_id: Optional[str] = None  # The entity to transfer charge between us and them
     transfer_mode: Optional[str] = None  # The mode of transfer (e.g. "Charge" or "Recharge")
@@ -135,7 +135,7 @@ class HeavyDutyPowerConverter(PowerConverter):
     model: str = "Heavy-Duty Universal Power Converter"
     description: str = "A heavy-duty power converter designed for high-capacity power transfer. Can recharge other equipment, in addition to itself."
 
-    transfer_rate: int = 5  # Amount of charge to transfer per tick
+    transfer_rate: int = 50  # Amount of charge to transfer per tick
 
     @tool
     def charge_other(self, identifier: str) -> Callable[..., ToolCallResult]:

@@ -63,7 +63,7 @@ def test_recharge_droid(simulation: Simulation):
     simulation.world.add_entity(droid)
 
     power: PowerPack = droid.get_component(PowerPack)
-    power.charge = 10  # The droid should start with low power.
+    power.charge = 100  # The droid should start with low power.
 
     # Create a nuclear power station next to the droid.
     power_station = MicroFusionPowerStation(location=Location(x=0, y=1))
@@ -100,7 +100,7 @@ def test_recharge_droid_slow(simulation: Simulation):
     simulation.world.add_entity(droid)
 
     power: PowerPack = droid.get_component(PowerPack)
-    power.charge = 10  # The droid should start with low power.
+    power.charge = 100  # The droid should start with low power.
 
     # Create a solar power station next to the droid.
     solar_station = SolarPowerStation(location=Location(x=0, y=1))
@@ -108,7 +108,7 @@ def test_recharge_droid_slow(simulation: Simulation):
 
     # The solar station should start out with low charge as well.
     solar_station_power: PowerPack = solar_station.get_component(PowerPack)
-    solar_station_power.charge = 50
+    solar_station_power.charge = 500
 
     # Assign the droid to charge itself from the power station.
     droid_adapter: HeavyDutyPowerConverter = droid.get_component(HeavyDutyPowerConverter)

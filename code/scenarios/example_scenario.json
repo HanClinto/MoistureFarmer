@@ -20,7 +20,7 @@
         },
         "power_pack": {
           "id": "PowerPack_1",
-          "charge": 65
+          "charge": 650
         },
         "motivator": {
           "id": "Motivator_2",
@@ -42,7 +42,7 @@
       "components": {
         "power_pack": {
           "id": "SmallPowerPack_2",
-          "charge": 45
+          "charge": 450
         },
         "condenser": {
           "id": "CondenserUnit_1"

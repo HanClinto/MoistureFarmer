@@ -5,7 +5,7 @@ from simulation.core.entity.component.Component import Component
 class PowerGenerator(Component):
     cooldown_remaining: int = 0  # Cooldown for action after each tick
     cooldown_delay:     int = 8  # Cooldown delay in ticks
-    recharge_amount:    int = 1  # Amount of charge to add per cycle
+    recharge_amount:    int = 10  # Amount of charge to add per cycle
 
     @property
     def current_cooldown(self) -> int:
