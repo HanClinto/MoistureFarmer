@@ -1,0 +1,254 @@
+{
+  "entities": {
+    "walker_0": {
+      "id": "walker_0",
+      "type": "RandomWalker",
+      "location": {
+        "x": 64,
+        "y": 64
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_1": {
+      "id": "walker_1",
+      "type": "RandomWalker",
+      "location": {
+        "x": 65,
+        "y": 65
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_2": {
+      "id": "walker_2",
+      "type": "RandomWalker",
+      "location": {
+        "x": 66,
+        "y": 66
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_3": {
+      "id": "walker_3",
+      "type": "RandomWalker",
+      "location": {
+        "x": 67,
+        "y": 67
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_4": {
+      "id": "walker_4",
+      "type": "RandomWalker",
+      "location": {
+        "x": 68,
+        "y": 68
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_5": {
+      "id": "walker_5",
+      "type": "RandomWalker",
+      "location": {
+        "x": 69,
+        "y": 69
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_6": {
+      "id": "walker_6",
+      "type": "RandomWalker",
+      "location": {
+        "x": 70,
+        "y": 70
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_7": {
+      "id": "walker_7",
+      "type": "RandomWalker",
+      "location": {
+        "x": 71,
+        "y": 71
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_8": {
+      "id": "walker_8",
+      "type": "RandomWalker",
+      "location": {
+        "x": 72,
+        "y": 72
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_9": {
+      "id": "walker_9",
+      "type": "RandomWalker",
+      "location": {
+        "x": 73,
+        "y": 73
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_10": {
+      "id": "walker_10",
+      "type": "RandomWalker",
+      "location": {
+        "x": 74,
+        "y": 74
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_11": {
+      "id": "walker_11",
+      "type": "RandomWalker",
+      "location": {
+        "x": 75,
+        "y": 75
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_12": {
+      "id": "walker_12",
+      "type": "RandomWalker",
+      "location": {
+        "x": 76,
+        "y": 76
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_13": {
+      "id": "walker_13",
+      "type": "RandomWalker",
+      "location": {
+        "x": 77,
+        "y": 77
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_14": {
+      "id": "walker_14",
+      "type": "RandomWalker",
+      "location": {
+        "x": 78,
+        "y": 78
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_15": {
+      "id": "walker_15",
+      "type": "RandomWalker",
+      "location": {
+        "x": 79,
+        "y": 79
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_16": {
+      "id": "walker_16",
+      "type": "RandomWalker",
+      "location": {
+        "x": 80,
+        "y": 80
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_17": {
+      "id": "walker_17",
+      "type": "RandomWalker",
+      "location": {
+        "x": 81,
+        "y": 81
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_18": {
+      "id": "walker_18",
+      "type": "RandomWalker",
+      "location": {
+        "x": 82,
+        "y": 82
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_19": {
+      "id": "walker_19",
+      "type": "RandomWalker",
+      "location": {
+        "x": 83,
+        "y": 83
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_20": {
+      "id": "walker_20",
+      "type": "RandomWalker",
+      "location": {
+        "x": 84,
+        "y": 84
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_21": {
+      "id": "walker_21",
+      "type": "RandomWalker",
+      "location": {
+        "x": 85,
+        "y": 85
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_22": {
+      "id": "walker_22",
+      "type": "RandomWalker",
+      "location": {
+        "x": 86,
+        "y": 86
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_23": {
+      "id": "walker_23",
+      "type": "RandomWalker",
+      "location": {
+        "x": 87,
+        "y": 87
+      },
+      "health": 100,
+      "slots": {}
+    },
+    "walker_24": {
+      "id": "walker_24",
+      "type": "RandomWalker",
+      "location": {
+        "x": 88,
+        "y": 88
+      },
+      "health": 100,
+      "slots": {}
+    }
+  }
+}
