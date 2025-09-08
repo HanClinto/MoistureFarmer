@@ -30,7 +30,6 @@ After making any changes to the simulation or web interface:
 
 1. **Start the web application** using the steps above
 2. **Verify simulation is running:** Check that the "Tick:" counter is incrementing in the main window
-3. **Test droid interaction:** Click on the R5-D5 droid window and verify battery level displays
 4. **Test simulation controls:** Use Pause/Resume button and speed controls (1x, 4x, 10x)
 5. **Test world view:** Open World View window and test zoom controls (-/+, Fit, Center)
 6. **Verify Windows 98 styling:** Confirm all windows have proper title bars, buttons, and retro styling
@@ -38,9 +37,9 @@ After making any changes to the simulation or web interface:
 ### Screenshots for Validation
 Take full-page screenshots to document working functionality. The application should show:
 - Main Moisture Farmer v0.98 window with menu bar
-- R5-D5 droid status window showing battery level
 - World View window with zoom controls
 - Desert/sandy background with proper Windows 98 window styling
+- Other windows and UI elements as-appropriate for the simulation
 
 ## Common Tasks
 
@@ -122,11 +121,19 @@ Python 3.12+ required. Key packages:
 - Designed for LLM-based agent control of droids
 - Context management and error handling for agent "reboots"
 - Scenario-based challenges for AI benchmarking
+- Tool calls are made available to LLM agents via component slots
+- Each droid has its own unique set of tool calls and context based on its components and history
 
 ### Frontend Technology
 - FastAPI backend with Server-Sent Events (SSE) for real-time updates
 - HTML/CSS/JS frontend with 98.css for Windows 98 styling
 - Canvas-based world rendering with entity management
+- Loosely-coupled front-end that is backend agnostic.
+- No npm / install required -- simple Javascript and HTML with no frameworks.
+
+### Backend Technology
+- Can be run independently of any GUI, allowing for headless operation (such as when benchmarking prompts and LLMs)
+- Serves GUIs (optionally) via lightweight FastAPI server
 
 ### Game Simulation
 - Tick-based simulation engine
