@@ -1,12 +1,13 @@
 import inspect
 import logging
-from typing import TYPE_CHECKING, TypeVar, overload, ClassVar, Dict, Optional, List, Type, Any
+from typing import TYPE_CHECKING, TypeVar, overload, ClassVar, Dict, Optional, List, Type, Any, Union
 from simulation.core.entity.Entity import Entity, Location, GameObject, LogMessage
 from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
 from simulation.movement_intent import MovementIntent
 
 if TYPE_CHECKING:
     from simulation.core.entity.Chassis import Chassis  # type: ignore
+    from simulation.core.entity.ComponentSlot import ComponentSlot  # type: ignore
 
 # --- Component System ---
 # Components are modular parts that can be installed in Chassis to
@@ -29,6 +30,7 @@ class Component(GameObject):
     description: Optional[str] = None
     durability: int = 100
     chassis: Optional['Chassis'] = None
+    storage_parent: Optional[Union['ComponentSlot', 'Component']] = None
 
     def tick(self):
         pass
@@ -51,6 +53,7 @@ class Component(GameObject):
                          'entity',
                          'pending_tool_call',
                          'pending_tool_completion_callback',
+                         'storage_parent',  # Exclude to avoid circular references
                          #'context',
                          #'session_history',
                          'function_ptr',

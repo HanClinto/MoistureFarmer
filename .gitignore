@@ -205,3 +205,6 @@ cython_debug/
 code/tests/output/
 code/tests/output/*.json
 queued_web_request.json
+
+# Generated logs
+code/logs/

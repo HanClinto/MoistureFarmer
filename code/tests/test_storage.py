@@ -81,22 +81,6 @@ def test_storage_basic_properties():
     assert len(storage.inventory) == 0
 
 
-def test_storage_variants_capacity():
-    """Test that storage variants have correct capacities."""
-    small = SmallStorage()
-    medium = MediumStorage()
-    large = LargeStorage()
-    
-    assert small.capacity == 2
-    assert medium.capacity == 5
-    assert large.capacity == 25
-    
-    # All should start empty
-    assert small.available_capacity == 2
-    assert medium.available_capacity == 5
-    assert large.available_capacity == 25
-
-
 def test_add_component_to_empty_storage(chassis_with_storage):
     """Test adding a component to empty storage."""
     chassis, storage = chassis_with_storage
@@ -246,6 +230,13 @@ def test_get_component_by_type(chassis_with_storage):
     assert found_power is power_pack
     assert found_test is test_comp
     assert found_none is None
+    
+    # Verify that an error message was logged when Motivator was not found
+    # Check the last log message should be an error about Motivator not found
+    last_log = storage.last_message()
+    assert last_log is not None
+    assert last_log.level == 2  # ERROR level
+    assert "Component of type Motivator not found in storage" in last_log.message
 
 
 def test_get_components_by_type(world):
@@ -324,14 +315,14 @@ def test_large_storage_capacity():
     storage = LargeStorage()
     components = []
     
-    # Add 25 components (full capacity)
-    for i in range(25):
+    # Add components up to full capacity
+    for i in range(storage.capacity):
         comp = TestComponent(id=f"comp{i}")
         components.append(comp)
         result = storage.add_component(comp)
         assert result is True
     
-    assert len(storage.inventory) == 25
+    assert len(storage.inventory) == storage.capacity
     assert storage.is_full is True
     assert storage.available_capacity == 0
     

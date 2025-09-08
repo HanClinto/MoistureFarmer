@@ -55,6 +55,7 @@ class Storage(Component):
         # Add to our inventory
         self.inventory.append(component)
         component.chassis = None  # Components in storage are not installed in chassis
+        component.storage_parent = self  # Set storage parent reference
         self.info(f"Component {component.id} added to storage {self.id}. Available capacity: {self.available_capacity}")
         return True
 
@@ -72,6 +73,7 @@ class Storage(Component):
             return False
         
         self.inventory.remove(component)
+        component.storage_parent = None  # Clear storage parent reference
         self.info(f"Component {component.id} removed from storage {self.id}. Available capacity: {self.available_capacity}")
         return True
 
@@ -91,6 +93,7 @@ class Storage(Component):
                 if slot.component is component:
                     slot.component = None
                     component.chassis = None
+                    component.storage_parent = None  # Clear any storage parent reference
                     self.info(f"Removed component {component.id} from slot {slot_id} in chassis {component.chassis.id if component.chassis else 'unknown'}")
                     return True
             
@@ -98,16 +101,13 @@ class Storage(Component):
             self.error(f"Component {component.id} has chassis reference but was not found in any slot.")
             return False
         
-        # Check if component is in another storage
-        if hasattr(component, '_storage_parent'):
-            storage_parent = getattr(component, '_storage_parent')
-            if storage_parent and hasattr(storage_parent, 'remove_component'):
-                if storage_parent.remove_component(component):
-                    delattr(component, '_storage_parent')
-                    return True
-                return False
+        # Check if component has a storage parent
+        if component.storage_parent and hasattr(component.storage_parent, 'remove_component'):
+            if component.storage_parent.remove_component(component):
+                return True
+            return False
         
-        # Check all storage components in the world to find this component
+        # Check all storage components in the world to find this component (fallback)
         if self.chassis and self.chassis.world:
             # Find all chassis in the world (entities is a dict, iterate over values)
             for entity in self.chassis.world.entities.values():
@@ -132,6 +132,9 @@ class Storage(Component):
         for component in self.inventory:
             if isinstance(component, component_type):
                 return component
+        
+        # Log error message when component type is not found
+        self.error(f"Component of type {component_type.__name__} not found in storage {self.id}.")
         return None
 
     def get_components_by_type(self, component_type: type) -> List[Component]:
@@ -147,11 +150,47 @@ class Storage(Component):
 
     def to_json(self, short: bool = False):
         """Convert storage to JSON representation."""
-        data = super().to_json(short)
-        data['capacity'] = self.capacity
-        data['available_capacity'] = self.available_capacity
-        data['inventory'] = [comp.to_json(short=True) for comp in self.inventory]
-        return data
+        # Get base data but exclude inventory to avoid circular references
+        excludes_list = {'chassis',
+                         'world',
+                         'entity',
+                         'pending_tool_call',
+                         'pending_tool_completion_callback',
+                         'storage_parent',  # Exclude to avoid circular references
+                         'inventory',  # Handle inventory separately to avoid circular refs
+                         #'context',
+                         #'session_history',
+                         'function_ptr',
+                         'tool_result',
+                         } # Exclude back-references
+        if short:
+            excludes_list.add('path_to_destination')
+            excludes_list.add('prompt_system')
+            excludes_list.add('prompt_goal')
+            excludes_list.add('prompt_status')
+            excludes_list.add('queued_http_request')
+            excludes_list.add('pending_tool_call_id')
+            excludes_list.add('current_cooldown')
+            excludes_list.add('cooldown_delay')
+            excludes_list.add('context')
+            excludes_list.add('session_history')
+            # PowerConverter
+            excludes_list.add('transfer_target')
+            excludes_list.add('transfer_mode')
+
+        props = self.model_dump(
+                exclude_defaults=False,
+                exclude_none=short, # Exclude None if producting a short version
+                exclude=excludes_list
+            )
+        props['type'] = self.__class__.__name__
+        
+        # Add storage-specific fields
+        props['capacity'] = self.capacity
+        props['available_capacity'] = self.available_capacity
+        # Use short=True for inventory items to avoid circular references
+        props['inventory'] = [comp.to_json(short=True) for comp in self.inventory]
+        return props
 
 
 class SmallStorage(Storage):
