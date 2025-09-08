@@ -47,6 +47,13 @@ def rebuild_models(verbose: bool = False) -> List[str]:
             print(f"[rebuild_models] Storage import failed: {e}")
     
     try:
+        from simulation.core.entity.component.Gripper import Gripper
+        try_rebuild('Gripper', Gripper.model_rebuild)
+    except Exception as e:
+        if verbose:
+            print(f"[rebuild_models] Gripper import failed: {e}")
+    
+    try:
         from simulation.core.World import World
         try_rebuild('World', World.model_rebuild)
     except Exception as e:

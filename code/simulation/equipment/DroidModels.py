@@ -5,18 +5,14 @@ from simulation.core.entity.Chassis import Chassis
 from simulation.core.entity.component.Component import Component
 from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.ComputerProbe import ComputerProbe
+from simulation.core.entity.component.Gripper import Gripper
 from simulation.core.entity.component.Motivator import Motivator
 from simulation.core.entity.component.PowerConverter import HeavyDutyPowerConverter, PowerConverter
 from simulation.core.entity.component.PowerPack import (PowerPack,
                                                         SmallPowerPack)
+from simulation.core.entity.component.Storage import SmallStorage
 from simulation.equipment.DroidAgentModels import (DroidAgentSimple,
                                                    DroidAgentSimplePowerDroid)
-
-Chassis.model_rebuild()
-ComponentSlot.model_rebuild()
-PowerPack.model_rebuild()
-SmallPowerPack.model_rebuild()
-ComputerProbe.model_rebuild()
 
 class R2Astromech(Chassis):
     model:str = "R2 Astromech"
@@ -29,6 +25,8 @@ class R2Astromech(Chassis):
         "manipulator_2": ComponentSlot(accepts=Component),
         "manipulator_3": ComponentSlot(accepts=Component),
         "manipulator_4": ComponentSlot(accepts=Component),
+        "gripper": ComponentSlot(accepts=Gripper),
+        "storage": ComponentSlot(accepts=SmallStorage),
         "power_adapter": ComponentSlot(accepts=PowerConverter, default_component=PowerConverter),
         "computer_probe": ComponentSlot(accepts=ComputerProbe, default_component=ComputerProbe)
     }
