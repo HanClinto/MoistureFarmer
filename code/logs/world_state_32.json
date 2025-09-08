@@ -1,0 +1,120 @@
+{
+  "entities": {
+    "SolarPowerStation_1": {
+      "id": "SolarPowerStation_1",
+      "type": "SolarPowerStation",
+      "location": {
+        "x": 0,
+        "y": 1
+      },
+      "health": 100,
+      "slots": {
+        "power_pack": {
+          "accepts": "PowerPack",
+          "component": {
+            "id": "LargePowerPack_1",
+            "durability": 100,
+            "charge_max": 2000,
+            "charge": 60,
+            "type": "LargePowerPack"
+          }
+        },
+        "solar_vane_1": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_1",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        },
+        "solar_vane_2": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_2",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        },
+        "solar_vane_3": {
+          "accepts": "SolarPanel",
+          "component": null
+        },
+        "solar_vane_4": {
+          "accepts": "SolarPanel",
+          "component": null
+        }
+      }
+    },
+    "SolarPowerStation_2": {
+      "id": "SolarPowerStation_2",
+      "type": "SolarPowerStation",
+      "location": {
+        "x": 0,
+        "y": 2
+      },
+      "health": 100,
+      "slots": {
+        "power_pack": {
+          "accepts": "PowerPack",
+          "component": {
+            "id": "LargePowerPack_1",
+            "durability": 100,
+            "charge_max": 2000,
+            "charge": 120,
+            "type": "LargePowerPack"
+          }
+        },
+        "solar_vane_1": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_1",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        },
+        "solar_vane_2": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_2",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        },
+        "solar_vane_3": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_3",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        },
+        "solar_vane_4": {
+          "accepts": "SolarPanel",
+          "component": {
+            "id": "SolarPanel_4",
+            "description": "An I-a2b solar ionization panel that has been scavenged from a long-abandoned wreck and repurposed to harness energy production amidst the endless sands of Tatooine. It was originally a power system designed by Sienar Fleet Systems, but it is a long way from the original form it used to have. It still has enough of its girondium-colium core to function, albeit at a reduced efficiency.",
+            "durability": 100,
+            "cooldown_remaining": 1,
+            "recharge_amount": 10,
+            "type": "SolarPanel"
+          }
+        }
+      }
+    }
+  }
+}
