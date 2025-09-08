@@ -14,12 +14,6 @@ from simulation.core.entity.component.Storage import SmallStorage
 from simulation.equipment.DroidAgentModels import (DroidAgentSimple,
                                                    DroidAgentSimplePowerDroid)
 
-Chassis.model_rebuild()
-ComponentSlot.model_rebuild()
-PowerPack.model_rebuild()
-SmallPowerPack.model_rebuild()
-ComputerProbe.model_rebuild()
-
 class R2Astromech(Chassis):
     model:str = "R2 Astromech"
 

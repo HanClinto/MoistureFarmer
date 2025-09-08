@@ -34,21 +34,21 @@ class Gripper(Storage):
         # Check if gripper already has a component
         if not self.inventory == []:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Gripper already holding component {self.inventory[0].id}. Cannot pull another component."
             )
         
         # Find target entity
         if not self.chassis or not self.chassis.world:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not installed in a chassis or chassis is not in a world."
             )
         
         entities = self.chassis.world.get_entities(target_entity)
         if not entities:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"No entities found with identifier '{target_entity}'."
             )
         
@@ -59,7 +59,7 @@ class Gripper(Storage):
         distance = self.chassis.location.distance_to(entity.location)
         if distance > 1:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Entity {entity.id} is not adjacent (distance: {distance}). Must be adjacent (distance ≤ 1)."
             )
         
@@ -95,7 +95,7 @@ class Gripper(Storage):
         
         if not found_component:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Component '{target_component}' not found in entity '{entity.id}'."
             )
         
@@ -125,7 +125,7 @@ class Gripper(Storage):
         # Check if gripper has a component
         if not self.inventory:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not holding any component to install."
             )
         
@@ -134,14 +134,14 @@ class Gripper(Storage):
         # Find target entity
         if not self.chassis or not self.chassis.world:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not installed in a chassis or chassis is not in a world."
             )
         
         entities = self.chassis.world.get_entities(target_entity)
         if not entities:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"No entities found with identifier '{target_entity}'."
             )
         
@@ -152,14 +152,14 @@ class Gripper(Storage):
         distance = self.chassis.location.distance_to(entity.location)
         if distance > 1:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Entity {entity.id} is not adjacent (distance: {distance}). Must be adjacent (distance ≤ 1)."
             )
         
         # Find compatible slot
         if not hasattr(entity, 'slots'):
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Entity {entity.id} does not have component slots."
             )
         
@@ -171,7 +171,7 @@ class Gripper(Storage):
         
         if not compatible_slot:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"No compatible empty slot found for component {component_to_install.__class__.__name__} in entity {entity.id}."
             )
         
@@ -207,7 +207,7 @@ class Gripper(Storage):
         # Check if gripper has a component
         if not self.inventory:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not holding any component to store."
             )
         
@@ -215,7 +215,7 @@ class Gripper(Storage):
         
         if not self.chassis or not self.chassis.world:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not installed in a chassis or chassis is not in a world."
             )
         
@@ -226,7 +226,7 @@ class Gripper(Storage):
             entities = self.chassis.world.get_entities(target_entity)
             if not entities:
                 return ToolCallResult(
-                    state=ToolCallState.ERROR,
+                    state=ToolCallState.FAILURE,
                     message=f"No entities found with identifier '{target_entity}'."
                 )
             
@@ -237,7 +237,7 @@ class Gripper(Storage):
             distance = self.chassis.location.distance_to(target_entity_obj.location)
             if distance > 1:
                 return ToolCallResult(
-                    state=ToolCallState.ERROR,
+                    state=ToolCallState.FAILURE,
                     message=f"Entity {target_entity_obj.id} is not adjacent (distance: {distance}). Must be adjacent (distance ≤ 1)."
                 )
         
@@ -252,20 +252,23 @@ class Gripper(Storage):
         if not storage_component:
             entity_name = target_entity_obj.id if target_entity else "own entity"
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"No Storage component with available capacity found in {entity_name}."
             )
         
         # Store component
         if storage_component.add_component(component_to_store):
-            self.inventory.remove(component_to_store)
+            # The add_component method already handles removing from previous location
+            # so we just need to ensure our inventory is updated if it wasn't already
+            if component_to_store in self.inventory:
+                self.inventory.remove(component_to_store)
             return ToolCallResult(
                 state=ToolCallState.SUCCESS,
                 message=f"Successfully stored component {component_to_store.id} in {storage_component.id}."
             )
         else:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Failed to store component {component_to_store.id} in storage {storage_component.id}."
             )
 
@@ -285,13 +288,13 @@ class Gripper(Storage):
         # Check if gripper already has a component
         if self.inventory:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Gripper already holding component {self.inventory[0].id}. Cannot retrieve another component."
             )
         
         if not self.chassis:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message="Gripper is not installed in a chassis."
             )
         
@@ -313,7 +316,7 @@ class Gripper(Storage):
         
         if not found_component:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Component '{target_component}' not found in any Storage component of this entity."
             )
         
@@ -327,6 +330,6 @@ class Gripper(Storage):
             )
         else:
             return ToolCallResult(
-                state=ToolCallState.ERROR,
+                state=ToolCallState.FAILURE,
                 message=f"Failed to remove component {found_component.id} from storage {source_storage.id}."
             )

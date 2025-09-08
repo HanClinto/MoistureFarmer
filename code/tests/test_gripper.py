@@ -1,6 +1,9 @@
 import pytest
 from simulation.core.World import World
 from simulation.core.entity.Entity import Location
+from simulation.core.entity.Chassis import Chassis
+from simulation.core.entity.ComponentSlot import ComponentSlot
+from simulation.core.entity.component.Component import Component
 from simulation.core.entity.component.CondenserUnit import CondenserUnit
 from simulation.core.entity.component.Gripper import Gripper
 from simulation.core.entity.component.PowerPack import PowerPack, SmallPowerPack
@@ -8,6 +11,20 @@ from simulation.core.entity.component.Storage import SmallStorage
 from simulation.equipment.DroidModels import R2Astromech
 from simulation.equipment.VaporatorModels import GX1_Vaporator
 from simulation.llm.ToolCall import ToolCallState
+
+# Force model rebuild for components to fix forward reference issues
+World.model_rebuild()
+Chassis.model_rebuild()
+ComponentSlot.model_rebuild()
+Component.model_rebuild()
+Storage.model_rebuild()
+Gripper.model_rebuild()
+CondenserUnit.model_rebuild()
+PowerPack.model_rebuild()
+SmallPowerPack.model_rebuild()
+SmallStorage.model_rebuild()
+R2Astromech.model_rebuild()
+GX1_Vaporator.model_rebuild()
 
 
 class TestGripper:
