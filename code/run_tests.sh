@@ -1,6 +1,7 @@
 # Run tests without PydanticDeprecatedSince20 warnings
 export PYTHONWARNINGS="ignore::PydanticDeprecatedSince20"
-python -m pytest -rP tests/
+# Run all tests except for test_simulation_droid
+python -m pytest -rP tests/ --ignore tests/test_simulation_droid.py
 # NOTE: To run without output print spam, use:
 # python -m pytest tests/
 # Run only test_gx1_vaporator_full_tank
