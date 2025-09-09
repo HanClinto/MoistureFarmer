@@ -29,16 +29,16 @@ TestComponent.model_rebuild()
 class SimpleChassis(Chassis):
     """Simple chassis for testing with storage slot."""
     slots: dict[str, ComponentSlot] = {
-        "storage": ComponentSlot(accepts=Storage),
-        "power": ComponentSlot(accepts=PowerPack),
+        "storage": ComponentSlot(accepts=Storage, default_component=SmallStorage),
+        "power": ComponentSlot(accepts=PowerPack, default_component=SmallPowerPack),
     }
 
 
 class MotivatorChassis(Chassis):
     """Chassis with motivator slot for testing component removal."""
     slots: dict[str, ComponentSlot] = {
-        "motivator": ComponentSlot(accepts=Motivator),
-        "power": ComponentSlot(accepts=PowerPack),
+        "motivator": ComponentSlot(accepts=Motivator, default_component=Motivator),
+        "power": ComponentSlot(accepts=PowerPack, default_component=SmallPowerPack),
     }
 
 
@@ -49,27 +49,19 @@ def world():
 
 
 @pytest.fixture
-def chassis_with_storage(world):
+def chassis_with_storage(world) -> tuple[Chassis, Storage]:
     """Create a chassis with storage installed."""
     chassis = SimpleChassis(location=Location(x=1, y=1))
-    storage = SmallStorage()
-    power = PowerPack()
-    chassis.install_component("storage", storage)
-    chassis.install_component("power", power)
     world.add_entity(chassis)
-    return chassis, storage
+    return chassis, chassis.get_component(Storage)
 
 
 @pytest.fixture
-def chassis_with_motivator(world):
+def chassis_with_motivator(world) -> tuple[Chassis, Motivator]:
     """Create a chassis with motivator installed."""
     chassis = MotivatorChassis(location=Location(x=1, y=1))
-    motivator = Motivator()
-    power = PowerPack()
-    chassis.install_component("motivator", motivator)
-    chassis.install_component("power", power)
     world.add_entity(chassis)
-    return chassis, motivator
+    return chassis, chassis.get_component(Motivator)
 
 
 def test_storage_basic_properties():
@@ -86,7 +78,7 @@ def test_add_component_to_empty_storage(chassis_with_storage):
     chassis, storage = chassis_with_storage
     test_comp = TestComponent()
     
-    result = storage.add_component(test_comp)
+    result = storage.store_component(test_comp)
     
     assert result is True
     assert test_comp in storage.inventory
@@ -103,13 +95,13 @@ def test_add_component_until_full(chassis_with_storage):
     comp2 = TestComponent(id="comp2")
     
     # Add first component
-    result1 = storage.add_component(comp1)
+    result1 = storage.store_component(comp1)
     assert result1 is True
     assert storage.available_capacity == 1
     assert storage.is_full is False
     
     # Add second component (should fill storage)
-    result2 = storage.add_component(comp2)
+    result2 = storage.store_component(comp2)
     assert result2 is True
     assert storage.available_capacity == 0
     assert storage.is_full is True
@@ -124,12 +116,12 @@ def test_add_component_when_full(chassis_with_storage):
     comp3 = TestComponent(id="comp3")
     
     # Fill storage
-    storage.add_component(comp1)
-    storage.add_component(comp2)
+    storage.store_component(comp1)
+    storage.store_component(comp2)
     assert storage.is_full is True
     
     # Try to add third component (should fail)
-    result = storage.add_component(comp3)
+    result = storage.store_component(comp3)
     assert result is False
     assert comp3 not in storage.inventory
     assert len(storage.inventory) == 2
@@ -142,10 +134,10 @@ def test_remove_component_from_storage(chassis_with_storage):
     test_comp = TestComponent()
     
     # Add and then remove component
-    storage.add_component(test_comp)
+    storage.store_component(test_comp)
     assert test_comp in storage.inventory
     
-    result = storage.remove_component(test_comp)
+    result = storage.unstore_component(test_comp)
     assert result is True
     assert test_comp not in storage.inventory
     assert len(storage.inventory) == 0
@@ -156,8 +148,8 @@ def test_remove_nonexistent_component(chassis_with_storage):
     """Test removing a component that's not in storage."""
     chassis, storage = chassis_with_storage
     test_comp = TestComponent()
-    
-    result = storage.remove_component(test_comp)
+
+    result = storage.unstore_component(test_comp)
     assert result is False
     assert len(storage.inventory) == 0
 
@@ -172,8 +164,8 @@ def test_add_component_from_chassis_slot(chassis_with_motivator, chassis_with_st
     assert motivator_chassis.get_component("motivator") is motivator
     
     # Add motivator to storage
-    result = storage.add_component(motivator)
-    
+    result = storage.store_component(motivator)
+
     assert result is True
     assert motivator in storage.inventory
     assert motivator.chassis is None  # Should be uninstalled
@@ -185,28 +177,22 @@ def test_transfer_between_storages(world):
     # Create two chassis with storage
     chassis1 = SimpleChassis(location=Location(x=1, y=1))
     chassis2 = SimpleChassis(location=Location(x=2, y=2))
-    storage1 = MediumStorage(id="storage1")
-    storage2 = MediumStorage(id="storage2")
-    power1 = PowerPack()
-    power2 = PowerPack()
-    
-    chassis1.install_component("storage", storage1)
-    chassis1.install_component("power", power1)
-    chassis2.install_component("storage", storage2)
-    chassis2.install_component("power", power2)
     world.add_entity(chassis1)
     world.add_entity(chassis2)
     
     test_comp = TestComponent()
-    
+
+    storage1 = chassis1.get_component("storage")
+    storage2 = chassis2.get_component("storage")
+
     # Add to first storage
-    result1 = storage1.add_component(test_comp)
+    result1 = storage1.store_component(test_comp)
     assert result1 is True
     assert test_comp in storage1.inventory
     assert len(storage1.inventory) == 1
     
     # Transfer to second storage
-    result2 = storage2.add_component(test_comp)
+    result2 = storage2.store_component(test_comp)
     assert result2 is True
     assert test_comp not in storage1.inventory
     assert test_comp in storage2.inventory
@@ -220,8 +206,8 @@ def test_get_component_by_type(chassis_with_storage):
     power_pack = SmallPowerPack()
     test_comp = TestComponent()
     
-    storage.add_component(power_pack)
-    storage.add_component(test_comp)
+    storage.store_component(power_pack)
+    storage.store_component(test_comp)
     
     found_power = storage.get_component_by_type(PowerPack)
     found_test = storage.get_component_by_type(TestComponent)
@@ -242,10 +228,8 @@ def test_get_component_by_type(chassis_with_storage):
 def test_get_components_by_type(world):
     """Test finding multiple components of same type in storage."""
     chassis = SimpleChassis(location=Location(x=1, y=1))
-    storage = LargeStorage()
-    power = PowerPack()
-    chassis.install_component("storage", storage)
-    chassis.install_component("power", power)
+    storage = chassis.get_component(Storage)
+    storage.capacity = 5
     world.add_entity(chassis)
     
     # Add multiple PowerPacks
@@ -253,9 +237,9 @@ def test_get_components_by_type(world):
     power2 = SmallPowerPack(id="power2")
     test_comp = TestComponent()
     
-    storage.add_component(power1)
-    storage.add_component(power2)
-    storage.add_component(test_comp)
+    storage.store_component(power1)
+    storage.store_component(power2)
+    storage.store_component(test_comp)
     
     power_packs = storage.get_components_by_type(PowerPack)
     test_comps = storage.get_components_by_type(TestComponent)
@@ -273,7 +257,7 @@ def test_storage_to_json(chassis_with_storage):
     """Test storage JSON serialization."""
     chassis, storage = chassis_with_storage
     test_comp = TestComponent(id="test123")
-    storage.add_component(test_comp)
+    storage.store_component(test_comp)
     
     json_data = storage.to_json()
     
@@ -291,8 +275,8 @@ def test_storage_inventory_isolation():
     comp1 = TestComponent(id="comp1")
     comp2 = TestComponent(id="comp2")
     
-    storage1.add_component(comp1)
-    storage2.add_component(comp2)
+    storage1.store_component(comp1)
+    storage2.store_component(comp2)
     
     assert comp1 in storage1.inventory
     assert comp1 not in storage2.inventory
@@ -319,7 +303,7 @@ def test_large_storage_capacity():
     for i in range(storage.capacity):
         comp = TestComponent(id=f"comp{i}")
         components.append(comp)
-        result = storage.add_component(comp)
+        result = storage.store_component(comp)
         assert result is True
     
     assert len(storage.inventory) == storage.capacity
@@ -328,6 +312,6 @@ def test_large_storage_capacity():
     
     # Try to add one more (should fail)
     extra_comp = TestComponent(id="extra")
-    result = storage.add_component(extra_comp)
+    result = storage.store_component(extra_comp)
     assert result is False
     assert extra_comp not in storage.inventory

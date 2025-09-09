@@ -19,22 +19,10 @@ def test_gripper_basic():
     """Test basic Gripper instantiation and properties."""
     gripper = Gripper(id="test_gripper")
     
-    assert gripper.capacity == 1
+    # Gripper no longer exposes capacity; it holds a single component in held_component
     assert gripper.name == "Component Gripper"
     assert gripper.description == "Manipulator for installing and removing components from adjacent entities"
-    assert gripper.inventory == []
-    assert gripper.available_capacity == 1
-    assert gripper.is_full == False
-
-
-def test_gripper_inherits_from_storage():
-    """Test that Gripper is a subclass of Storage."""
-    gripper = Gripper(id="test_gripper")
-    
-    assert isinstance(gripper, Storage)
-    assert hasattr(gripper, 'add_component')
-    assert hasattr(gripper, 'remove_component')
-    assert hasattr(gripper, 'get_component_by_type')
+    assert gripper.held_component is None
 
 
 def test_gripper_provides_tools():

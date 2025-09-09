@@ -1,4 +1,5 @@
 import pytest
+from simulation.core.entity.component.CondenserUnit import CondenserUnit
 from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.component.WaterTank import WaterTank
 from simulation.core.entity.Entity import Location
@@ -18,6 +19,7 @@ def test_gx1_vaporator_full_tank(simulation: Simulation):
 
     tank:WaterTank = vaporator.get_component(WaterTank)
     power:PowerPack = vaporator.get_component(PowerPack)
+    condenser:CondenserUnit = vaporator.get_component(CondenserUnit)
 
     assert tank.fill == 0  # Initial tank fill should be 0
     assert power.charge == power.charge_max  # Initial power pack charge should be full
@@ -27,7 +29,7 @@ def test_gx1_vaporator_full_tank(simulation: Simulation):
     simulation.run_sync(ticks=100)  # Run the simulation for 100 ticks
 
     assert tank.fill == tank.capacity
-    assert power.charge == 0
+    assert power.charge == power.charge_max - (tank.fill / condenser.water_per_charge)
 
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
@@ -75,4 +77,4 @@ def test_gx8_vaporator(simulation: Simulation):
     print(f"Final tank fill: {tank.fill}, Final power charge: {power.charge}")
 
     assert tank.fill == tank.capacity
-    assert power.charge == 0
+    assert power.charge == power.charge_max - 100

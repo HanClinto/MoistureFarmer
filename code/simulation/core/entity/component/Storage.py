@@ -31,7 +31,7 @@ class Storage(Component):
         """Check if storage is at full capacity."""
         return len(self.inventory) >= self.capacity
 
-    def add_component(self, component: Component) -> bool:
+    def store_component(self, component: Component) -> bool:
         """Add a component to storage.
         
         Removes the component from its previous location (either a Slot or Storage object)
@@ -59,7 +59,7 @@ class Storage(Component):
         self.info(f"Component {component.id} added to storage {self.id}. Available capacity: {self.available_capacity}")
         return True
 
-    def remove_component(self, component: Component) -> bool:
+    def unstore_component(self, component: Component) -> bool:
         """Remove a component from storage.
         
         Args:
@@ -115,7 +115,7 @@ class Storage(Component):
                     for comp in entity.components:
                         if isinstance(comp, Storage) and comp is not self:
                             if component in comp.inventory:
-                                return comp.remove_component(component)
+                                return comp.unstore_component(component)
         
         # No previous location found, which is fine (component might be new)
         return True

@@ -65,9 +65,26 @@ class Chassis(Entity):
             raise ValueError(f"Slot '{slot_id}' is already occupied by component '{slot.component.id}'.")
 
         component.chassis = self
+        component.storage_parent = self
         slot.component = component
         # Raise an on_installed event for the component so that it can initialize itself (if needed)
         component.on_installed(self)
+
+    def uninstall_component(self, slot_id: str) -> Optional[Component]:
+        if slot_id not in self.slots:
+            # TODO: Don't raise a ValueError for this, but instead post an error message to the world and/or chassis system
+            raise ValueError(f"Slot '{slot_id}' not defined.")
+
+        slot = self.slots[slot_id]
+        the_component = None
+
+        if slot.component:
+            the_component = slot.component
+            the_component.chassis = None
+            the_component.storage_parent = None
+            slot.component = None
+
+        return the_component
 
     @overload
     def get_component(self, identifier: Type[T]) -> Optional[T]: ...

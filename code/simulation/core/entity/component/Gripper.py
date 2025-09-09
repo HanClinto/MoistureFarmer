@@ -1,20 +1,19 @@
-from typing import List, Optional, Union
+from typing import Optional
+import inspect
 from simulation.core.entity.component.Storage import Storage
 from simulation.core.entity.component.Component import Component
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 
-
-class Gripper(Storage):
+class Gripper(Component):
     """Gripper component for manipulating components in other entities.
-    
-    The Gripper is a specialized Storage component with capacity for 1 component
-    that can manipulate components in adjacent entities. It provides tool calls
-    for pulling components from other entities, installing held components,
-    and managing component storage.
+
+    Simplified: gripper holds at most one component in `held_component` rather
+    than inheriting Storage with an inventory. Provides tools to pull,
+    install, store, and unstore a single component.
     """
     name: str = "Component Gripper"
     description: str = "Manipulator for installing and removing components from adjacent entities"
-    capacity: int = 1
+    held_component: Optional[Component] = None
 
     @tool
     def pull_component(self, target_component: str, target_entity: str) -> ToolCallResult:
@@ -32,10 +31,10 @@ class Gripper(Storage):
             ToolCallResult with success/failure status
         """
         # Check if gripper already has a component
-        if not self.inventory == []:
+        if self.held_component is not None:
             return ToolCallResult(
                 state=ToolCallState.FAILURE,
-                message=f"Gripper already holding component {self.inventory[0].id}. Cannot pull another component."
+                message=f"Gripper already holding component {self.held_component.id}. Cannot pull another component."
             )
         
         # Find target entity
@@ -71,9 +70,19 @@ class Gripper(Storage):
             # Search in chassis slots
             for slot_id, slot in entity.slots.items():
                 if slot.component:
-                    if (slot.component.id == target_component or 
-                        slot.component.__class__.__name__ == target_component):
-                        found_component = slot.component
+                    # Match by id, exact class name, or any base class name
+                    comp = slot.component
+                    match = False
+                    if comp.id == target_component:
+                        match = True
+                    else:
+                        # Check MRO for matching class names (support base class names)
+                        for base in inspect.getmro(comp.__class__):
+                            if base.__name__ == target_component:
+                                match = True
+                                break
+                    if match:
+                        found_component = comp
                         # Remove from slot
                         slot.component = None
                         found_component.chassis = None
@@ -85,10 +94,17 @@ class Gripper(Storage):
             for comp in entity.components:
                 if isinstance(comp, Storage):
                     for stored_comp in comp.inventory:
-                        if (stored_comp.id == target_component or 
-                            stored_comp.__class__.__name__ == target_component):
+                        match = False
+                        if stored_comp.id == target_component:
+                            match = True
+                        else:
+                            for base in inspect.getmro(stored_comp.__class__):
+                                if base.__name__ == target_component:
+                                    match = True
+                                    break
+                        if match:
                             found_component = stored_comp
-                            comp.remove_component(stored_comp)
+                            comp.unstore_component(stored_comp)
                             break
                     if found_component:
                         break
@@ -98,12 +114,12 @@ class Gripper(Storage):
                 state=ToolCallState.FAILURE,
                 message=f"Component '{target_component}' not found in entity '{entity.id}'."
             )
-        
-        # Add to gripper inventory
-        self.inventory.append(found_component)
+
+        # Hold the found component
+        self.held_component = found_component
         found_component.storage_parent = self
         found_component.chassis = None
-        
+
         return ToolCallResult(
             state=ToolCallState.SUCCESS,
             message=f"Successfully pulled component {found_component.id} from entity {entity.id}."
@@ -123,13 +139,13 @@ class Gripper(Storage):
             ToolCallResult with success/failure status
         """
         # Check if gripper has a component
-        if not self.inventory:
+        if not self.held_component:
             return ToolCallResult(
                 state=ToolCallState.FAILURE,
                 message="Gripper is not holding any component to install."
             )
-        
-        component_to_install = self.inventory[0]
+
+        component_to_install = self.held_component
         
         # Find target entity
         if not self.chassis or not self.chassis.world:
@@ -174,9 +190,9 @@ class Gripper(Storage):
                 state=ToolCallState.FAILURE,
                 message=f"No compatible empty slot found for component {component_to_install.__class__.__name__} in entity {entity.id}."
             )
-        
+
         # Install component
-        self.inventory.remove(component_to_install)
+        self.held_component = None
         component_to_install.storage_parent = None
         compatible_slot.component = component_to_install
         component_to_install.chassis = entity
@@ -205,13 +221,13 @@ class Gripper(Storage):
             ToolCallResult with success/failure status
         """
         # Check if gripper has a component
-        if not self.inventory:
+        if not self.held_component:
             return ToolCallResult(
                 state=ToolCallState.FAILURE,
                 message="Gripper is not holding any component to store."
             )
-        
-        component_to_store = self.inventory[0]
+
+        component_to_store = self.held_component
         
         if not self.chassis or not self.chassis.world:
             return ToolCallResult(
@@ -257,11 +273,10 @@ class Gripper(Storage):
             )
         
         # Store component
-        if storage_component.add_component(component_to_store):
-            # The add_component method already handles removing from previous location
-            # so we just need to ensure our inventory is updated if it wasn't already
-            if component_to_store in self.inventory:
-                self.inventory.remove(component_to_store)
+        if storage_component.store_component(component_to_store):
+            # store_component will set storage_parent and chassis appropriately.
+            if self.held_component is component_to_store:
+                self.held_component = None
             return ToolCallResult(
                 state=ToolCallState.SUCCESS,
                 message=f"Successfully stored component {component_to_store.id} in {storage_component.id}."
@@ -286,10 +301,10 @@ class Gripper(Storage):
             ToolCallResult with success/failure status
         """
         # Check if gripper already has a component
-        if self.inventory:
+        if self.held_component:
             return ToolCallResult(
                 state=ToolCallState.FAILURE,
-                message=f"Gripper already holding component {self.inventory[0].id}. Cannot retrieve another component."
+                message=f"Gripper already holding component {self.held_component.id}. Cannot retrieve another component."
             )
         
         if not self.chassis:
@@ -321,8 +336,8 @@ class Gripper(Storage):
             )
         
         # Move component from source storage to gripper
-        if source_storage.remove_component(found_component):
-            self.inventory.append(found_component)
+        if source_storage.unstore_component(found_component):
+            self.held_component = found_component
             found_component.storage_parent = self
             return ToolCallResult(
                 state=ToolCallState.SUCCESS,
