@@ -67,8 +67,6 @@ class Chassis(Entity):
         component.chassis = self
         component.storage_parent = self
         slot.component = component
-        # Raise an on_installed event for the component so that it can initialize itself (if needed)
-        component.on_installed(self)
 
     def uninstall_component(self, slot_id: str) -> Optional[Component]:
         if slot_id not in self.slots:

@@ -1,5 +1,7 @@
 from typing import Optional
 import inspect
+from simulation.core.entity.Chassis import Chassis
+from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.component.Storage import Storage
 from simulation.core.entity.component.Component import Component
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
@@ -155,7 +157,7 @@ class Gripper(Component):
             )
         
         entities = self.chassis.world.get_entities(target_entity)
-        if not entities:
+        if not entities or len(entities) == 0:
             return ToolCallResult(
                 state=ToolCallState.FAILURE,
                 message=f"No entities found with identifier '{target_entity}'."
@@ -163,8 +165,8 @@ class Gripper(Component):
         
         # Sort by distance and check adjacency
         entities.sort(key=lambda e: self.chassis.location.distance_to(e.location))
-        entity = entities[0]
-        
+        entity: Chassis = entities[0]
+
         distance = self.chassis.location.distance_to(entity.location)
         if distance > 1:
             return ToolCallResult(
@@ -178,8 +180,8 @@ class Gripper(Component):
                 state=ToolCallState.FAILURE,
                 message=f"Entity {entity.id} does not have component slots."
             )
-        
-        compatible_slot = None
+
+        compatible_slot: Optional[ComponentSlot] = None
         for slot_id, slot in entity.slots.items():
             if slot.component is None and isinstance(component_to_install, slot.accepts):
                 compatible_slot = slot
@@ -192,14 +194,11 @@ class Gripper(Component):
             )
 
         # Install component
+        entity
         self.held_component = None
         component_to_install.storage_parent = None
         compatible_slot.component = component_to_install
         component_to_install.chassis = entity
-        
-        # Call on_installed if the method exists
-        if hasattr(component_to_install, 'on_installed'):
-            component_to_install.on_installed(entity)
         
         return ToolCallResult(
             state=ToolCallState.SUCCESS,
