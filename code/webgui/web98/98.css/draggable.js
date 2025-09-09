@@ -31,6 +31,11 @@ function draggableElement(elmnt) {
     bar.addEventListener('mousedown', function(e) {
         dragTarget = elmnt;
         const rect = dragTarget.getBoundingClientRect();
+        // Normalize positioning to left/top anchoring to avoid conflicts with right/bottom
+        dragTarget.style.left = rect.left + 'px';
+        dragTarget.style.top = rect.top + 'px';
+        dragTarget.style.right = '';
+        dragTarget.style.bottom = '';
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
         document.body.style.userSelect = 'none';
@@ -69,6 +74,11 @@ function resizeableElement(elmnt) {
         startX = e.clientX;
         startY = e.clientY;
         const rect = elmnt.getBoundingClientRect();
+        // Normalize positioning to left/top anchoring so bottom-right follows cursor
+        elmnt.style.left = rect.left + 'px';
+        elmnt.style.top = rect.top + 'px';
+        elmnt.style.right = '';
+        elmnt.style.bottom = '';
         startW = rect.width;
         startH = rect.height;
         document.body.style.userSelect = 'none';
