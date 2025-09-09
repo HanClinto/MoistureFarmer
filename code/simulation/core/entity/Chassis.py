@@ -192,12 +192,12 @@ class Chassis(Entity):
 
     # Callback dispatchers (Motivator or others may override by component methods)
     def on_move_applied(self, old_loc: Location, new_loc: Location, intent: MovementIntent):
-        motivator = self.get_component_by_type_name("Motivator")
-        if motivator and hasattr(motivator, "on_move_applied"):
-            try:
-                motivator.on_move_applied(old_loc, new_loc, intent)
-            except Exception as e:
-                self.error(f"on_move_applied error: {e}")
+        for comp in self.components:
+            if hasattr(comp, 'on_move_applied'):
+                try:
+                    comp.on_move_applied(old_loc, new_loc, intent)
+                except Exception as e:
+                    self.error(f"on_move_applied error: {e}")
 
     def on_move_blocked(self, intent: MovementIntent, reason: str, blocker: Any | None = None):
         for comp in self.components:

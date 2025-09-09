@@ -6,6 +6,7 @@ from simulation.core.entity.component.PowerPack import PowerPack
 from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.Entity import Location
 from simulation.core.World import World
+from simulation.core.entity.component.TowCable import TowCable
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
 from simulation.movement_intent import MovementIntent
 
@@ -186,10 +187,25 @@ class Motivator(Component):
         dy = next_location.y - self.chassis.location.y
 
         remaining = len(self.path_to_destination)
-        issued = self.chassis.request_move(dx, dy, source="Motivator", remaining_path=remaining)
+        issued = self.chassis.request_move(dx, dy, source="Motivator") #, remaining_path=remaining)
         if not issued:
             self.last_block_reason = "intent_exists"
             return
+
+        # HACK: Check for TowCables
+        # TODO: It would be better for all TowCable functionality to be handled within the TowCable class itself.
+        #  For now, we will handle it here for simplicity.
+        tow_cable: TowCable = self.chassis.get_component(TowCable)
+        if tow_cable and tow_cable.attached_entity:
+            # Ensure that the attached entity is still adjacent.
+            if not self.chassis.location.distance_to(tow_cable.attached_entity.location) < 2:
+                self.warn(f"Towed entity `{tow_cable.attached_entity.id}` is no longer adjacent to `{self.chassis.id}`. Tow cable snapped!")
+                tow_cable.detach_tow_cable()
+            else:
+                # Determine what the dx / dy is to move the attached entity into this object's current square
+                attached_dx = self.chassis.location.x - tow_cable.attached_entity.location.x
+                attached_dy = self.chassis.location.y - tow_cable.attached_entity.location.y
+                tow_cable.attached_entity.request_move(attached_dx, attached_dy, kind="pulled", towing_object_id=self.chassis.id)
 
     # Callbacks from Chassis/world
     def on_move_applied(self, old_loc: Location, new_loc: Location, intent: MovementIntent):
