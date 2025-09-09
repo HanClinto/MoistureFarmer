@@ -139,7 +139,7 @@ class AutoScenarioManager:
             props = component.model_dump(
                 exclude_defaults=True,
                 exclude_none=True,
-                exclude={'chassis', 'world', 'entity'}  # Exclude back-references
+                exclude={'chassis', 'world', 'entity', 'storage_parent'}  # Exclude back-references
             )
             
             # Only return if there are meaningful properties beyond type info

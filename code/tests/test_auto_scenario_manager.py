@@ -27,19 +27,16 @@ def test_auto_scenario_round_trip():
     # Add a GonkDroid with modified state
     gonk = GonkDroid(location=Location(x=15, y=25))
     power = gonk.get_component(PowerPack)
-    if power:
-        power.charge = 65
+    power.charge = 65
     motivator = gonk.get_component(Motivator)
-    if motivator:
-        motivator.destination = Location(x=100, y=200)
-        motivator.current_cooldown = 2
+    motivator.destination = Location(x=100, y=200)
+    motivator.current_cooldown = 2
     simulation.world.add_entity(gonk)
     
     # Add a Vaporator
     vaporator = GX1_Vaporator(location=Location(x=50, y=75))
     vap_power = vaporator.get_component(PowerPack)
-    if vap_power:
-        vap_power.charge = 45
+    vap_power.charge = 45
     simulation.world.add_entity(vaporator)
     
     # Save to temporary file
