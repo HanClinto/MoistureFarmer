@@ -59,6 +59,11 @@ function updateEntityDetailWindow(entityId) {
     }
 
     // Populate the entity details
+    if(window.simulationDataDictionary === undefined) {
+        console.error("simulationDataDictionary is not defined on window.");
+        return;
+    }
+    
     const entity = window.simulationDataDictionary[entityId];
     const detailBody = document.getElementById(`entity-detail-window-body-${entityId}`);
     if (!entity || !detailBody) return;
