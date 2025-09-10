@@ -165,7 +165,16 @@ class Gripper(Component):
         
         # Sort by distance and check adjacency
         entities.sort(key=lambda e: self.chassis.location.distance_to(e.location))
-        entity: Chassis = entities[0]
+        entity = entities[0]
+
+        # Check to see if it is a Chassis object
+        if not isinstance(entity, Chassis):
+            return ToolCallResult(
+                state=ToolCallState.FAILURE,
+                message=f"Entity {entity.id} is not a Chassis."
+            )
+        
+        entity: Chassis = entity
 
         distance = self.chassis.location.distance_to(entity.location)
         if distance > 1:
@@ -174,13 +183,7 @@ class Gripper(Component):
                 message=f"Entity {entity.id} is not adjacent (distance: {distance}). Must be adjacent (distance ≤ 1)."
             )
         
-        # Find compatible slot
-        if not hasattr(entity, 'slots'):
-            return ToolCallResult(
-                state=ToolCallState.FAILURE,
-                message=f"Entity {entity.id} does not have component slots."
-            )
-
+        # Find slot compatible with the type of object this is
         compatible_slot: Optional[ComponentSlot] = None
         for slot_id, slot in entity.slots.items():
             if slot.component is None and isinstance(component_to_install, slot.accepts):
@@ -194,11 +197,8 @@ class Gripper(Component):
             )
 
         # Install component
-        entity
         self.held_component = None
-        component_to_install.storage_parent = None
-        compatible_slot.component = component_to_install
-        component_to_install.chassis = entity
+        entity.install_component(compatible_slot.slot_id, component_to_install)
         
         return ToolCallResult(
             state=ToolCallState.SUCCESS,

@@ -43,10 +43,6 @@ class Component(GameObject):
                 tool_methods[name] = ToolCall(method)
         return tool_methods
 
-    def on_installed(self, chassis: 'Chassis'):
-        # This method can be overridden by subclasses to perform initialization logic when the component is installed in a chassis
-        self.info(f"Component {self.id} installed in chassis {chassis.id}.")
-
     def to_json(self, short: bool = False):
         excludes_list = {'chassis',
                          'world',
