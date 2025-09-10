@@ -111,6 +111,7 @@ class World(BaseModel):
         failures: List[tuple[Chassis, MovementIntent, str, Optional[Entity]]] = []
 
         for c in intents:
+            print(f'Processing movement intent for {c.id}: {c.pending_intent} with priority {c.move_priority}')
             intent = c.pending_intent  # type: ignore
             reason = intent.validate()
             if reason:
