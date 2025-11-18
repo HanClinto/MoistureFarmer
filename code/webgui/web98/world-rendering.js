@@ -5,7 +5,7 @@ if (typeof window.tilemapView === 'undefined') {
     window.tilemapView = {
         scale: 1,
         minScale: 0.1,
-        maxScale: 1.0,  // Never upscale beyond 100%
+        maxScale: 2.0,  // Never upscale beyond 100%
         offsetX: 0,
         offsetY: 0,
         isPanning: false,
@@ -340,9 +340,8 @@ function renderWorldTilemap(tm) {
                     ey = (typeof st.interpY === 'number') ? st.interpY : ey;
                 }
                 
-                const iconSize = tileSize - 4;
-                const iconX = ex + 2;
-                const iconY = ey + 2;
+                const iconX = ex;
+                const iconY = ey;
                 
                 ctx.save();
                 
@@ -360,14 +359,16 @@ function renderWorldTilemap(tm) {
                 const img = window._entityImageCache[imgPath];
                 if (img.complete && img.naturalWidth > 0) {
                     // Image loaded successfully - draw it
-                    ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+                    const yoffset = img.height - tileSize;
+                    const xoffset = (img.width - tileSize) / 2;
+                    ctx.drawImage(img, iconX - xoffset, iconY - yoffset); // , iconSizeX, iconSizeY);
                 } else {
                     // Image not loaded yet or failed - draw placeholder
                     ctx.fillStyle = '#C0C0C0';
-                    ctx.fillRect(iconX, iconY, iconSize, iconSize);
+                    ctx.fillRect(iconX, iconY, tileSize, tileSize);
                     ctx.strokeStyle = '#808080';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(iconX, iconY, iconSize, iconSize);
+                    ctx.strokeRect(iconX, iconY, tileSize, tileSize);
                 }
                 
                 // Draw label below icon (Windows desktop style)

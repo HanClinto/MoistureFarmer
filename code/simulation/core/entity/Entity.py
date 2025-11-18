@@ -152,6 +152,7 @@ class Entity(GameObject):
         val = {
             **super().to_json(short),
             "location": {"x": self.location.x, "y": self.location.y},
+            "size": {"width": self.size[0], "height": self.size[1]},
         }
         if self.name:
             val["name"] = self.name
