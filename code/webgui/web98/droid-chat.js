@@ -36,43 +36,35 @@ function ensureDroidChatWindow(entityId) {
         droidChats[entityId] = { messages: [], pending: false };
     }
 
-    let win = document.getElementById(`droid-chat-window-${entityId}`);
+    const windowId = `droid-chat-window-${entityId}`;
+    let win = document.getElementById(windowId);
     if (win) return; // already exists
 
-    win = document.createElement('div');
-    win.id = `droid-chat-window-${entityId}`;
-    win.className = 'window droid-chat-window draggable resizeable';
-    win.style.width = '360px';
-    win.style.height = '300px';
-    win.innerHTML = `
-        <div class="title-bar">
-            <div class="title-bar-text">JawaScript© Droid Chat Interface - ${entityId}</div>
-            <div class="title-bar-controls">
-                <button aria-label="Close"></button>
+    // Create chat window using centralized system
+    win = createWindow({
+        id: windowId,
+        title: `JawaScript© Droid Chat Interface - ${entityId}`,
+        content: `
+            <div class="window-body chat-body">
+                <div id="droid-chat-log-${entityId}" class="chat-log"></div>
             </div>
-        </div>
-        <div class="window-body chat-body">
-            <div id="droid-chat-log-${entityId}" class="chat-log"></div>
-        </div>
-        <div class="status-bar chat-input-bar">
-            <div class="status-bar-field chat-input-wrapper">
-                <input id="droid-chat-input-${entityId}" class="chat-input" type="text" placeholder="Type a message..." />
+            <div class="status-bar chat-input-bar">
+                <div class="status-bar-field chat-input-wrapper">
+                    <input id="droid-chat-input-${entityId}" class="chat-input" type="text" placeholder="Type a message..." />
+                </div>
+                <div class="status-bar-field chat-send-wrapper">
+                    <button id="droid-chat-send-${entityId}" class="chat-send">Send</button>
+                </div>
             </div>
-            <div class="status-bar-field chat-send-wrapper">
-                <button id="droid-chat-send-${entityId}" class="chat-send">Send</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(win);
+        `,
+        width: 360,
+        height: 300,
+        resizable: true,
+        draggable: true
+    });
 
-    // Wire behaviors
-    const closeButton = win.querySelector('.title-bar-controls button[aria-label="Close"]');
-    if (closeButton) closeButton.addEventListener('click', () => win.classList.add('hidden'));
-    
-    // Make window draggable and resizeable
-    if (typeof resizeableElement === 'function') resizeableElement(win);
-    if (typeof draggableElement === 'function') draggableElement(win);
-    if (typeof bringableToFront === 'function') bringableToFront(win);
+    // Add chat-specific class
+    win.classList.add('droid-chat-window');
 
     const input = document.getElementById(`droid-chat-input-${entityId}`);
     const sendBtn = document.getElementById(`droid-chat-send-${entityId}`);

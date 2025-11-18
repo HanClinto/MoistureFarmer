@@ -4,48 +4,26 @@
  * Show the entity detail window for a specific entity
  */
 function showEntityDetailWindow(entityId) {
-    // Create or focus the entity detail window for the given entity ID
-    let win = document.getElementById(`entity-detail-window-${entityId}`);
-    if (!win) {
-        // Create a new window if it doesn't exist
-        win = document.createElement('div');
-        win.id = `entity-detail-window-${entityId}`;
-        win.className = 'window entity-detail-window draggable resizeable';
-        win.innerHTML = `
-            <div class="title-bar">
-                <div class="title-bar-text">Entity Detail - ${entityId}</div>
-                <div class="title-bar-controls">
-                    <button aria-label="Close"></button>
-                </div>
-            </div>
-            <div class="window-body">
-                <div id="entity-detail-window-body-${entityId}" class="entity-detail-body">
+    const windowId = `entity-detail-window-${entityId}`;
+    
+    // Create window using centralized system
+    const win = createWindow({
+        id: windowId,
+        title: `Entity Detail - ${entityId}`,
+        content: `<div class="window-body"><div id="entity-detail-window-body-${entityId}" class="entity-detail-body">
                     <p>Loading entity details...</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(win);
+                  </div></div>`,
+        width: 400,
+        height: 400,
+        resizable: true,
+        draggable: true
+    });
 
-        // Add close button functionality
-        const closeButton = win.querySelector('.title-bar-controls button[aria-label="Close"]');
-        closeButton.addEventListener('click', function() {
-            const win = closeButton.closest('.window');
-            if (win) {
-                win.classList.add('hidden');
-            }
-        });
+    // Add entity-specific class
+    win.classList.add('entity-detail-window');
 
-        // Make window interactive
-        if (typeof resizeableElement === 'function') resizeableElement(win);
-        if (typeof draggableElement === 'function') draggableElement(win);
-        if (typeof bringableToFront === 'function') bringableToFront(win);
-    }
-
+    // Update with current entity data
     updateEntityDetailWindow(entityId);
-
-    // Show the window and bring it to the front
-    showWindow(win.id);
-    bringToFront(win);
 }
 
 /**
