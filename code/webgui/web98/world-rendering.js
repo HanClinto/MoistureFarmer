@@ -5,7 +5,7 @@ if (typeof window.tilemapView === 'undefined') {
     window.tilemapView = {
         scale: 1,
         minScale: 0.1,
-        maxScale: 2.0,  // Never upscale beyond 100%
+        maxScale: 3.0,
         offsetX: 0,
         offsetY: 0,
         isPanning: false,
@@ -342,6 +342,9 @@ function renderWorldTilemap(tm) {
     ctx.reset();
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Use nearest-neighbor scaling for crisp pixel art
+    ctx.imageSmoothingEnabled = false;
 
     // Apply transform
     ctx.translate(window.tilemapView.offsetX, window.tilemapView.offsetY);
