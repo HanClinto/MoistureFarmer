@@ -318,28 +318,17 @@ function renderWorldTilemap(tm) {
         }
     }
 
-    // --- Entity rendering (simple colored rectangles) ---
+    // --- Entity rendering ---
+    // Render entities as icons on a desktop, where each icon is resources/sprites/{entity.model}.png
+    // Render a label with entity name below the icon (similar to on a Windows desktop)
     try {
         if (window.simulationData.world && window.simulationData.world.entities) {
-            // Lazy-init color cache & generator
-            if (!window._entityColorCache) window._entityColorCache = {};
-            if (!window._entityColorFor) {
-                window._entityColorFor = function(id) {
-                    if (window._entityColorCache[id]) return window._entityColorCache[id];
-                    // Deterministic hash -> hue
-                    let h = 0;
-                    for (let i = 0; i < id.length; i++) {
-                        h = (h * 131 + id.charCodeAt(i)) >>> 0; // simple rolling hash
-                    }
-                    const hue = h % 360;
-                    const color = `hsl(${hue}deg 65% 55%)`;
-                    window._entityColorCache[id] = color;
-                    return color;
-                };
-            }
+            // Lazy-init image cache
+            if (!window._entityImageCache) window._entityImageCache = {};
 
             const entities = Object.values(window.simulationData.world.entities);
             const tweenState = window._entityTweenState || {};
+            
             for (const ent of entities) {
                 if (!ent || !ent.location) continue;
                 const st = tweenState[ent.id];
@@ -350,16 +339,58 @@ function renderWorldTilemap(tm) {
                     ex = (typeof st.interpX === 'number') ? st.interpX : ex;
                     ey = (typeof st.interpY === 'number') ? st.interpY : ey;
                 }
-                const inset = 2;
-                const size = tileSize - inset * 2;
+                
+                const iconSize = tileSize - 4;
+                const iconX = ex + 2;
+                const iconY = ey + 2;
+                
                 ctx.save();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000';
-                ctx.fillStyle = window._entityColorFor(ent.id || 'unknown');
-                ctx.beginPath();
-                ctx.rect(ex + inset, ey + inset, size, size);
-                ctx.fill();
-                ctx.stroke();
+                
+                // Load and draw sprite image
+                const model = ent.model || 'unknown';
+                const imgPath = `../resources/sprites/${model}.png`;
+                
+                if (!window._entityImageCache[imgPath]) {
+                    // Create and cache the image
+                    const img = new Image();
+                    img.src = imgPath;
+                    window._entityImageCache[imgPath] = img;
+                }
+                
+                const img = window._entityImageCache[imgPath];
+                if (img.complete && img.naturalWidth > 0) {
+                    // Image loaded successfully - draw it
+                    ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+                } else {
+                    // Image not loaded yet or failed - draw placeholder
+                    ctx.fillStyle = '#C0C0C0';
+                    ctx.fillRect(iconX, iconY, iconSize, iconSize);
+                    ctx.strokeStyle = '#808080';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(iconX, iconY, iconSize, iconSize);
+                }
+                
+                // Draw label below icon (Windows desktop style)
+                const labelText = ent.name || ent.id || 'Entity';
+                const labelY = ey + tileSize + 12;
+                
+                // Draw text background (like Windows desktop)
+                ctx.font = '10px "MS Sans Serif", sans-serif';
+                const textMetrics = ctx.measureText(labelText);
+                const textWidth = textMetrics.width;
+                const textX = ex + (tileSize - textWidth) / 2;
+                
+                // Background
+                ctx.fillStyle = 'rgba(0, 128, 128, 0.7)'; // Windows teal (unselected)
+                // ctx.fillStyle = 'rgba(0, 0, 128, 0.7)'; // Windows blue (selected)
+                ctx.fillRect(textX - 2, labelY - 9, textWidth + 4, 12);
+                
+                // Text
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(labelText, textX, labelY - 8);
+                
                 ctx.restore();
             }
         }
