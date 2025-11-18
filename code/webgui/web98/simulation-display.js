@@ -93,6 +93,55 @@ function updateSimulationDisplayCore() {
     if (typeof updateAllDroidChatWindows === 'function') {
         updateAllDroidChatWindows();
     }
+
+    // Update the Entities menu
+    if (typeof updateEntitiesMenu === 'function') {
+        updateEntitiesMenu();
+    }
+}
+
+/**
+ * Update the Entities menu with current entities from the simulation
+ */
+function updateEntitiesMenu() {
+    const entitiesMenu = document.getElementById('entities-menu');
+    if (!entitiesMenu) return;
+
+    // Get current entities
+    const entities = window.simulationData.world && window.simulationData.world.entities 
+        ? Object.values(window.simulationData.world.entities) 
+        : [];
+
+    // Clear existing menu items
+    entitiesMenu.innerHTML = '';
+
+    // Add menu item for each entity
+    entities.forEach(entity => {
+        const li = document.createElement('li');
+        li.setAttribute('onmousedown', `showEntityDetailWindow('${entity.id}')`);
+        
+        // Add sprite icon if model is available
+        if (entity.model) {
+            const img = document.createElement('img');
+            img.src = `/resources/sprites/${entity.model}.png`;
+            li.appendChild(img);
+        }
+        
+        // Add entity name/id
+        const span = document.createElement('span');
+        span.textContent = entity.name || entity.id;
+        li.appendChild(span);
+        
+        entitiesMenu.appendChild(li);
+    });
+
+    // If no entities, show a placeholder
+    if (entities.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'disabled';
+        li.textContent = 'No entities';
+        entitiesMenu.appendChild(li);
+    }
 }
 
 /**
@@ -227,3 +276,4 @@ function jsonToTreeviewHtml(json, title, id_path, depth = 0) {
 window.updateSimulationDisplayCore = updateSimulationDisplayCore;
 window.updateJsonTreeviewHtmlIncrementally = updateJsonTreeviewHtmlIncrementally;
 window.jsonToTreeviewHtml = jsonToTreeviewHtml;
+window.updateEntitiesMenu = updateEntitiesMenu;
