@@ -7,8 +7,6 @@ from simulation.core.entity.ComponentSlot import ComponentSlot
 from simulation.core.entity.Entity import Location
 from simulation.core.World import World
 from simulation.llm.ToolCall import ToolCallResult, ToolCallState, tool
-from simulation.movement_intent import MovementIntent
-
 
 # --- Droid Components ---
 class Motivator(Component):
@@ -174,6 +172,7 @@ class Motivator(Component):
 
         if not self.path_to_destination:
             self.warn("No path available to destination.")
+            self.last_block_reason = "no_path"
             self.destination = None
             self.destination_identifier = None
             return
@@ -181,33 +180,21 @@ class Motivator(Component):
         # Peek at the next location in the path
         next_location = self.path_to_destination[0]
 
-        # Calculate the movement deltas
-        dx = next_location.x - self.chassis.location.x
-        dy = next_location.y - self.chassis.location.y
-
-        remaining = len(self.path_to_destination)
-        issued = self.chassis.request_move(dx, dy, source="Motivator", remaining_path=remaining)
-        if not issued:
-            self.last_block_reason = "intent_exists"
+        # Ensure that the location is available
+        if not self.chassis.world.tilemap.is_passable(next_location.x, next_location.y):
+            self.last_block_reason = "blocked_tile"
+            self.warn(f"Next tile at {next_location} is not passable.")
+            self.path_to_destination.clear()
             return
+        
+        # Move to the next location
+        self.chassis.location = next_location
+        self.path_to_destination.pop(0)  # Remove the first location from the path
 
-    # Callbacks from Chassis/world
-    def on_move_applied(self, old_loc: Location, new_loc: Location, intent: MovementIntent):
-        power: PowerPack = self.chassis.get_component(PowerPack)  # type: ignore
-        if power:
-            power.charge = max(0, power.charge - self.power_cost_per_step)
-        if self.path_to_destination and len(self.path_to_destination) > 0 and self.path_to_destination[0] == new_loc:
-            self.path_to_destination.pop(0)
-        if not self.path_to_destination:
-            self.destination = None
+        # Consume power for the movement
+        power.charge = max(0, power.charge - self.power_cost_per_step)
         self.cooldown_remaining = self.cooldown_delay
         self.last_block_reason = None
-
-    def on_move_blocked(self, intent: MovementIntent, reason: str, blocker: Any | None = None):
-        self.last_block_reason = reason
-        self.info(f"Move blocked: reason={reason} intent=({intent.dx},{intent.dy}) blocker={getattr(blocker, 'id', None)}")
-        if self.path_to_destination and reason in ("OCCUPIED", "BLOCKED_TILE"):
-            self.path_to_destination.clear()
 
 class AStarMotivator(Motivator):
     name: str = "Advanced Motivator"

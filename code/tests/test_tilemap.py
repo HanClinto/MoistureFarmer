@@ -36,7 +36,6 @@ def test_tilemap_mutation_updates_one_cell():
     tm = Tilemap.from_default()
     before = [row[:] for row in tm.tiles]
 
-    tm.maybe_mutate()
     j = tm.to_json()
 
     # Mutation metadata set

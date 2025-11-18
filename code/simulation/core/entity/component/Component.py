@@ -3,7 +3,6 @@ import logging
 from typing import TYPE_CHECKING, TypeVar, overload, ClassVar, Dict, Optional, List, Type, Any, Union
 from simulation.core.entity.Entity import Entity, Location, GameObject, LogMessage
 from simulation.llm.ToolCall import ToolCall, _IS_TOOL_FUNCTION
-from simulation.movement_intent import MovementIntent
 
 if TYPE_CHECKING:
     from simulation.core.entity.Chassis import Chassis  # type: ignore

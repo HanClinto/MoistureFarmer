@@ -38,6 +38,18 @@ class Location(BaseModel):
             return NotImplemented
         return Location(x=self.x - other.x, y=self.y - other.y)
     
+class Rectangle(BaseModel):
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def intersects(self, other: 'Rectangle') -> bool:
+        return not (self.x + self.width <= other.x or
+                    self.x >= other.x + other.width or
+                    self.y + self.height <= other.y or
+                    self.y >= other.y + other.height)
+
 class LogMessage(BaseModel):
     colors: ClassVar[Dict[str, str]] = {
         0: GlobalConfig.INFO_COLOR,
@@ -121,6 +133,7 @@ class GameObject(BaseModel):
 
 class Entity(GameObject):
     location: Location = Location(x=0, y=0)  # Default location
+    size: Tuple[int, int] = (1, 1)  # Width, Height in tiles
     name: Optional[str] = None
     description: Optional[str] = None
     world: Optional['World'] = None  # Reference to the world this entity belongs to
@@ -150,3 +163,18 @@ class Entity(GameObject):
                 val["model"] = self.model
 
         return val
+
+    @property
+    def bounds(self) -> Rectangle:
+        return Rectangle(
+            x=self.location.x,
+            y=self.location.y,
+            width=self.size[0],
+            height=self.size[1]
+        )
+    
+    def occupied_tiles(self, at_location: Location | None = None):
+        loc = at_location or self.location
+        for oy in range(self.size[1]):
+            for ox in range(self.size[0]):
+                yield (loc.x + ox, loc.y + oy)
