@@ -192,6 +192,39 @@ function clearEntitySelection() {
 }
 
 /**
+ * Get entity at world position
+ */
+function getEntityAtWorldPosition(worldX, worldY) {
+    if (!window.simulationData.world || !window.simulationData.world.entities) return null;
+    
+    const tileSize = 32;
+    const entities = Object.values(window.simulationData.world.entities);
+    const tweenState = window._entityTweenState || {};
+    
+    // Check entities in reverse order (top to bottom in rendering)
+    for (let i = entities.length - 1; i >= 0; i--) {
+        const ent = entities[i];
+        if (!ent || !ent.location) continue;
+        
+        const st = tweenState[ent.id];
+        let ex = ent.location.x * tileSize;
+        let ey = ent.location.y * tileSize;
+        if (st) {
+            ex = (typeof st.interpX === 'number') ? st.interpX : ex;
+            ey = (typeof st.interpY === 'number') ? st.interpY : ey;
+        }
+        
+        // Check if click is within entity bounds (tile + label area)
+        const labelHeight = 16;
+        if (worldX >= ex && worldX <= ex + tileSize &&
+            worldY >= ey && worldY <= ey + tileSize + labelHeight) {
+            return ent;
+        }
+    }
+    return null;
+}
+
+/**
  * Setup world layer interaction for panning and zooming
  */
 function setupWorldLayerInteraction() {
@@ -213,11 +246,33 @@ function setupWorldLayerInteraction() {
         e.preventDefault();
     });
 
-    window.addEventListener('mouseup', () => {
+    window.addEventListener('mouseup', (e) => {
         if (window.tilemapView.isPanning) {
             // If movement was less than threshold, treat as click
             if (window.tilemapView.dragDistance < window.tilemapView.panThreshold) {
-                clearEntitySelection();
+                // Convert click position to world coordinates
+                const canvas = document.getElementById('world-canvas');
+                if (canvas) {
+                    const rect = canvas.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+                    
+                    // Transform to world coordinates
+                    const worldX = (clickX - window.tilemapView.offsetX) / window.tilemapView.scale;
+                    const worldY = (clickY - window.tilemapView.offsetY) / window.tilemapView.scale;
+                    
+                    // Check if we clicked on an entity
+                    const entity = getEntityAtWorldPosition(worldX, worldY);
+                    if (entity) {
+                        window.selectedEntityId = entity.id;
+                        // Open entity detail window
+                        if (typeof window.showEntityDetailWindow === 'function') {
+                            window.showEntityDetailWindow(entity.id);
+                        }
+                    } else {
+                        clearEntitySelection();
+                    }
+                }
             }
             window.tilemapView.isPanning = false;
             const worldLayer = document.getElementById('world-layer');
@@ -340,6 +395,7 @@ function renderWorldTilemap(tm) {
                     ey = (typeof st.interpY === 'number') ? st.interpY : ey;
                 }
                 
+                const entityIsSelected = (ent.id === window.selectedEntityId);
                 const iconX = ex;
                 const iconY = ey;
                 
@@ -382,9 +438,12 @@ function renderWorldTilemap(tm) {
                 const textX = ex + (tileSize - textWidth) / 2;
                 
                 // Background
-                ctx.fillStyle = 'rgba(0, 128, 128, 0.7)'; // Windows teal (unselected)
-                // ctx.fillStyle = 'rgba(0, 0, 128, 0.7)'; // Windows blue (selected)
-                ctx.fillRect(textX - 2, labelY - 9, textWidth + 4, 12);
+                if (entityIsSelected) {
+                    ctx.fillStyle = 'rgba(0, 0, 128, 1)'; // Windows blue (selected)
+                } else {
+                    ctx.fillStyle = 'rgba(0, 128, 128, 1)'; // Windows teal (unselected)
+                }
+                ctx.fillRect(textX - 2, labelY - 10, textWidth + 4, 12);
                 
                 // Text
                 ctx.fillStyle = '#FFFFFF';
@@ -487,6 +546,7 @@ window.addEventListener('resize', () => {
 });
 
 // Export functions to global scope
+window.getEntityAtWorldPosition = getEntityAtWorldPosition;
 window.createWorldControlsWindow = createWorldControlsWindow;
 window.adjustWorldZoom = adjustWorldZoom;
 window.zoomWorldAtPoint = zoomWorldAtPoint;
