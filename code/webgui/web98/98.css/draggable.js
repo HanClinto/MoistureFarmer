@@ -30,14 +30,18 @@ function draggableElement(elmnt) {
     let dragTarget = null, offsetX = 0, offsetY = 0;
     bar.addEventListener('mousedown', function(e) {
         dragTarget = elmnt;
-        const rect = dragTarget.getBoundingClientRect();
         // Normalize positioning to left/top anchoring to avoid conflicts with right/bottom
-        dragTarget.style.left = rect.left + 'px';
-        dragTarget.style.top = rect.top + 'px';
+        // Use the computed style values to avoid shifting
+        const computedLeft = dragTarget.offsetLeft;
+        const computedTop = dragTarget.offsetTop;
+        dragTarget.style.left = computedLeft + 'px';
+        dragTarget.style.top = computedTop + 'px';
         dragTarget.style.right = '';
         dragTarget.style.bottom = '';
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
+        // Calculate offset from click position to element's current position
+        // Use offsetLeft/offsetTop for consistency with how we set position
+        offsetX = e.clientX - dragTarget.offsetLeft;
+        offsetY = e.clientY - dragTarget.offsetTop;
         document.body.style.userSelect = 'none';
     });
     document.addEventListener('mousemove', function(e) {
@@ -75,8 +79,11 @@ function resizeableElement(elmnt) {
         startY = e.clientY;
         const rect = elmnt.getBoundingClientRect();
         // Normalize positioning to left/top anchoring so bottom-right follows cursor
-        elmnt.style.left = rect.left + 'px';
-        elmnt.style.top = rect.top + 'px';
+        // Use the computed style values to avoid shifting
+        const computedLeft = elmnt.offsetLeft;
+        const computedTop = elmnt.offsetTop;
+        elmnt.style.left = computedLeft + 'px';
+        elmnt.style.top = computedTop + 'px';
         elmnt.style.right = '';
         elmnt.style.bottom = '';
         startW = rect.width;
