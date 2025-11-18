@@ -10,8 +10,8 @@ def test_tile_types_serialization():
     assert {'sand','rock','pad'}.issubset(names)
 
     # Register new type and reserialize
-    ice = TileType(id=3, name='ice', passable=True, move_speed_scalar=1.2, can_mutate=True)
+    ice = TileType(id=3, name='ice', passable=True, move_speed_scalar=1.2)
     tm.register_tile_type(ice)
     j2 = tm.to_json()
-    assert '3' in j2['legend']
+    assert 3 in j2['tile_types']
     assert j2['tile_types'][3]['name'] == 'ice'

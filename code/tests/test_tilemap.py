@@ -6,7 +6,7 @@ def test_tilemap_default_init_shape():
     j = tm.to_json()
 
     # Allow additional future keys (e.g., tile_types) while ensuring required baseline keys exist.
-    for required in ["width", "height", "tiles", "legend", "last_mutation"]:
+    for required in ["width", "height", "tiles"]:
         assert required in j
     assert isinstance(j["width"], int) and j["width"] == 128
     assert isinstance(j["height"], int) and j["height"] == 128
@@ -27,27 +27,4 @@ def test_tilemap_default_init_shape():
     # Check center pad
     cx, cy = width // 2, height // 2
     assert tiles[cy][cx] == 2
-
-    # No mutation yet
-    assert j["last_mutation"] is None
-
-
-def test_tilemap_mutation_updates_one_cell():
-    tm = Tilemap.from_default()
-    before = [row[:] for row in tm.tiles]
-
-    j = tm.to_json()
-
-    # Mutation metadata set
-    lm = j["last_mutation"]
-    assert lm is not None
-    x = lm["x"]
-    y = lm["y"]
-    v = lm["value"]
-
-    # Ensure coordinates are interior
-    assert 1 <= x <= j["width"] - 2
-    assert 1 <= y <= j["height"] - 2
-
-    # Ensure the tile value at (x, y) matches recorded value
-    assert tm.tiles[y][x] == v
+    
